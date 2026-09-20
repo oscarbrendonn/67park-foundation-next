@@ -1,5 +1,9 @@
 const assert=require('node:assert/strict');
 const {prepareJumpInput}=require('./jump-input.cjs');
+function plazaJumpAccepted({before,minVelocity,expectedJumpsLeft}){
+ const b=__eggyInput.playerRef.body,p=b.translation(),v=b.linvel(),s=window.__qaPlazaGorillaState?.();
+ return s?.frames>before.frames&&s.grounded===false&&s.jumpsLeft===expectedJumpsLeft&&p.y>before.y+.12&&v.y>minVelocity;
+}
 function stableWallContact(){
  const p=__eggyInput.playerRef.body.translation(),i=__eggyInput.input,frame=__islandWorld.renderer.info.render.frame,samples=window.__qaPlazaWallSamples,last=samples[samples.length-1];
  if(!last||last.frame!==frame)samples.push({frame,x:p.x,y:p.y,z:p.z,intent:Math.hypot(i.x,i.z)});
@@ -71,20 +75,16 @@ module.exports=async function checkPlazaClimb(page,{mobile=false,check}){
    const before=await page.evaluate(({label,expectedJumped,expectedJumpsLeft})=>{
     const b=__eggyInput.playerRef.body,p=b.translation();
     window.__qaPlazaJumpObservation={label,expectedJumped,expectedJumpsLeft,armedFrame:__islandWorld.renderer.info.render.frame,armedState:window.__qaPlazaGorillaState?.()};
-    return {x:p.x,y:p.y,z:p.z,vy:b.linvel().y};
+    return {x:p.x,y:p.y,z:p.z,vy:b.linvel().y,frames:window.__qaPlazaGorillaState?.().frames};
    },{label,expectedJumped,expectedJumpsLeft});
    await jump();
    return before;
   }
-  async function confirmJump(label,before,minVelocity){
-   // The rAF latch preserves the controller transition even when `jumped`
-   // resets before the body has risen .12m. The physical impulse remains an
-   // independent required check, so neither signal can fabricate a pass.
-   await page.waitForFunction(label=>window.__qaPlazaJumpLatches?.some(l=>l.stage===label+' controller latched'),label,{timeout:actionTimeout});
-   await page.waitForFunction(({before,minVelocity})=>{
-    const b=__eggyInput.playerRef.body,p=b.translation(),v=b.linvel();
-    return p.y>before.y+.12&&v.y>minVelocity;
-   },{before,minVelocity},{timeout:actionTimeout});
+  async function confirmJump(label,before,minVelocity,expectedJumpsLeft){
+   // `jumped` only lasts one controller step, so its rAF observation is
+   // diagnostic evidence. Acceptance joins physical impulse to the persistent
+   // live budget after the controller frame armed before the trusted tap.
+   await page.waitForFunction(plazaJumpAccepted,{before,minVelocity,expectedJumpsLeft},{timeout:actionTimeout});
    await trace(label+' confirmed');
   }
   async function direction(x,target){await page.evaluate(({x,target,deadline})=>{
@@ -117,7 +117,7 @@ module.exports=async function checkPlazaClimb(page,{mobile=false,check}){
    // frame. This preserves the grounded jump budget while giving the long
    // awning transfer its first airborne movement sample.
    await direction(x,target);
-   await confirmJump(firstLabel,start,3);
+   await confirmJump(firstLabel,start,3,1);
    if(double){
     await page.waitForFunction(y=>{const b=__eggyInput.playerRef.body;return b.translation().y>y+1&&b.linvel().y<2.8;},start.y,{timeout:actionTimeout});
     await trace(`hop ${hop} second jump window`);
@@ -125,7 +125,7 @@ module.exports=async function checkPlazaClimb(page,{mobile=false,check}){
     // Touch-end can clear live analog input. Reclaim it in the same turn as
     // the queued double jump, before waiting to prove the impulse.
     await direction(x,target);
-    await confirmJump(secondLabel,second,4);
+    await confirmJump(secondLabel,second,4,0);
    }
    await page.waitForFunction(()=>window.__qaPlazaAtTarget,null,{timeout:actionTimeout});
    await trace('target reached');
@@ -170,3 +170,4 @@ module.exports=async function checkPlazaClimb(page,{mobile=false,check}){
  });
 };
 module.exports.stableWallContact=stableWallContact;
+module.exports.plazaJumpAccepted=plazaJumpAccepted;

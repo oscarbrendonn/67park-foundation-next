@@ -221,6 +221,29 @@ run (`.qa-results/grounded-launch-unit.log`) passed 146 of 147 tests, with the
 same optional external-fixture skip and zero failures. Syntax and whitespace
 checks also passed. These focused checks do not replace the hosted gate.
 
+Run `35537382816` confirmed the grounded-launch correction: the mobile route
+reached the shrub, awning, window sill and upper cap at y19.115. It nevertheless
+timed out waiting for the observer's one-frame `jumped` flag on the fourth
+hop's air jump. The controller clears that flag on every update; a separate
+rAF observer is not guaranteed to sample every controller step. No JavaScript
+or game fault accompanied this failure, and Pages remained unpublished.
+
+The release assertion therefore uses the durable, live controller state:
+after a newer controller frame, the body must have risen more than the original
+0.12m and retain the original minimum upward velocity, be airborne, and have
+one air jump left after the ground jump or zero after the air jump. Grounded
+readiness is still required before every first tap. Transient event captures
+remain diagnostic only. Unit fixtures explicitly reject wrong budgets,
+grounded/stale samples and insufficient or downward movement, while accepting
+a real rising jump after `jumped` has reset. All final landing heights and the
+complete route remain mandatory; no game physics or geometry is changed.
+
+With the durable assertion, the normal mobile focused route completed through
+the cap (y19.115), roof (y20.785) and closed-wall check (x17.011). The full
+unit suite in `.qa-results/durable-jump-unit.log` passed 150 of 151 tests,
+with the same one optional fixture skipped and zero failures. A new hosted
+full regression, including the entire mobile soak, is still required.
+
 The required release workflow retains asset-failure/retry, connection recovery,
 graphics, physical wall/corner/curb checks, grass/coast/roof/plaza checks, chat
 spam, player safety, 100 home transitions, repeated actions, outfit changes,
