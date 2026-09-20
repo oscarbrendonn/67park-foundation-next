@@ -35,11 +35,14 @@ module.exports=async function checkPlazaClimb(page,{mobile=false,check}){
    }
    // One-way awnings leave the original street below open, not a tall wall.
    const under=w.characterGround(18,57.5,meta.ground,.36),on=w.characterGround(18,57.5,15.1,.012);
-   return {stats:p.stats,tested,errors,under,on};
+   const ciPose={x:17.12685775756836,z:57.5,feet:17.24};
+   const support=w.characterGround(ciPose.x,ciPose.z,ciPose.feet,.36),obstacle=w.characterObstacle(ciPose.x,ciPose.z,ciPose.feet,.36);
+   return {stats:p.stats,tested,errors,under,on,ciPose:{...ciPose,support,obstacle}};
   });
   assert.equal(result.tested,33);assert.deepEqual(result.errors,[]);assert.equal(result.stats.shops,11);
   assert(result.stats.windowCaps>=44);assert.equal(result.stats.addedDrawCalls,1);assert.equal(result.stats.newAssetDownloads,0);
   assert(result.stats.bytes<11*1024*1024);assert(Math.abs(result.under-9.66)<.02);assert(result.on>14.8&&result.on<15);
+  assert(result.ciPose.support<result.ciPose.feet+.36,'CI cap must not become airborne vertical support');assert(result.ciPose.obstacle>18.5,'CI cap remains a horizontal obstacle');
   console.log('PASS plaza geometry',JSON.stringify({mobile,...result}));
  });
  await check(mobile?'touch jumps: paving → shrub → striped awning → window cap → roof':'keyboard jumps: paving → shrub → striped awning → window cap → roof',async()=>{
@@ -54,9 +57,14 @@ module.exports=async function checkPlazaClimb(page,{mobile=false,check}){
    // for each armed real tap; physical rise is verified separately below.
    const observe=()=>{
     if(window.__qaPlazaStopGorillaObserver)return;
-    const o=window.__qaPlazaJumpObservation,s=window.__qaPlazaGorillaState?.(),b=__eggyInput.playerRef.body;
+    const o=window.__qaPlazaJumpObservation,s=window.__qaPlazaGorillaState?.(),b=__eggyInput.playerRef.body,p=b.translation(),v=b.linvel(),renderFrame=__islandWorld.renderer.info.render.frame;
+    if(o&&o.frameTrace.length<100&&o.lastRenderFrame!==renderFrame){
+     o.lastRenderFrame=renderFrame;
+     const i=__eggyInput.input,foot=p.y-.555;
+     o.frameTrace.push({renderFrame,t:Math.round(performance.now()),p:{...p},v:{...v},gorilla:s&&{...s},input:{x:i.x,z:i.z,run:i.run,jumpQueued:i.jumpQueued},ground:__islandWorld.characterGround(p.x,p.z,foot,.36),foot});
+    }
     if(o&&!o.latch&&s?.frames>o.armedState.frames&&s?.jumped===o.expectedJumped&&s?.jumpsLeft===o.expectedJumpsLeft){
-     const entry={stage:o.label+' controller latched',t:Math.round(performance.now()),frame:__islandWorld.renderer.info.render.frame,p:{...b.translation()},v:{...b.linvel()},gorilla:{...s}};
+     const entry={stage:o.label+' controller latched',t:Math.round(performance.now()),frame:renderFrame,p:{...p},v:{...v},gorilla:{...s}};
      o.latch=entry;window.__qaPlazaJumpLatches.push(entry);window.__qaPlazaJumpProof.push(entry);
      if(window.__qaPlazaJumpLatches.length>12)window.__qaPlazaJumpLatches.shift();if(window.__qaPlazaJumpProof.length>24)window.__qaPlazaJumpProof.shift();
     }
@@ -74,7 +82,7 @@ module.exports=async function checkPlazaClimb(page,{mobile=false,check}){
   async function queueJump(label,expectedJumped,expectedJumpsLeft){
    const before=await page.evaluate(({label,expectedJumped,expectedJumpsLeft})=>{
     const b=__eggyInput.playerRef.body,p=b.translation();
-    window.__qaPlazaJumpObservation={label,expectedJumped,expectedJumpsLeft,armedFrame:__islandWorld.renderer.info.render.frame,armedState:window.__qaPlazaGorillaState?.()};
+    window.__qaPlazaJumpObservation={label,expectedJumped,expectedJumpsLeft,armedFrame:__islandWorld.renderer.info.render.frame,armedState:window.__qaPlazaGorillaState?.(),lastRenderFrame:null,frameTrace:[]};
     return {x:p.x,y:p.y,z:p.z,vy:b.linvel().y,frames:window.__qaPlazaGorillaState?.().frames};
    },{label,expectedJumped,expectedJumpsLeft});
    await jump();
@@ -161,7 +169,7 @@ module.exports=async function checkPlazaClimb(page,{mobile=false,check}){
    const jumpProof=await page.evaluate(()=>window.__qaPlazaJumpProof);
    console.log('PASS plaza route',JSON.stringify({mobile,shrub,awning,sill,cap,roof,wall,jumpProof}));
   }catch(error){
-   console.log('PLAZA_ROUTE_FAILURE',JSON.stringify(await page.evaluate(()=>{const w=__islandWorld,b=__eggyInput.playerRef.body,p=b.translation();return {p,v:b.linvel(),gorilla:window.__qaPlazaGorillaState?.(),input:__eggyInput.input,board:__candy.state().board,surface:w.characterGround(p.x,p.z,p.y-.555),ahead:w.characterGround(p.x-.45,p.z,p.y-.555),jumpProof:window.__qaPlazaJumpProof,trace:window.__qaPlazaTrace,errors:__candyErrors};})));
+   console.log('PLAZA_ROUTE_FAILURE',JSON.stringify(await page.evaluate(()=>{const w=__islandWorld,b=__eggyInput.playerRef.body,p=b.translation(),o=window.__qaPlazaJumpObservation;return {p,v:b.linvel(),gorilla:window.__qaPlazaGorillaState?.(),input:__eggyInput.input,board:__candy.state().board,surface:w.characterGround(p.x,p.z,p.y-.555),ahead:w.characterGround(p.x-.45,p.z,p.y-.555),jumpObservation:o&&{label:o.label,armedFrame:o.armedFrame,armedState:o.armedState,frameTrace:o.frameTrace},jumpProof:window.__qaPlazaJumpProof,trace:window.__qaPlazaTrace,errors:__candyErrors};})));
    throw error;
   }finally{
    await stop();await page.evaluate(p=>{__tp([p.x,p.y,p.z]);window.__qaPlazaStopGorillaObserver=true;cancelAnimationFrame(window.__qaPlazaGorillaObserver);delete window.__qaPlazaJumpObservation;delete window.__qaPlazaJumpLatches;delete window.__qaPlazaGorillaState;delete window.__qaPlazaJumpProof;delete window.__qaPlazaTrace;},before.position);

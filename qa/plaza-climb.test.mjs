@@ -3,6 +3,15 @@ import assert from 'node:assert/strict';
 import * as T from 'three';
 import {createCityHeightSampler58} from '../island/city-height-sampler58.js';
 import {createPlazaClimbSupports} from '../app/plaza-climb-support.js';
+import {resolveCharacterContact} from '../app/character-contact.js';
+import fs from 'node:fs';
+
+// Exercise the exact walking resolver used by zn(), with the real plaza
+// support and obstacle queries rather than a hand-written floor approximation.
+const movement=fs.readFileSync(new URL('../app/chunk-OZ77422N.js',import.meta.url),'utf8');
+const walkBegin=movement.indexOf('var ke=Object.freeze'),walkEnd=movement.indexOf('f();function nt(',walkBegin);
+assert(walkBegin>0&&walkEnd>walkBegin,'Ground movement source anchor changed');
+const walk=Function(movement.slice(walkBegin,walkEnd)+';return tt;')();
 function fixture(){
  const scene=new T.Scene(),group=new T.Group();group.name='LOWER_PLAZA_V83';scene.add(group);
  group.userData.plaza83={cx:0,cz:0,ground:0,pad:[-20,-20,20,20],shops:[{id:'A',x:0,z:0,yaw:0,width:4,depth:4,height:11}],
@@ -47,10 +56,22 @@ test('visible window caps and their rotated collision surfaces agree and dispose
  assert.equal(caps.count,4);assert.equal(r.stats.addedDrawCalls,1);assert.equal(r.stats.newAssetDownloads,0);
  const ray=new T.Raycaster(new T.Vector3(1,10,2.65),new T.Vector3(0,-1,0));
  const hit=ray.intersectObject(caps,false)[0];assert(hit);assert(Math.abs(hit.point.y-r.sample(1,2.65,10).point.y)<.0001);
- assert(r.ground(1,2.65,5.1,.012,0)>6,'A low sill blocks the torso instead of cutting through it');
+ assert(r.ground(1,2.65,5.1,.012,0)<6,'An overhead sill is not vertical support during descent');
+ assert(r.obstacleGround(1,2.65,5.1,.012,0)>6,'The same sill remains a horizontal torso blocker');
+ assert(r.ground(1,2.65,6.05,.012,0)>6,'Descending from above the sill still lands on its rendered cap');
  assert(Math.abs(r.ground(1,2.65,0,.36,0))<1e-6,'Normal head clearance below the sill stays open');
  r.dispose();assert.equal(group.getObjectByName('PLAZA83_CLIMB_WINDOW_CAPS'),undefined);assert.equal(materialDisposals,0);
  assert.equal(r.sample(1,2.65),null);assert.equal(r.ground(1,2.65,9,.36,12),12);
+});
+test('contact resolver keeps a descending body below a cap airborne, then lands from above',()=>{
+ const r=createPlazaClimbSupports(fixture().scene),x=1,z=2.65,foot=.555;
+ const descend=(feet,toY)=>resolveCharacterContact(walk,{from:{x,y:feet+foot,z},to:{x,y:toY,z},velocity:{x:0,y:-.4,z:0},wasGrounded:false,
+  ground:()=>r.obstacleGround(x,z,feet,.36,0),supportGround:()=>r.ground(x,z,feet,.36,0)});
+ const under=descend(5.1,5.5);
+ assert.equal(under.grounded,false);assert.equal(under.vertical,-.4);assert(Math.abs(under.position.y-5.5)<1e-6,'The horizontal cap must not snap an airborne body upward');
+ const landing=descend(6.05,6.45),cap=r.ground(x,z,6.05,.36,0);
+ assert(landing.grounded);assert.equal(landing.vertical,0);assert(Math.abs(landing.position.y-(cap+foot))<1e-6,'A genuine descent from above still lands on the rendered cap');
+ r.dispose();
 });
 test('compact plaza index retains sub-millimetre agreement with full precision',()=>{
  const {group}=fixture(),full=createCityHeightSampler58(group.children),compact=createCityHeightSampler58(group.children,{precision:'float32'});

@@ -97,6 +97,10 @@ export function createHouseRoofSupports(scene,{courtyard:west}={}){
     return base;
   }
   const plaza=createPlazaClimbSupports(scene);
+  function obstacleGround(x,z,feet,step,base,terrain){
+    if(plaza?.contains(x,z))return plaza.obstacleGround(x,z,feet,step,base);
+    return ground(x,z,feet,step,base,terrain);
+  }
   const stats={revision:'house-roofs-1',houses:placements.length+courtyardRows.length,assets:assets.size,
     courtyardRoofBand:courtyardRows.length,
     triangles:[...assets.values()].reduce((n,a)=>n+a.sampler.stats.triangles,courtyardSampler?.stats.triangles??0),
@@ -104,7 +108,7 @@ export function createHouseRoofSupports(scene,{courtyard:west}={}){
   const sites=placements.map(p=>({group:p.group,x:(p.box.min.x+p.box.max.x)/2,z:(p.box.min.z+p.box.max.z)/2}));
   sites.push(...courtyardRows.map(p=>({group:'WEST_COURTYARD_V102',x:p.x,z:p.z})));
   function dispose(){plaza?.dispose();assets.clear();placements.length=0;cells.clear();sites.length=0;courtyardSampler=courtyard=null;courtyardRows=[];stats.disposed=true;}
-  return {ground,sample,stats,sites,plaza,dispose};
+  return {ground,obstacleGround,sample,stats,sites,plaza,dispose};
 }
 
 export function installHouseRoofSupports(world){
@@ -122,6 +126,8 @@ export function installHouseRoofSupports(world){
   // their cleanup replace it. A home transition must retain its own floor.
   world.characterGround=(x,z,feet,step=.36)=>roofs.ground(x,z,feet,step,
     world.ground(x,z),world.terrainGround);
+  world.characterObstacle=(x,z,feet,step=.36)=>roofs.obstacleGround(x,z,feet,step,
+    world.ground(x,z),world.terrainGround);
   world.renderer.domElement.dataset.houseRoofs=JSON.stringify(roofs.stats);
   if(roofs.plaza)world.renderer.domElement.dataset.plazaClimb=JSON.stringify(roofs.plaza.stats);
   const originalDispose=world.dispose;
@@ -131,4 +137,8 @@ export function installHouseRoofSupports(world){
 
 export function characterGround(world,x,z,feet,step=.36){
   return world?.characterGround?world.characterGround(x,z,feet,step):world?.ground(x,z)??null;
+}
+
+export function characterObstacle(world,x,z,feet,step=.36){
+  return world?.characterObstacle?world.characterObstacle(x,z,feet,step):characterGround(world,x,z,feet,step);
 }

@@ -81,14 +81,20 @@ export function createPlazaClimbSupports(scene){
   // Layered support: walking under a canopy stays on the paving. Landing on
   // it does not jump up to a roof or window head above the player's feet.
   const surface=sample(x,z,feet+step)?.point.y??paving;
-  // A low projecting sill must not slice through a standing avatar's torso.
-  // Treat it as a side obstacle until the feet clear it; high awnings still
-  // leave the paving underneath open. Vertical jumps retain one-way landing.
+  // Support is strictly below the feet plus the allowed step. A low sill is
+  // an obstacle, never an airborne floor that can reset a jump mid-ascent.
+  return Math.max(paving,surface);
+ }
+ function obstacleGround(x,z,feet,step,base){
+  const support=ground(x,z,feet,step,base);
+  if(!Number.isFinite(support)||!Number.isFinite(feet)||!contains(x,z))return support;
+  // Preserve the existing horizontal torso blocker without promoting it into
+  // vertical support. Callers use this only for sweeps/curbs, not grounding.
   const overhead=ledgeSampler?.height(x,z,feet+1.45);
-  return Math.max(paving,surface,overhead!==null&&overhead>feet+step?overhead:-Infinity);
+  return Math.max(support,overhead!==null&&overhead>feet+step?overhead:-Infinity);
  }
  const stats={revision:'plaza-climb-1',shops:shops.length,...sampler.stats,windowCaps:caps.length,
   bytes:sampler.stats.bytes+pavingSampler.stats.bytes+(ledgeSampler?.stats.bytes??0),addedDrawCalls:ledgeMesh?1:0,newAssetDownloads:0};
  stats.capBounds=ledgeSampler?.stats.bounds;
- return {ground,sample,contains,stats,dispose(){sampler=ledgeSampler=pavingSampler=null;ledgeMesh?.removeFromParent();ledgeMesh?.geometry.dispose();ledgeMesh=null;meshes.length=floors.length=shops.length=props.length=0;stats.disposed=true;}};
+ return {ground,obstacleGround,sample,contains,stats,dispose(){sampler=ledgeSampler=pavingSampler=null;ledgeMesh?.removeFromParent();ledgeMesh?.geometry.dispose();ledgeMesh=null;meshes.length=floors.length=shops.length=props.length=0;stats.disposed=true;}};
 }

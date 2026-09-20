@@ -95,7 +95,8 @@ test('both runtime entry points and walking/skate queries retain roof support',(
  const movement=fs.readFileSync(new URL('../app/chunk-OZ77422N.js',import.meta.url),'utf8');
  assert(source.includes('installHouseRoofSupports(installIslandSwimBoundary(world))'));
  assert(bundle.includes('installHouseRoofSupports(await ll(options))'));
- assert(movement.includes('wasGrounded:u,ground:roofGround'));
+ assert(movement.includes('wasGrounded:u,ground:obstacleGround,supportGround:roofGround'));
+ assert(movement.includes('characterObstacle(t,sx,sz'));
  assert(movement.includes('Math.max(b.y,previous??b.y)-ke.foot'));
   assert(movement.includes('characterGround(t,e.x,e.z,e.y-ke.foot)'));
   const fx=fs.readFileSync(new URL('../app/claude-gorilla-runtime.js',import.meta.url),'utf8');

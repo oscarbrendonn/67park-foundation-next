@@ -244,6 +244,39 @@ unit suite in `.qa-results/durable-jump-unit.log` passed 150 of 151 tests,
 with the same one optional fixture skipped and zero failures. A new hosted
 full regression, including the entire mobile soak, is still required.
 
+### Correction: a real cap support defect, not only jump observation
+
+Hosted run `35538735517` failed again at mobile plaza hop 4. The transient
+observer explanation above was insufficient. At the recorded position
+`x=17.12685775756836, z=57.5, feet=17.24`, the old character-ground query
+returned the cap at `18.56`: the horizontal torso blocker (feet + 1.45m)
+had leaked into vertical support. Descending contact could therefore snap the
+body upward to `19.115` and mark it grounded before the intended air jump.
+Merely reaching the cap did not prove the requested jump sequence.
+
+The runtime now separates floor support from side-obstacle height. The walking
+resolver uses support for initial/final grounding and the existing obstacle
+query for horizontal sweeps; skating preserves the same separation. Closed
+shops, ordinary curbs, rendered caps and all route/velocity thresholds remain
+unchanged. The existing indices are reused: no new mesh, duplicate sampler or
+per-frame scene raycast was added.
+
+An integration regression runs the exact production walking resolver with real
+plaza queries: descent below the cap remains airborne without an upward snap,
+while descent from above still lands. The full unit suite passed 151/152,
+with the same optional fixture skip and zero failures
+(`.qa-results/support-split-unit-final.log`). The focused normal mobile route
+passed, including a genuine air-jump budget of zero and upward impulse; at the
+exact CI coordinate the support query now returns `15.70` and the separate
+obstacle query retains `18.56` (`.qa-results/plaza-support-normal-mobile.log`).
+The 400ms-per-frame mobile diagnostic also completed the entire route; hop 4
+latched a real air jump (`jumped=2`, `jumpsLeft=0`) and rose from `17.755` to
+`18.135` before landing (`.qa-results/plaza-support-400-mobile.log`).
+The normal desktop route passed all five hops and the closed-wall check too
+(`.qa-results/plaza-support-normal-desktop.log`).
+This is local evidence only. The final hosted gate, entire mobile soak, Pages
+publication and live interaction checks are still required before release.
+
 The required release workflow retains asset-failure/retry, connection recovery,
 graphics, physical wall/corner/curb checks, grass/coast/roof/plaza checks, chat
 spam, player safety, 100 home transitions, repeated actions, outfit changes,
