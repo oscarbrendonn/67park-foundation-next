@@ -1,8 +1,8 @@
-import {assetFetch} from '/67park-feel-lab/app/entry-loading.js';
-const islandFetch=(u,...a)=>assetFetch(typeof u==='string'&&u.startsWith('./')?'/67park-feel-lab/island/'+u.slice(2):u,...a);
+import {assetFetch} from '/67park-foundation-next/app/entry-loading.js';
+const islandFetch=(u,...a)=>assetFetch(typeof u==='string'&&u.startsWith('./')?'/67park-foundation-next/island/'+u.slice(2):u,...a);
 import * as THREE from 'three';
 import {GLTFLoader} from './GLTFLoader.js';
-import {mergeGeometries} from '/67park-feel-lab/island/utils/BufferGeometryUtils.js';
+import {mergeGeometries} from '/67park-foundation-next/island/utils/BufferGeometryUtils.js';
 import {createCityHeightSampler58} from './city-height-sampler58.js';
 
 const readJSON=async path=>{const r=await islandFetch(path);if(!r.ok)throw Error('City60 missing '+path);return r.json();};
@@ -30,7 +30,7 @@ export function finishCityMaterial60(source,exposure){
 export async function loadCityProps60({scene,renderer,sample,variant}){
  const loader=new GLTFLoader();
  const [buildings,bridge,layout,bridgeMeta]=await Promise.all([
-  loader.loadAsync('/67park-feel-lab/island/city-buildings-v60.glb?v=1'),Promise.resolve(null),
+  loader.loadAsync('/67park-foundation-next/island/city-buildings-v60.glb?v=1'),Promise.resolve(null),
   readJSON('./city-layout-v60.json?v=1'),readJSON('./city-bridge-v58.json?v=1')
  ]);
  if(layout.version!==60||layout.buildings.length!==8||bridgeMeta.version!==58||bridgeMeta.rails?.length!==2)throw Error('City60 contract mismatch');

@@ -10,7 +10,7 @@ export async function androidPage(origin=process.env.PARK_ANDROID_ORIGIN||'http:
  const version=await(await fetch(address+'/json/version')).json();
  if(!/Android/.test(version['User-Agent']||''))throw Error('A physical Android Chrome connection is required');
  const tabs=await(await fetch(address+'/json/list')).json();
- const tab=tabs.find(t=>t.type==='page'&&t.url.startsWith(origin+'/67park-feel-lab/'));
+ const tab=tabs.find(t=>t.type==='page'&&t.url.startsWith(origin+'/67park-foundation-next/'));
  if(!tab)throw Error('The isolated Android game tab is not open');
  const ws=new WebSocket(tab.webSocketDebuggerUrl),pending=new Map();let next=0;
  await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{ws.terminate();reject(Error('Android debugger timeout'))},10000);ws.once('open',()=>{clearTimeout(timer);resolve()});ws.once('error',e=>{clearTimeout(timer);reject(e)})});

@@ -14,9 +14,9 @@ try{
  for(const file of BRAND_PAGES){
   await page.setContent(fs.readFileSync(path.join(ROOT,file),'utf8'),{waitUntil:'domcontentloaded'});
   const tags=await page.evaluate(()=>({apple:[...document.head.querySelectorAll('link[rel="apple-touch-icon"]')].map(e=>({src:e.getAttribute('href'),sizes:e.sizes.value})),icons:[...document.head.querySelectorAll('link[rel="icon"]')].map(e=>e.sizes.value),share:document.head.querySelector('meta[property="og:image"]')?.content}));
-  assert.deepEqual(tags.apple,[{src:'/67park-feel-lab/'+iconPath(180),sizes:'180x180'}],file);
+  assert.deepEqual(tags.apple,[{src:'/67park-foundation-next/'+iconPath(180),sizes:'180x180'}],file);
   assert.deepEqual(tags.icons,['32x32','192x192','512x512'],file);
-  assert.equal(tags.share,'https://oscarbrendonn.github.io/67park-feel-lab/'+iconPath(512),file);
+  assert.equal(tags.share,'https://oscarbrendonn.github.io/67park-foundation-next/'+iconPath(512),file);
  }
  // Check actual decoded pixels, including all five brand colors. A cropped
  // red/pink middle of the old wordmark cannot satisfy these assertions.

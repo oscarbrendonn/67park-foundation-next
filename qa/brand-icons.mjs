@@ -11,7 +11,7 @@ export const ICON_SIZES=[32,180,192,512];
 export const ICON_BACKGROUND='#fff9ec';
 export const ICON_INSET=.06;
 export const iconPath=size=>`brand/67park-icon-${size}-v1.png`;
-const PREFIX='/67park-feel-lab/',ORIGIN='https://oscarbrendonn.github.io';
+const PREFIX='/67park-foundation-next/',ORIGIN='https://oscarbrendonn.github.io';
 const START='<!-- 67park square icons v1 -->',END='<!-- /67park square icons -->';
 
 export function withBrandIcons(html){

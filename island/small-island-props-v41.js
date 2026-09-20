@@ -1,5 +1,5 @@
-import {assetFetch} from '/67park-feel-lab/app/entry-loading.js';
-const islandFetch=(u,...a)=>assetFetch(typeof u==='string'&&u.startsWith('./')?'/67park-feel-lab/island/'+u.slice(2):u,...a);
+import {assetFetch} from '/67park-foundation-next/app/entry-loading.js';
+const islandFetch=(u,...a)=>assetFetch(typeof u==='string'&&u.startsWith('./')?'/67park-foundation-next/island/'+u.slice(2):u,...a);
 import * as THREE from 'three';
 import {GLTFLoader} from './GLTFLoader.js';
 
@@ -7,7 +7,7 @@ import {GLTFLoader} from './GLTFLoader.js';
 export async function loadSmallIslandProps({scene,renderer,sample,variant}){
  const forceDetail=typeof location==='object'?new URLSearchParams(location.search).get('props-detail'):null;
  const [gltf,layout]=await Promise.all([
-  new GLTFLoader().loadAsync('/67park-feel-lab/island/small-island-props-v41.glb'),
+  new GLTFLoader().loadAsync('/67park-foundation-next/island/small-island-props-v41.glb'),
   islandFetch('./small-island-placements-v38.json').then(r=>{if(!r.ok)throw Error('Küçük ada yerleşimi yüklenemedi');return r.json();})
  ]);
  if(layout.version!==38||layout.variant!==variant||layout.houses.length!==8||layout.failed.length)

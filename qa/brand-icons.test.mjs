@@ -20,9 +20,9 @@ test('each playable/shareable page declares the same full-wordmark Apple and lin
   const html=fs.readFileSync(path.join(ROOT,file),'utf8');
   assert.equal(html,withBrandIcons(html),'Metadata regeneration must be idempotent: '+file);
   assert.equal((html.match(/rel="apple-touch-icon"/g)||[]).length,1,file);
-  assert(html.includes('sizes="180x180" href="/67park-feel-lab/'+iconPath(180)+'"'),file);
+  assert(html.includes('sizes="180x180" href="/67park-foundation-next/'+iconPath(180)+'"'),file);
   assert(!/<link\b[^>]*href=["'][^"']*67park-logo\.png/.test(html),file);
-  assert(html.includes('property="og:image" content="https://oscarbrendonn.github.io/67park-feel-lab/'+iconPath(512)+'"'),file);
+  assert(html.includes('property="og:image" content="https://oscarbrendonn.github.io/67park-foundation-next/'+iconPath(512)+'"'),file);
   for(const size of [32,192,512])assert(html.includes(`sizes="${size}x${size}"`),file);
  }
 });

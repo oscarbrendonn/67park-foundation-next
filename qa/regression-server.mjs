@@ -14,10 +14,10 @@ app.server.on('request',(req,res)=>{
   for(const f of handlers)f.call(app.server,req,res);return;
  }
  if(req.url.includes('/app/preview-network-config.js')){res.writeHead(200,{'Content-Type':'application/javascript','Cache-Control':'no-store'});res.end(`export const PREVIEW_BACKEND=${JSON.stringify(origin)};export const PREVIEW_VARIANT="kimi";`);return;}
- let name;try{name=decodeURIComponent(new URL(req.url,origin).pathname).replace(/^\/67park-feel-lab\//,'/');}catch{res.writeHead(400);res.end();return;}
+ let name;try{name=decodeURIComponent(new URL(req.url,origin).pathname).replace(/^\/67park-foundation-next\//,'/');}catch{res.writeHead(400);res.end();return;}
  if(name.endsWith('/'))name+='index.html';const file=path.resolve(root,'.'+name);
  if(!file.startsWith(root+path.sep)||/^\/(?:server|qa|data|node_modules|\.git)(?:\/|$)/.test(name)){res.writeHead(403);res.end();return;}
  fs.stat(file,(error,s)=>{if(error||!s.isFile()){res.writeHead(404);res.end();return;}res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream','Cache-Control':'no-store'});const stream=fs.createReadStream(file);stream.on('error',()=>res.destroy());stream.pipe(res);});
 });
-app.server.listen(port,'127.0.0.1',()=>console.log('REGRESSION_READY '+origin+'/67park-feel-lab/'));
+app.server.listen(port,'127.0.0.1',()=>console.log('REGRESSION_READY '+origin+'/67park-foundation-next/'));
 for(const s of ['SIGINT','SIGTERM'])process.on(s,()=>app.close().then(()=>process.exit(0)));

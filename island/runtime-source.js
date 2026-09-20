@@ -1,7 +1,7 @@
-import {assetFetch} from '/67park-feel-lab/app/entry-loading.js';
-const islandFetch=(u,...a)=>assetFetch(typeof u==='string'&&u.startsWith('./')?'/67park-feel-lab/island/'+u.slice(2):u,...a);
-import {applyCurbJoins} from '/67park-feel-lab/app/island-curb-joins.js';
-import {applyParkEdges} from '/67park-feel-lab/app/island-park-edges.js';
+import {assetFetch} from '/67park-foundation-next/app/entry-loading.js';
+const islandFetch=(u,...a)=>assetFetch(typeof u==='string'&&u.startsWith('./')?'/67park-foundation-next/island/'+u.slice(2):u,...a);
+import {applyCurbJoins} from '/67park-foundation-next/app/island-curb-joins.js';
+import {applyParkEdges} from '/67park-foundation-next/app/island-park-edges.js';
 import * as THREE from 'three';
 import {createStableSunShadow52} from './stable-sun-shadow-v52.js';
 import {loadSmallIslandProps} from './small-island-props-v62.js?v=roof1';
@@ -38,7 +38,7 @@ import {cacheStaticTransforms} from '../app/island-static-transforms.js';
 import {installIslandShadowCache,createShadowAnchor} from '../app/island-shadow-cache.js';
 import {waterWithSolidFloor} from '../app/island-water-floor.js';
 import {treeIndex} from '../app/island-motion.js';
-import {entryStage} from '/67park-feel-lab/app/entry-loading.js';
+import {entryStage} from '/67park-foundation-next/app/entry-loading.js';
 import {preserveAuthoredIslandEnvironment} from '../app/island-environment.js';
 export async function createIslandRuntime({renderer,sahne,kam}) {
 const initialChildren=new Set(sahne.children);
@@ -111,7 +111,7 @@ const roadJoinPatch=await (await islandFetch('./road-join-v34.json')).json();
 // export adayini canli dosyanin ustune yazmadan inceleyebil.
 const GLB_DOSYASI=urlParams.get('model')==='pending'
   ? 'ada_calisma.pending.glb'
-  : '/67park-feel-lab/island/ada_calisma.glb';
+  : '/67park-foundation-next/island/ada_calisma.glb';
 // Export sonrasi SHA on eki bu marker'a yazilir. finish_gate/v parametresi
 // verildiginde ayni anahtar gercek GLB istegine de aktarilir; telefon ve QA
 // artik yeni HTML icinde eski modeli cache'ten acamaz.
@@ -1474,7 +1474,7 @@ await entryStage(6,'Preparing the wooden piers');
     seasideTimber79=createSeasideTimber81({scene:sahne,terrainRoot:kok,renderer,variant:'kimi'});
   } catch(e){renderer.domElement.dataset.seasideTimber79='error: '+e.message;console.error('Seaside timber',e);}
   try {
-    const {loadLunapark77}=await import('./lunapark-placement-v77.js?v=91');
+    const {loadLunapark77}=await import('./lunapark-placement-v77.js?v=foundation-next-movement-1');
 await entryStage(7,'Preparing rides and boats');
     lunapark77=await loadLunapark77({scene:sahne,renderer,sample:zeminVurusu,sea:kimiSu.position.y,variant:'kimi',terrainRoot:kok,timberSample:seasideTimber79?.sample});
   } catch(e){renderer.domElement.dataset.lunapark77='error: '+e.message;console.error('Amusement park',e);}
@@ -1533,9 +1533,9 @@ await entryStage(13,'Finishing the northern neighbourhood');
   } catch(e){renderer.domElement.dataset.pastelTraffic108='error: '+e.message;console.error('Pastel cars',e);}
   renderer.domElement.dataset.terrainQuery='exact-triangle-grid-v27';
   renderer.domElement.dataset.terrainQueryTriangles=String(terrainSampler.stats.triangles);
-  const parkEdgePatch=await islandFetch('/67park-feel-lab/repairs/park-edges.json').then(r=>{if(!r.ok)throw Error('Park edge repair missing');return r.json();});
+  const parkEdgePatch=await islandFetch('/67park-foundation-next/repairs/park-edges.json').then(r=>{if(!r.ok)throw Error('Park edge repair missing');return r.json();});
   renderer.domElement.dataset.parkEdges=JSON.stringify(applyParkEdges(kok,parkEdgePatch));
-  const curbJoinPatch=await islandFetch('/67park-feel-lab/repairs/curb-joins.json').then(r=>{if(!r.ok)throw Error('Curb join repair missing');return r.json();});
+  const curbJoinPatch=await islandFetch('/67park-foundation-next/repairs/curb-joins.json').then(r=>{if(!r.ok)throw Error('Curb join repair missing');return r.json();});
   renderer.domElement.dataset.curbJoins=JSON.stringify(applyCurbJoins(kok,curbJoinPatch));
   for(const name of ['3_CIMEN','8_PARK_PATIKA_UST','6_BORDUR','5_YOL']){
     if(!DIK_YAN_GOLGE_KAYNAGI.test(name))continue;

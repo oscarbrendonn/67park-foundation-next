@@ -1,6 +1,6 @@
 const {chromium}=require(process.env.PARK_PLAYWRIGHT||'/tmp/rush-test-tools/node_modules/playwright');
 const assert=require('node:assert/strict');
-const base=process.env.FEEL_URL||'http://127.0.0.1:8497/67park-feel-lab/';
+const base=process.env.FEEL_URL||'http://127.0.0.1:8497/67park-foundation-next/';
 (async()=>{const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
 try{for(const mobile of [false,true]){
  const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:900},isMobile:mobile,hasTouch:mobile});const errors=[];

@@ -1,6 +1,6 @@
 const {chromium}=require('/tmp/rush-test-tools/node_modules/playwright');
 const assert=require('node:assert/strict'),fs=require('node:fs');
-const base=process.env.FEEL_URL||'http://127.0.0.1:8497/67park-feel-lab/';
+const base=process.env.FEEL_URL||'http://127.0.0.1:8497/67park-foundation-next/';
 if(!['127.0.0.1','localhost'].includes(new URL(base).hostname))throw Error('This fault-injection suite is loopback-only.');
 const out=fs.mkdtempSync('/tmp/67park-player-basics-');
 const key='67park.feel-lab.player-settings.v1',errors=[],results=[];

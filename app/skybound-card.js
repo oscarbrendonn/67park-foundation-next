@@ -1,4 +1,4 @@
-export const SKYBOUND_URL='/67park-feel-lab/skybound-soft/?v=skybound-44';
+export const SKYBOUND_URL='/67park-foundation-next/skybound-soft/?v=skybound-44';
 // Local course is deliberately not sent as an unsupported matchmaking mode.
 export function skyboundCard(jsx,disabled){
  const props={href:disabled?undefined:SKYBOUND_URL,'aria-disabled':disabled,

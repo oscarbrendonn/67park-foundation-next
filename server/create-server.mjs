@@ -51,7 +51,7 @@ export async function createPreviewServer({origins=['https://oscarbrendonn.githu
   if(!hub.lookup(token)&&hub.players.size>=maxPlayers){reply(503,{error:'Preview is full'});return;}
   try{
    const session=hub.session(token||undefined);
-   reply(200,{id:session.player.id,friendCode:session.player.friendCode,token:session.token,protocol:SERVER_PROTOCOL,mode:'isolated-guest-test',persistentAccount:false,shareOrigin:'https://oscarbrendonn.github.io/67park-feel-lab/'});
+   reply(200,{id:session.player.id,friendCode:session.player.friendCode,token:session.token,protocol:SERVER_PROTOCOL,mode:'isolated-guest-test',persistentAccount:false,shareOrigin:'https://oscarbrendonn.github.io/67park-foundation-next/'});
   }catch{reply(503,{error:'Session unavailable'});}
  });
  const wss=new WebSocketServer({noServer:true,maxPayload:8192,perMessageDeflate:false,handleProtocols:protocols=>protocols.has('67park-v1')?'67park-v1':false});

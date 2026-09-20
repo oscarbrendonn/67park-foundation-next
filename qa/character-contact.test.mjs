@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import * as T from 'three';
-import {resolveCharacterContact,sweepRideContact,createContactFeedback} from '../app/character-contact.js';
+import {resolveCharacterContact,sweepRideContact} from '../app/character-contact.js';
 import {createBuildingFootprint,insideBuildingFootprint} from '../app/building-footprint.js';
 
 // Exercise the exact production curb/stair predicate, not a simplified mock.
@@ -35,7 +35,7 @@ test('convex and concave corners allow retreat but never diagonal tunnelling',()
   assert(retreat.position.x<from.x-.9&&retreat.position.z<from.z-.9);
  }
 });
-test('low curbs and stairs remain walkable; tall edges and thin walls stay closed',()=>{
+test('low curbs and stairs remain walkable; building-height edges and thin walls stay closed',()=>{
  const curb=(x,z)=>x>=0?.18:0;
  const r=resolveCharacterContact(walk,base(curb,{x:-1,z:0},{x:1,z:0}));
  assert.equal(r.blocked,false);assert(Math.abs(r.position.y-.735)<1e-6);
@@ -46,11 +46,11 @@ test('low curbs and stairs remain walkable; tall edges and thin walls stay close
   const r=resolveCharacterContact(walk,base(ground,{x:-1,z:0},{x:2,z:0}));assert(r.blocked);assert(r.position.x<0);
  }
 });
-test('25 cm park entrances and 32 cm paved steps are traversable in every direction',()=>{
+test('25 cm park entrances and normal raised curbs through 55 cm are traversable in every direction',()=>{
  // Exact production heights at the pictured southern park entrance (170,116).
  // Testing only an 18 cm synthetic curb previously missed this regression.
  const road=9.227547645568848,path=9.47878646850586;
- for(const rise of [path-road,.3,.32])for(const axis of ['x','z'])for(const sign of [-1,1]){
+ for(const rise of [path-road,.3,.32,.4,.5,.55])for(const axis of ['x','z'])for(const sign of [-1,1]){
   const ground=(x,z)=>road+({x,z}[axis]*sign>=0?rise:0);
   const low={x:0,z:0,y:road+.555,[axis]:-sign},high={...low,[axis]:sign};
   const up=resolveCharacterContact(walk,base(ground,low,high));
@@ -60,13 +60,15 @@ test('25 cm park entrances and 32 cm paved steps are traversable in every direct
   assert(!down.blocked);assert(Math.abs(down.position.y-(road+.555))<1e-6);
  }
 });
-test('larger walls, unsupported ledges and explicit house/tree barriers remain closed',()=>{
- for(const ground of [x=>x>=0?.36:0,x=>x<0?0:x<=.15?.3:-3,x=>x>=0?8:0]){
+test('building-height walls, unsupported ledges and explicit house/tree barriers remain closed',()=>{
+ for(const ground of [x=>x>=0?.57:0,x=>x<0?0:x<=.15?.3:-3,x=>x>=0?8:0]){
   const result=resolveCharacterContact(walk,base(ground,{x:-1,z:0},{x:2,z:0}));
   assert(result.blocked);assert(result.position.x<0);
  }
  const result=resolveCharacterContact(walk,{...base(()=>0,{x:-1,z:0},{x:2,z:0}),blocked:x=>x>=0});
  assert(result.blocked);assert(result.position.x<0);
+ const shortSolid=resolveCharacterContact(walk,{...base(x=>x>=0?.4:0,{x:-1,z:0},{x:2,z:0}),blocked:x=>x>=0});
+ assert(shortSolid.blocked);assert(shortSolid.position.x<0,'a solid fence still vetoes a normal curb-height rise');
 });
 test('a curb corner can lead down onto a still-raised sidewalk instead of acting as a wall',()=>{
  // Crossing the tip of a rounded curb need not land at its exact crown height.
@@ -110,6 +112,19 @@ test('a grounded skateboard can climb the real path curb after a slow gravity fr
   const r=resolveCharacterContact(sweepRideContact,base(wall,{x:-1,z:0},{x:1,y:.15,z:0},{x:6,y:-4,z:0}));assert(r.blocked);assert(r.position.x<0);
  }
 });
+test('skate accepts the same 55 cm curb envelope, but not a higher ledge or solid fence',()=>{
+ for(const rise of [.4,.5,.55])for(const axis of ['x','z'])for(const sign of [-1,1]){
+  const ground=(x,z)=>({x,z}[axis]*sign>=0?rise:0);
+  const from={x:0,z:0,y:.555,[axis]:-sign},to={...from,y:.305,[axis]:sign};
+  const velocity={x:0,y:-4,z:0};velocity[axis]=6*sign;
+  const result=resolveCharacterContact(sweepRideContact,base(ground,from,to,velocity));
+  assert.equal(result.blocked,false,JSON.stringify({rise,axis,sign,result}));assert.equal(result.position[axis],sign);
+ }
+ const high=x=>x>=0?.57:0;
+ assert(resolveCharacterContact(sweepRideContact,base(high,{x:-1,z:0},{x:1,y:.305,z:0},{x:6,y:-4,z:0})).blocked,'unsupported high ledge remains closed');
+ const fence=x=>x>=0?.4:0;
+ assert(resolveCharacterContact(sweepRideContact,{...base(fence,{x:-1,z:0},{x:1,y:.305,z:0},{x:6,y:-4,z:0}),blocked:x=>x>=0}).blocked,'explicit solid vetoes a short curb');
+});
 test('building footprint follows rounded lower walls, not an oversized roof or square envelope',()=>{
  const wall=new T.CylinderGeometry(2,2,4,24);wall.translate(0,2,0);
  const roof=new T.BoxGeometry(8,.5,8);roof.translate(0,5,0);
@@ -117,23 +132,6 @@ test('building footprint follows rounded lower walls, not an oversized roof or s
  assert(insideBuildingFootprint(shape,0,0));assert(insideBuildingFootprint(shape,1.8,0));
  assert(!insideBuildingFootprint(shape,1.8,1.8));assert(!insideBuildingFootprint(shape,3,0));
  assert.equal(createBuildingFootprint([roof]),null);wall.dispose();roof.dispose();
-});
-test('contact feedback uses one node and one timer across 1000 commands, then cleans up',()=>{
- let created=0,clock=0,tasks=new Map(),seq=0;const node={hidden:true,style:{},setAttribute(){},remove(){this.removed=true;}};
- const feedback=createContactFeedback({document:{createElement(){created++;return node;},body:{append(){}}},now:()=>clock,
-  schedule(fn){tasks.set(++seq,fn);return seq;},cancel(id){tasks.delete(id);}});
- for(let i=0;i<1000;i++){clock+=16;feedback.update({contact:{blocked:true},moving:true,dt:.016});}
- assert.equal(created,1);assert.equal(tasks.size,1);assert.equal(node.hidden,false);
- feedback.update({contact:{blocked:false},moving:true,dt:.016});
- // A free frame between wall contacts must not flicker the cue. It expires
- // after contact ceases, and releasing the control hides it immediately.
- clock+=451;const [id,expire]=tasks.entries().next().value;tasks.delete(id);expire();assert(node.hidden);
- for(let i=0;i<10;i++)feedback.update({contact:{blocked:true},moving:true,dt:.016});assert(!node.hidden);
- feedback.update({contact:{blocked:true},moving:false,dt:.016});assert(node.hidden);
- for(let i=0;i<100;i++)feedback.update({contact:{blocked:true,kind:'slide',horizontal:{x:0,z:3}},moving:true,dt:.016});assert(node.hidden);
- feedback.dispose();assert.equal(tasks.size,0);assert(node.removed);
- const broken=createContactFeedback({document:{createElement(){throw Error('Optional UI failure');}}});
- assert.doesNotThrow(()=>{for(let i=0;i<100;i++)broken.update({contact:{blocked:true},moving:true,dt:.05});});
 });
 test('production runtime shares contact resolver for walking and skating, no full-axis freeze',()=>{
  assert(source.includes('resolveCharacterContact(tt,'));assert(source.includes('resolveCharacterContact(sweepRideContact,'));

@@ -1,4 +1,4 @@
-import {assetFetch} from '/67park-feel-lab/app/entry-loading.js';
+import {assetFetch} from '/67park-foundation-next/app/entry-loading.js';
 import {MeshoptDecoder as LosslessDecoder} from '../vendor/addons/libs/meshopt_decoder.module.js';
 import {
 	AnimationClip,
@@ -67,7 +67,7 @@ import {
 	SRGBColorSpace,
 	InstancedBufferAttribute
 } from 'three';
-import { toTrianglesDrawMode } from '/67park-feel-lab/island/utils/BufferGeometryUtils.js';
+import { toTrianglesDrawMode } from '/67park-foundation-next/island/utils/BufferGeometryUtils.js';
 
 class GLTFLoader extends Loader {
 
@@ -180,8 +180,8 @@ class GLTFLoader extends Loader {
 	}
 
 	load( url, onLoad, onProgress, onError ) {
- if(typeof url==='string' && !/^(?:[a-z]+:|\/)/i.test(url)) url='/67park-feel-lab/island/'+url.replace(/^\.\//,'');
- if(typeof url==='string' && url.startsWith('/67park-feel-lab/island/') && /\.glb(?:[?#]|$)/.test(url) && !url.includes('transport=')) url+=(url.includes('?')?'&':'?')+'transport=lossless1';
+ if(typeof url==='string' && !/^(?:[a-z]+:|\/)/i.test(url)) url='/67park-foundation-next/island/'+url.replace(/^\.\//,'');
+ if(typeof url==='string' && url.startsWith('/67park-foundation-next/island/') && /\.glb(?:[?#]|$)/.test(url) && !url.includes('transport=')) url+=(url.includes('?')?'&':'?')+'transport=lossless1';
 
 		const scope = this;
 

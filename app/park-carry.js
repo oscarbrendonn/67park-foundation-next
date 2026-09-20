@@ -132,6 +132,12 @@ export function applyLocalCarry(body, position) {
   return true;
 }
 
+export function isLocalCarryActive() {
+ if (!localId) return false;
+ for (const entry of remotes.values()) if (entry.carryTarget===localId&&entry.root) return true;
+ return false;
+}
+
 export function createParkBotCarryController({actors}) {
   let carried=null, disposed=false;
   let pickup=null,point=null;

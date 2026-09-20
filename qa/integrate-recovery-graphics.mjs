@@ -38,7 +38,7 @@ for(const dir of ['balloon','race','rockets','sports','lane-rush','skybound-soft
 }
 // The page-level escape route must load even if the game's own module fails.
 for(const file of ['index.html','play/index.html','balloon/index.html','race/index.html','rockets/index.html','sports/index.html','lane-rush/index.html','skybound-soft/index.html']){
- replace(file,'</body>','<script type="module" src="/67park-feel-lab/app/connection-recovery.js?v=recovery-graphics-1"></script></body>');
+ replace(file,'</body>','<script type="module" src="/67park-foundation-next/app/connection-recovery.js?v=recovery-graphics-1"></script></body>');
 }
 replace('server/runtime/server/online-hub.js',"lobbyMessage(p,m){const l=this.lobbies.get(p.lobbyId);if(m.t==='hello')","lobbyMessage(p,m){if(m.t==='ping'){this.send(p.lobbySocket,{t:'pong',at:m.at,now:this.now()});return;}const l=this.lobbies.get(p.lobbyId);if(m.t==='hello')");
 // Map every bare/shared import onto one release URL. Different query strings
@@ -48,7 +48,7 @@ for(const file of ['index.html','play/index.html','balloon/index.html','race/ind
  if(!match)continue;
  const map=JSON.parse(match[1]);
  for(const name of ['player-settings.js','feel-camera.js','graphics-quality.js','connection-recovery.js','protocol-version.js']){
-  const path='/67park-feel-lab/app/'+name;
+  const path='/67park-foundation-next/app/'+name;
   map.imports[path]=path+'?v=recovery-graphics-1';
   if(name==='player-settings.js')map.imports[path+'?v=foundation-basics-1']=path+'?v=recovery-graphics-1';
  }

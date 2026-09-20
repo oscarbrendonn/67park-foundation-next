@@ -32,6 +32,18 @@ module.exports=async function checkPlazaClimb(page,{mobile=false,check}){
  await check(mobile?'touch jumps: paving → shrub → striped awning → window cap → roof':'keyboard jumps: paving → shrub → striped awning → window cap → roof',async()=>{
   const before=await page.evaluate(()=>({position:{...__eggyInput.playerRef.body.translation()},board:__candy.state().board}));
   const jump=()=>mobile?page.getByRole('button',{name:'Jump',exact:true}).tap():page.keyboard.press('Space');
+  async function jumpAndConfirm(label,minVelocity){
+   const before=await page.evaluate(()=>{const b=__eggyInput.playerRef.body,p=b.translation();return {x:p.x,y:p.y,z:p.z,vy:b.linvel().y};});
+   await jump();
+   // Touch buttons queue their click for the next simulation step. Confirm the
+   // *resulting physical impulse* before steering, so a browser frame that
+   // lands between the tap and rAF cannot turn a missed jump into a route pass.
+   await page.waitForFunction(({before,minVelocity})=>{
+    const b=__eggyInput.playerRef.body,p=b.translation(),v=b.linvel();
+    return p.y>before.y+.12&&v.y>minVelocity;
+   },{before,minVelocity},{timeout:actionTimeout});
+   return before;
+  }
   async function direction(x,target){await page.evaluate(({x,target,deadline})=>{
    const token=(window.__qaPlazaSteer||0)+1;window.__qaPlazaSteer=token;window.__qaPlazaAtTarget=false;
    const started=performance.now();
@@ -40,28 +52,28 @@ module.exports=async function checkPlazaClimb(page,{mobile=false,check}){
     const i=__eggyInput.input,b=__eggyInput.playerRef.body,p=b.translation(),remaining=(target-p.x)*x;
     if(remaining<=.06||performance.now()-started>deadline){i.x=i.z=0;i.run=false;const v=b.linvel();b.setLinvel({x:0,y:v.y,z:0},true);window.__qaPlazaAtTarget=remaining<=.06;return;}
     const yaw=__islandWorld.camera.userData.feelLab.yaw;
-    // Normal analog input, with walking-speed final approach. Stop in the
-    // browser frame, not a network round trip later on a narrow shrub/cap.
-    const strength=Math.min(1,remaining*2);i.x=x*Math.cos(yaw)*strength;i.z=-x*Math.sin(yaw)*strength;i.run=remaining>2;
+    // Normal analog input, with a deliberately early walking approach. The
+    // hosted runner can render fewer browser frames than local hardware; do
+    // not carry sprint momentum across the narrow awning/cap while waiting for
+    // the next rAF to release it.
+    const strength=Math.min(1,Math.max(.18,remaining*.65));i.x=x*Math.cos(yaw)*strength;i.z=-x*Math.sin(yaw)*strength;i.run=remaining>3;
     requestAnimationFrame(tick);
    };tick();
   },{x,target,deadline:actionTimeout});}
   async function stop(){await page.evaluate(()=>{window.__qaPlazaSteer=(window.__qaPlazaSteer||0)+1;const i=__eggyInput.input,b=__eggyInput.playerRef.body;i.x=i.z=0;i.run=false;const v=b.linvel();b.setLinvel({x:0,y:v.y,z:0},true);});}
-  async function hop(target,{double=true,delayMove=false}={}){
-   const start=await page.evaluate(()=>({...__eggyInput.playerRef.body.translation()}));
-   await jump();
-   // A mobile tap queues the jump for the next physics frame. Do not mistake
-   // the still-grounded frame immediately after the tap for a new landing.
-   await page.waitForFunction(y=>{const b=__eggyInput.playerRef.body;return b.translation().y>y+.15&&b.linvel().y>0;},start.y,{timeout:actionTimeout});
-   if(!delayMove)await direction(Math.sign(target-start.x),target);
+  async function hop(target,{double=true}={}){
+   const start=await jumpAndConfirm('first jump',3);
+   const x=Math.sign(target-start.x);
+   // Begin the actual analog leg during the first arc: the longest transfer
+   // (shrub → awning) needs both jump arcs, not just the second one.
+   await direction(x,target);
    if(double){
     await page.waitForFunction(y=>{const b=__eggyInput.playerRef.body;return b.translation().y>y+1&&b.linvel().y<2.8;},start.y,{timeout:actionTimeout});
-    await jump();
-    // Keyboard key-up refreshes the real input singleton from held keys;
-    // restore this QA world-direction vector after that real UI event.
-    if(!delayMove)await direction(Math.sign(target-start.x),target);
+    await jumpAndConfirm('double jump',4);
+    // The touch click is allowed to refresh the live input singleton. Reclaim
+    // this same route vector only after the second physical impulse lands.
+    await direction(x,target);
    }
-   if(delayMove)await direction(Math.sign(target-start.x),target);
    await page.waitForFunction(()=>window.__qaPlazaAtTarget,null,{timeout:actionTimeout});
    await stop();
    await page.waitForFunction(()=>{const w=__islandWorld,b=__eggyInput.playerRef.body,p=b.translation();return Math.abs(b.linvel().y)<.2&&Math.abs(p.y-.555-w.characterGround(p.x,p.z,p.y-.555))<.08;},null,{timeout:actionTimeout});
@@ -70,13 +82,13 @@ module.exports=async function checkPlazaClimb(page,{mobile=false,check}){
   try{
    if(before.board)await page.keyboard.press('KeyV');
    await page.evaluate(async()=>{__tp(__islandWorld.spawn);for(let f=0;f<4;f++)await new Promise(requestAnimationFrame);__tp([26.1,10.215,57.5]);for(let f=0;f<10;f++)await new Promise(requestAnimationFrame);});
-   const shrub=await hop(24.5,{delayMove:true});assert(shrub.y>12.3&&shrub.y<13.1,JSON.stringify({shrub}));
+   const shrub=await hop(24.5);assert(shrub.y>12.3&&shrub.y<13.1,JSON.stringify({shrub}));
    const awning=await hop(18.2);assert(awning.y>15.1&&awning.y<15.6,JSON.stringify({awning}));
    await page.waitForTimeout(600);
    await page.screenshot({path:'.qa-results/plaza-awning-'+(mobile?'mobile':'desktop')+'.png',timeout:90000});
-   const sill=await hop(17.12,{double:false,delayMove:true});assert(sill.y>16.15&&sill.y<16.4,JSON.stringify({sill}));
-   const cap=await hop(17.14,{delayMove:true});assert(cap.y>19&&cap.y<19.3,JSON.stringify({cap}));
-   const roof=await hop(15.7,{delayMove:true});assert(roof.y>20.3,JSON.stringify({roof}));
+   const sill=await hop(17.12,{double:false});assert(sill.y>16.15&&sill.y<16.4,JSON.stringify({sill}));
+   const cap=await hop(17.14);assert(cap.y>19&&cap.y<19.3,JSON.stringify({cap}));
+   const roof=await hop(15.7);assert(roof.y>20.3,JSON.stringify({roof}));
    await page.waitForTimeout(600);
    await page.screenshot({path:'.qa-results/plaza-roof-'+(mobile?'mobile':'desktop')+'.png',timeout:90000});
    // Walk off the eaves into the court; no old collider-box invisible platform.

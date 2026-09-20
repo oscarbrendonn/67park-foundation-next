@@ -1,8 +1,8 @@
 // app/explore/explore.js
 import * as THREE from "three";
-import { beginEntry, subscribeEntry, entrySnapshot, entryReady, entryFailed, watchEntry } from "/67park-feel-lab/app/entry-loading.js";
+import { beginEntry, subscribeEntry, entrySnapshot, entryReady, entryFailed, watchEntry } from "/67park-foundation-next/app/entry-loading.js";
 
-// explore-local-helper:/67park-feel-lab/app/island-camera-depth.js
+// explore-local-helper:/67park-foundation-next/app/island-camera-depth.js
 var savedClipping = /* @__PURE__ */ new WeakMap();
 function updateIslandOverviewDepth(camera2, active) {
   if (!camera2?.isPerspectiveCamera) return;
@@ -28,7 +28,7 @@ function updateIslandOverviewDepth(camera2, active) {
   camera2.updateProjectionMatrix();
 }
 
-// explore-local-helper:/67park-feel-lab/app/island-startup-warmup.js
+// explore-local-helper:/67park-foundation-next/app/island-startup-warmup.js
 import { Vector4 } from "three";
 var renderable = (o) => o.isMesh || o.isLine || o.isPoints || o.isSprite;
 var yieldToUI = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -400,7 +400,7 @@ try {
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   resize();
-  const { createIslandRuntime } = await import("/67park-feel-lab/island/runtime.bundle.js?v=plaza-climb-1");
+  const { createIslandRuntime } = await import("/67park-foundation-next/island/runtime.bundle.js?v=foundation-next-movement-1");
   world = await createIslandRuntime({ renderer, sahne: scene, kam: camera });
   if (failed || entrySnapshot().status === "error") throw Error(entrySnapshot().error || "Harita y\xFCklenemedi");
   box = new THREE.Box3().setFromObject(world.terrain);

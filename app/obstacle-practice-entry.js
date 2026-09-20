@@ -5,7 +5,7 @@ export function installObstaclePractice({store,start,wardrobe,subscribeWardrobe}
  const title=document.createElement('strong');title.textContent='Obstacle Dash';
  const info=document.createElement('span');info.textContent='Race against 4 bots · Move + Jump';
  const button=document.createElement('button');button.textContent='Start race';button.type='button';
- const back=document.createElement('a');back.href='/67park-feel-lab/?v=release-40c';back.textContent='Back to island';
+ const back=document.createElement('a');back.href='/67park-foundation-next/?v=release-40c';back.textContent='Back to island';
  let starting=false;
  button.onclick=()=>{
   if(starting||wardrobe.open||!['roam','ready'].includes(store.getState().phase))return;

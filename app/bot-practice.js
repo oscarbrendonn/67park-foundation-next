@@ -5,7 +5,7 @@ export const botPracticeEnabled = () => {
 };
 export function botPracticeUrl(mode) {
   if (!['balloon', 'basket', 'penalty', 'race', 'rockets'].includes(mode)) throw Error('Unknown minigame');
-  return (mode === 'basket' || mode === 'penalty' ? `/67park-feel-lab/sports/?mode=${mode}&` : `/67park-feel-lab/${mode}/?`) + 'practice=1&bots=1';
+  return (mode === 'basket' || mode === 'penalty' ? `/67park-foundation-next/sports/?mode=${mode}&` : `/67park-foundation-next/${mode}/?`) + 'practice=1&bots=1';
 }
 export function practiceRoster(player, count) {
   return [player, ...['Mint', 'Honey', 'Sky', 'Rose'].slice(0, count).map((name, i) => ({

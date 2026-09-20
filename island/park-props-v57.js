@@ -1,5 +1,5 @@
-import {assetFetch} from '/67park-feel-lab/app/entry-loading.js';
-const islandFetch=(u,...a)=>assetFetch(typeof u==='string'&&u.startsWith('./')?'/67park-feel-lab/island/'+u.slice(2):u,...a);
+import {assetFetch} from '/67park-foundation-next/app/entry-loading.js';
+const islandFetch=(u,...a)=>assetFetch(typeof u==='string'&&u.startsWith('./')?'/67park-foundation-next/island/'+u.slice(2):u,...a);
 import * as THREE from 'three';
 import {GLTFLoader} from './GLTFLoader.js';
 import {createPlinthSampler57} from './park-plinth-sampler57.js';
@@ -14,8 +14,8 @@ const isWater=h=>!h||/GOLET.*SU|WATER|DENIZ|^1_TABAN/.test(h.object?.name??'');
 export async function loadParkProps57({scene,renderer,sample,variant}){
  const loader=new GLTFLoader();
  const [furniture,toys,foliage,layout,landingProfiles]=await Promise.all([
-  loader.loadAsync('/67park-feel-lab/island/park-furniture-v57.glb?v=1'),loader.loadAsync('/67park-feel-lab/island/park-toys-v57.glb?v=1'),
-  loader.loadAsync('/67park-feel-lab/island/small-island-props-v45.glb?v=round1'),
+  loader.loadAsync('/67park-foundation-next/island/park-furniture-v57.glb?v=1'),loader.loadAsync('/67park-foundation-next/island/park-toys-v57.glb?v=1'),
+  loader.loadAsync('/67park-foundation-next/island/small-island-props-v45.glb?v=round1'),
   islandFetch('./park-layout-v57.json?v=1').then(r=>{if(!r.ok)throw Error('Park layout unavailable');return r.json();}),
   islandFetch('./park-bridge-landings57.json?v=1').then(r=>{if(!r.ok)throw Error('Park bridge landings unavailable');return r.json();})
  ]);

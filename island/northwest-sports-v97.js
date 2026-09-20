@@ -7,7 +7,7 @@ import {createApprovedParkPlants99} from './approved-park-plants-v99.js';
 
 // Additive sports district. Source road, curb and field geometry is kept.
 export async function loadNorthwestSports97({scene,renderer,sample,variant,terrainRoot}){
- const gltf=await new GLTFLoader().loadAsync('/67park-feel-lab/island/northwest-sports-v97.glb?v=97.5');
+ const gltf=await new GLTFLoader().loadAsync('/67park-foundation-next/island/northwest-sports-v97.glb?v=97.5');
  let metadata;gltf.scene.traverse(o=>{if(o.userData.sports97)metadata=o.userData.sports97;});
  if(metadata?.version!==97||metadata.buildings?.length!==2||metadata.track?.lanes!==6)throw Error('Sports97 asset contract mismatch');
  const anchor=sample(-47,-160.5);

@@ -1,6 +1,6 @@
 const {chromium}=require('/tmp/rush-test-tools/node_modules/playwright');
 const assert=require('node:assert/strict');
-const base=process.env.FEEL_URL||'http://127.0.0.1:8497/67park-feel-lab/';
+const base=process.env.FEEL_URL||'http://127.0.0.1:8497/67park-foundation-next/';
 const wanted={body:'friendsie_2:2',back:'friendsie_2:4',kicks:'friendsie_3333:5',sprout:'friendsie_8:90',head:'friendsie_26:90'};
 const readEquip=page=>page.evaluate(()=>JSON.parse(localStorage.getItem('67park-feel-lab.character.v3')));
 const waitPlaying=async page=>{await page.locator('.wardrobe').waitFor({state:'hidden',timeout:180000});await page.getByRole('button',{name:'Profile studio',exact:true}).waitFor({state:'visible',timeout:180000})};

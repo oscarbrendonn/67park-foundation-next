@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const {spawn}=require('node:child_process');
 const {browserLaunchOptions,assertBrowserRenderer}=require('./browser-launch.cjs');
-const port=Number(process.env.PARK_RECOVERY_PORT||8512),origin='http://127.0.0.1:'+port,base=origin+'/67park-feel-lab/';
+const port=Number(process.env.PARK_RECOVERY_PORT||8512),origin='http://127.0.0.1:'+port,base=origin+'/67park-foundation-next/';
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 let server,browser;
 async function main(){
@@ -103,7 +103,7 @@ async function main(){
   await page.locator('#park-connection-recovery[data-state=loading-error]').waitFor({timeout:60000});
   await page.getByRole('button',{name:'Return to park',exact:true}).click();
   await ready();await page.waitForFunction(()=>__candyOnline.data.room===null,null,{timeout:15000});
-  assert(new URL(page.url()).pathname.endsWith('/67park-feel-lab/'));
+  assert(new URL(page.url()).pathname.endsWith('/67park-foundation-next/'));
   assert(friend.sockets.every(ws=>ws.readyState===1));
   console.log('RECOVERY_BROWSER_PASS failed game returns to park without redirect loop');
   // The original navigation link and the new recovery button both need the

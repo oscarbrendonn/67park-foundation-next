@@ -1,6 +1,6 @@
 const {chromium}=require('/tmp/rush-test-tools/node_modules/playwright');
 const assert=require('node:assert/strict');
-const base='http://127.0.0.1:8497/67park-feel-lab/';
+const base='http://127.0.0.1:8497/67park-foundation-next/';
 (async()=>{
  const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
  try{for(const mobile of [false,true]){

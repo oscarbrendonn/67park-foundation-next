@@ -60,7 +60,7 @@ export function installLobbyLoadGuard(app,{
    if(renewals.size>512)for(const [key,v]of renewals)if(now-v.at>60000)renewals.delete(key);
    const headers={'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Vary':'Origin','Access-Control-Allow-Origin':req.headers.origin};
    if(++row.n>12){res.writeHead(429,{...headers,'Retry-After':'60'});res.end(JSON.stringify({error:'Too many reconnect attempts; please wait.'}));return}
-   try{const session=hub.session(token);metrics.recoveredSessions++;res.writeHead(200,headers);res.end(JSON.stringify({id:session.player.id,friendCode:session.player.friendCode,token:session.token,protocol:SERVER_PROTOCOL,mode:'isolated-guest-test',persistentAccount:false,shareOrigin:'https://oscarbrendonn.github.io/67park-feel-lab/'}));return}catch{res.writeHead(503,headers);res.end(JSON.stringify({error:'Session unavailable'}));return}
+   try{const session=hub.session(token);metrics.recoveredSessions++;res.writeHead(200,headers);res.end(JSON.stringify({id:session.player.id,friendCode:session.player.friendCode,token:session.token,protocol:SERVER_PROTOCOL,mode:'isolated-guest-test',persistentAccount:false,shareOrigin:'https://oscarbrendonn.github.io/67park-foundation-next/'}));return}catch{res.writeHead(503,headers);res.end(JSON.stringify({error:'Session unavailable'}));return}
   }
   for(const handler of handlers)handler.call(app.server,req,res);
  };

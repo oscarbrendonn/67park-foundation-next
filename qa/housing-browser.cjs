@@ -1,6 +1,6 @@
 const {chromium}=require(process.env.PARK_PLAYWRIGHT||'/tmp/rush-test-tools/node_modules/playwright');
 const assert=require('node:assert/strict');
-const BASE=process.env.HOUSE_QA_URL||'http://127.0.0.1:8495/67park-feel-lab/';
+const BASE=process.env.HOUSE_QA_URL||'http://127.0.0.1:8495/67park-foundation-next/';
 (async()=>{
  const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
  const errors=[];

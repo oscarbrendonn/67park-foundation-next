@@ -46,5 +46,8 @@ for(const spec of [{w:1,l:2},{w:1.5,l:5}]){
  }
  for(let n=0;n<1000;n++)assert.equal(area.check(0,0,n/100,spec).ok,true);
 }
+const raisedCurb=(x,z)=>Math.abs(x)<=10&&Math.abs(z)<=30?(Math.abs(x)>7?.55:0):null;
+const raisedArea={footprint};expandIslandDriveArea(raisedArea,{domain:{height:raisedCurb},ground:(x,z)=>raisedCurb(x,z)??0});
+for(const spec of [{w:1,l:2},{w:1.5,l:5}])assert.equal(raisedArea.check(8,0,0,spec).ok,true,'55 cm curb remains drivable');
 assert.equal(area.check(NaN,0,0,{w:1,l:2}).ok,false);
-console.log('PASS: both footprints, 360 headings, repeated checks and curb transition');
+console.log('PASS: both footprints, 360 headings, repeated checks and 55 cm curb transition');

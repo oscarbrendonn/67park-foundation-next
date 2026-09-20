@@ -2,7 +2,7 @@ import * as T from 'three';
 import {GLTFLoader} from './GLTFLoader.js';
 import {mergeGeometries} from './utils/BufferGeometryUtils.js';
 import {finishCityMaterial60} from './city-props-v60.js';
-import {createRideAsset84} from './lunapark-rides-v84.js?v=87.1';
+import {createRideAsset84} from './lunapark-rides-v84.js?v=foundation-next-movement-1.1';
 import {seasideScale89,prepareSeasideAsset89} from './seaside-scale-v89.js?v=91';
 export const layout77=[
  ['ferris',173,-173.7,0],['carousel',192.7,-161.5,0],['carouselSmall',188.845,-135.693,0],
@@ -22,13 +22,13 @@ export async function loadLunapark77({scene,renderer,sample,sea,variant,terrainR
  await Promise.all(Array.from({length:4},async()=>{
   while(nextAsset<queue.length){const asset=queue[nextAsset++],articulated=['ferris','carousel','carouselSmall'].includes(asset);
    const version=asset.startsWith('carousel')?'88':articulated?'87.1':'78';
-   assets.set(asset,(await loader.loadAsync('/67park-feel-lab/island/lunapark-v1/'+asset+'.glb?v='+version)).scene);
+   assets.set(asset,(await loader.loadAsync('/67park-foundation-next/island/lunapark-v1/'+asset+'.glb?v='+version)).scene);
   }
  }));
  for(const p of layout77){
   const articulated=['ferris','carousel','carouselSmall'].includes(p.asset);
   const assetVersion=p.asset.startsWith('carousel')?'88':articulated?'87.1':'78';
-  if(!assets.has(p.asset))assets.set(p.asset,(await loader.loadAsync('/67park-feel-lab/island/lunapark-v1/'+p.asset+'.glb?v='+assetVersion)).scene);
+  if(!assets.has(p.asset))assets.set(p.asset,(await loader.loadAsync('/67park-foundation-next/island/lunapark-v1/'+p.asset+'.glb?v='+assetVersion)).scene);
   const source=prepareSeasideAsset89(assets.get(p.asset),p.asset);
   let hit=p.water?null:sample(p.x,p.z);
   // The walking sampler omits decorative timber; anchor umbrellas to its

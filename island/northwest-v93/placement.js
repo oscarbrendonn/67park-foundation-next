@@ -10,7 +10,7 @@ export async function loadNorthwest93({scene,renderer,sample,variant}){
  const exposure={value:1},materials=new Map(),opaque=[],placements=[],loader=new GLTFLoader();
  const ground=(x,z)=>{const h=sample(x,z);if(!h||!/CIMEN/.test(h.object.name))throw Error('NW93 model çim dışında: '+x+','+z+' '+h?.object.name);return h.point.y;};
  function finish(model){model.traverse(m=>{if(!m.isMesh)return;if(!materials.has(m.material))materials.set(m.material,finishHouseMaterial62(m.material,exposure));const f=materials.get(m.material);m.material=f.material;m.castShadow=!f.glass;m.receiveShadow=!f.glass;m.userData.safeShadowCaster=!f.glass;if(!f.glass)opaque.push(m);});}
- const road=(await loader.loadAsync('/67park-feel-lab/island/northwest-v93/track.glb?v=93.2')).scene;
+ const road=(await loader.loadAsync('/67park-foundation-next/island/northwest-v93/track.glb?v=93.2')).scene;
  road.name='NW93 unbroken curved track';road.position.set(-132,0,-208);
  const grades=new Map();
  road.traverse(m=>{if(!m.isMesh)return;m.geometry=m.geometry.clone();const p=m.geometry.attributes.position,n=m.geometry.attributes.normal;
@@ -25,7 +25,7 @@ export async function loadNorthwest93({scene,renderer,sample,variant}){
   p.needsUpdate=true;if(n)n.needsUpdate=true;m.geometry.computeBoundingBox();m.geometry.computeBoundingSphere();
  });finish(road);group.add(road);
  for(const p of [{asset:'blush',x:-141,z:-128},{asset:'ivory',x:-141,z:-113},{asset:'annex',x:-141,z:-99}]){
-  const root=(await loader.loadAsync('/67park-feel-lab/island/northwest-v93/'+p.asset+'.glb?v=93.3')).scene;root.name='NW93 detached '+p.asset;root.position.set(p.x,ground(p.x,p.z)-.012,p.z);root.rotation.y=Math.PI/2;finish(root);group.add(root);root.updateWorldMatrix(true,true);
+  const root=(await loader.loadAsync('/67park-foundation-next/island/northwest-v93/'+p.asset+'.glb?v=93.3')).scene;root.name='NW93 detached '+p.asset;root.position.set(p.x,ground(p.x,p.z)-.012,p.z);root.rotation.y=Math.PI/2;finish(root);group.add(root);root.updateWorldMatrix(true,true);
   const b=new T.Box3().setFromObject(root);for(let x=b.min.x;x<=b.max.x;x+=.5)for(let z=b.min.z;z<=b.max.z;z+=.5)ground(x,z);
   placements.push({...p,y:root.position.y,yaw:root.rotation.y,bounds:[b.min.toArray(),b.max.toArray()]});
  }

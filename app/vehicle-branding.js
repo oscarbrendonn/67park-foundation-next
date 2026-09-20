@@ -4,7 +4,7 @@ let logo=null,logoMaterial=null;
 export function parkLogoMaterial(){
  if(!logoMaterial){
   if(typeof document!=='undefined'){
-   logo=new T.TextureLoader().load('/67park-feel-lab/brand/67park-logo.png');
+   logo=new T.TextureLoader().load('/67park-foundation-next/brand/67park-logo.png');
    logo.colorSpace=T.SRGBColorSpace;
   }
   logoMaterial=new T.MeshBasicMaterial({name:'67park-colour-logo',map:logo,color:'#ffffff',transparent:true,depthWrite:false,side:T.FrontSide,toneMapped:false});

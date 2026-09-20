@@ -2,7 +2,7 @@ const {chromium}=require('playwright');
 const fs=require('node:fs');
 const path=require('node:path');
 const assert=require('node:assert/strict');
-const base=process.env.FEEL_URL||'http://127.0.0.1:8499/67park-feel-lab/';
+const base=process.env.FEEL_URL||'http://127.0.0.1:8499/67park-foundation-next/';
 const output=process.env.QA_OUTPUT||fs.mkdtempSync('/tmp/67park-grass-');
 const mobile=process.env.MOBILE==='1';
 const baseline=process.env.BASELINE==='1';

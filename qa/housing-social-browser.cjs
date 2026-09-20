@@ -1,6 +1,6 @@
 const {chromium}=require(process.env.PARK_PLAYWRIGHT||'/tmp/rush-test-tools/node_modules/playwright');
 const assert=require('node:assert/strict');
-const BASE=process.env.HOUSE_QA_URL||'http://127.0.0.1:8497/67park-feel-lab/';
+const BASE=process.env.HOUSE_QA_URL||'http://127.0.0.1:8497/67park-foundation-next/';
 const OUT=process.env.HOUSE_QA_OUT||'/tmp/67park-feel-lab-2UFlpf';
 const LIVE=process.env.SOCIAL_LIVE==='1';
 (async()=>{

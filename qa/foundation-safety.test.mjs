@@ -35,7 +35,7 @@ test('real sockets enforce chat policy and reconnect guest identity on isolated 
  try{
   assert.equal((await fetch(base+'/codex/api/session',{headers:{Origin:origin}})).status,404);
   const guest=await (await fetch(base+'/kimi/api/session',{headers:{Origin:origin}})).json();
-  assert.equal(guest.shareOrigin,'https://oscarbrendonn.github.io/67park-feel-lab/');
+  assert.equal(guest.shareOrigin,'https://oscarbrendonn.github.io/67park-foundation-next/');
   const ws=new WebSocket(base.replace('http','ws')+'/kimi/ws',['67park-v1','guest.'+guest.token],{headers:{Origin:origin}});sockets.push(ws);const messages=[];ws.on('message',b=>messages.push(JSON.parse(b)));await new Promise((r,j)=>{ws.once('open',r);ws.once('error',j)});
   ws.send(JSON.stringify({t:'chat',text:'porn',nonce:'blocked'}));await new Promise(r=>setTimeout(r,80));assert(messages.some(m=>m.t==='chat.result'&&!m.ok));assert(!messages.some(m=>m.t==='chat'));
   ws.send(JSON.stringify({t:'chat',text:'Ready to play',nonce:'fine'}));await new Promise(r=>setTimeout(r,80));assert(messages.some(m=>m.t==='chat'&&m.text==='Ready to play'));

@@ -1,8 +1,22 @@
-# 67Park Feel Lab
+# 67Park Foundation Next
 
-Isolated, experimental camera and movement fork for desktop and mobile browsers.
+Independent continuation of the tested foundation, camera and movement work.
 
-Play: https://oscarbrendonn.github.io/67park-feel-lab/
+Repository: https://github.com/oscarbrendonn/67park-foundation-next
+
+The new game URL is not a verified online release until the required foundation
+gate, Pages deployment and live backend checks all pass. The temporary backend
+was unreachable during the September 20 movement fix; a green source push is
+not evidence of a working public multiplayer session.
+
+This checkout starts at `0972ae8` (the preserved Astra camera correction on top
+of feel-lab `8e4966a`). The original feel-lab, kimi-party and mobile repositories
+are not modified. Runtime asset URLs now use this repository's own prefix;
+existing player-storage identifiers are intentionally retained.
+
+Current narrow scope: traversable ordinary curbs, removal of the unsolicited
+blocked-path popup, and standing-player transport on both rotating carousels.
+House walls remain solid. Existing models, colors and map assets are unchanged.
 
 Based on `oscarbrendonn/67park-kimi-party` commit
 `991aac2b7f5b09fa5a0b1fde479c820aa17495f1`. Neither original desktop nor mobile

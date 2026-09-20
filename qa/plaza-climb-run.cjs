@@ -1,6 +1,6 @@
 // Focused local loop. The same assertions also run in the full release gate.
 const {chromium}=require('playwright'),{spawn}=require('node:child_process'),fs=require('node:fs');
-const port=Number(process.env.PARK_QA_PORT||8508),base=`http://127.0.0.1:${port}/67park-feel-lab/`;
+const port=Number(process.env.PARK_QA_PORT||8508),base=`http://127.0.0.1:${port}/67park-foundation-next/`;
 (async()=>{let server,browser;try{
  fs.mkdirSync('.qa-results',{recursive:true});
  server=spawn(process.execPath,['qa/regression-server.mjs'],{env:{...process.env,PARK_QA_PORT:String(port)},stdio:['ignore','pipe','inherit']});

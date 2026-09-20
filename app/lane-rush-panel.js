@@ -1,3 +1,3 @@
-const URL='/67park-feel-lab/lane-rush/?v=rush-2';
+const URL='/67park-foundation-next/lane-rush/?v=rush-2';
 function mount(){for(const grid of document.querySelectorAll('.community-games')){if(grid.querySelector('[data-lane-rush]'))continue;const card=document.createElement('div');card.className='community-game-option community-local-game';card.dataset.laneRush='1';card.innerHTML=`<a class="community-game-launch" href="${URL}" aria-label="Color Rush — obstacle race"><span aria-hidden="true">🌈</span><b>Color Rush</b><small>Moving obstacles · grab · throw</small></a><a class="community-bot-test" href="${URL}" aria-label="Play Color Rush with bots">Play with 3 bots</a>`;grid.append(card)}}
 new MutationObserver(mount).observe(document.documentElement,{subtree:true,childList:true});mount();

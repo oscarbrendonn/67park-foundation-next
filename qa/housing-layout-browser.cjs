@@ -2,7 +2,7 @@
 // is fulfilled only in the test context; it is not a new in-game scene or UI.
 const {chromium}=require('/tmp/rush-test-tools/node_modules/playwright');
 const assert=require('node:assert/strict');
-const BASE=process.env.FEEL_URL||'http://127.0.0.1:8497/67park-feel-lab/';
+const BASE=process.env.FEEL_URL||'http://127.0.0.1:8497/67park-foundation-next/';
 const OUT=process.env.HOUSE_LAYOUT_OUTPUT||'/tmp/67park-feel-lab-2UFlpf';
 (async()=>{
  const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});

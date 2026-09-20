@@ -32,6 +32,10 @@ export function resolveCharacterContact(sweep, options) {
     stepDown: (hit.stepDown || 0) + (best === hit ? 0 : best.stepDown || 0), samples};
 }
 
+// Walking, skating and vehicles share this normal curb allowance. It is below
+// a building-wall height, while covering the raised road and park curbs.
+const TRAVERSABLE_CURB_RISE = .55;
+
 // Skate/swim retain the original slope and water rules, with bounded sampling.
 // Sliding uses this same predicate; it cannot bypass an intervening wall.
 export function sweepRideContact({from, to, velocity, ground, water=()=>false, blocked=()=>false}) {
@@ -51,7 +55,7 @@ export function sweepRideContact({from, to, velocity, ground, water=()=>false, b
     const x=start.x+(to.x-start.x)*i/count,z=start.z+(to.z-start.z)*i/count;
     const height=sample(x,z),slope=height!=null&&previous!=null&&Math.abs(height-previous)<=length/count*1.5+.03;
     const rise=height!=null&&previous!=null?height-previous:null;
-    const tallStep=supported&&rise!=null&&rise>.332&&!slope;
+    const tallStep=supported&&rise!=null&&rise>TRAVERSABLE_CURB_RISE&&!slope;
     supported=supported&&rise!=null&&rise>=-.372&&!water(x,z);
     const contactY=supported&&!tallStep?Math.max(to.y,previous+.555):to.y;
     let collision = tallStep||blocked(x,contactY,z);
@@ -65,40 +69,3 @@ export function sweepRideContact({from, to, velocity, ground, water=()=>false, b
   }
   return {position,vertical:velocity.y,blocked:false,kind:'ride',samples};
 }
-
-// One small, non-interactive cue, no new 3D assets, queue or frame loop. It only
-// appears while pushing into a blocked direction; walking alongside stays quiet.
-export function createContactFeedback({document, now=()=>performance.now(), schedule=setTimeout, cancel=clearTimeout}={}) {
-  let node=null,timer=null,last=0,pressure=0,disabled=false;
-  function hide(){if(node)node.hidden=true;pressure=0;}
-  function expire(){timer=null;const remaining=last+450-now();if(remaining>0)timer=schedule(expire,remaining);else hide();}
-  function update({contact, moving=false, active=true, dt=0}) {
-    if(disabled)return;
-    try {
-      if(!active||!moving){hide();return;}
-      const elapsed=Math.min(.05,Math.max(0,dt));
-      if(!contact?.blocked||(contact.kind==='slide'&&Math.hypot(contact.horizontal?.x||0,contact.horizontal?.z||0)>.05)){
-        pressure=Math.max(0,pressure-elapsed*.1);return;
-      }
-      pressure=Math.min(.3,pressure+elapsed*2);
-      if(pressure<.12)return;
-      if(!node){
-        node=document.createElement('div');node.id='park-contact-cue';node.setAttribute('role','status');
-        node.textContent='Path blocked · Go around';
-        node.style.cssText='position:fixed;left:50%;top:30%;transform:translateX(-50%);z-index:35;max-width:65vw;padding:8px 14px;border:1px solid #fff9;border-radius:999px;background:#fff8e9ed;color:#514a43;font:600 13px system-ui;text-align:center;pointer-events:none;box-shadow:0 3px 12px #57493618';
-        document.body.append(node);
-      }
-      node.hidden=false;last=now();if(timer===null)timer=schedule(expire,450);
-    }catch{disabled=true;dispose();}
-  }
-  function dispose(){if(timer!==null)cancel(timer);timer=null;node?.remove();node=null;pressure=0;}
-  return {update,dispose};
-}
-
-let feedback;
-export function updateContactFeedback(state){
-  if(!globalThis.document)return;
-  feedback??=createContactFeedback({document:globalThis.document});
-  feedback.update(state);
-}
-globalThis.addEventListener?.('pagehide',()=>{feedback?.dispose();feedback=null;});

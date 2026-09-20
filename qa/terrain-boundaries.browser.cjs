@@ -2,7 +2,7 @@ const {chromium}=require('/tmp/rush-test-tools/node_modules/playwright');
 const fs=require('node:fs');
 const path=require('node:path');
 const assert=require('node:assert/strict');
-const base=process.env.FEEL_URL||'http://127.0.0.1:8497/67park-feel-lab/';
+const base=process.env.FEEL_URL||'http://127.0.0.1:8497/67park-foundation-next/';
 const output=process.env.QA_OUTPUT||fs.mkdtempSync('/tmp/67park-boundaries-');
 const mobile=process.env.MOBILE==='1';
 const views=[

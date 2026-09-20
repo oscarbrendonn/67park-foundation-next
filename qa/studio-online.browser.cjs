@@ -1,6 +1,6 @@
 const {chromium}=require('/tmp/rush-test-tools/node_modules/playwright');
 const assert=require('node:assert/strict');
-const base=process.env.FEEL_URL||'http://127.0.0.1:8497/67park-feel-lab/';
+const base=process.env.FEEL_URL||'http://127.0.0.1:8497/67park-foundation-next/';
 const eq={base:'goril',body:'friendsie_2:2',head:'friendsie_26:90',sprout:'friendsie_8:90',back:'friendsie_2:4',kicks:'friendsie_3333:5',held:null,power:null,vibe:null};
 const sceneItems=page=>page.evaluate(()=>{const items=[];window.__eggyScene?.traverse(o=>{if(o.userData.studioEquipment&&typeof o.userData.studioEquipment==='string')items.push(o.userData.studioEquipment)});return items});
 (async()=>{

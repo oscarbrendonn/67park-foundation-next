@@ -55,30 +55,37 @@ module.exports=async function checkCornerContacts(page,{mobile=false,check}){
      direction(-.7,.7);
      await observe(800,()=>{const q=body.translation();if(w.ground(q.x,q.z)>q.y+1)intrusion=true;},()=>body.translation().z-before.z>1);
      const slide={...body.translation()};stop();
-     // Push directly into the visibly closed facade: stopped, with a clear cue.
+     // Push directly into the visibly closed facade. This is a physical
+     // contact test: the player must stay outside, then be able to retreat.
+     // It deliberately has no dependency on optional UI feedback.
      await place(x,z);
-     phase=(riding?'skate':'walk')+' wall cue';
-     // The cue expires after 450 ms. A CPU-only renderer can take seconds
-     // between RAF callbacks, so sampling only at RAF may miss a real cue.
-     // Observe its actual DOM visibility transition; keep the movement,
-     // wall penetration, render-stall and overall deadline assertions intact.
-     let cue=false;
-     const cueObserver=new MutationObserver(()=>{cue||=!!document.querySelector('#park-contact-cue:not([hidden])');});
-     cueObserver.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden']});
-     try{direction(-1,0);await observe(700,null,()=>cue);}finally{cueObserver.disconnect();}
+     phase=(riding?'skate':'walk')+' closed wall';
+     const plateau=[];
+     direction(-1,0);await observe(700,()=>{
+      const q=body.translation();
+      // The movement controller writes its intended velocity before contact
+      // resolution every frame, so velocity is not evidence of penetration or
+      // progress. Require eight consecutive rendered positions to remain on
+      // the exterior side of the facade instead.
+      if(q.x<wall+.35){plateau.length=0;return;}
+      plateau.push({x:q.x,z:q.z});if(plateau.length>8)plateau.shift();
+     },()=>{
+      if(plateau.length<8)return false;
+      return plateau.every((q,index)=>!index||Math.hypot(q.x-plateau[index-1].x,q.z-plateau[index-1].z)<.01);
+     });
      const wallStop={...body.translation()};
      phase=(riding?'skate':'walk')+' retreat';
      direction(1,0);await observe(600,null,()=>body.translation().x-wallStop.x>1);
      const retreat={...body.translation()};stop();await frames(3);
-     rows.push({riding,before,slide,wall,wallStop,retreat,cue,intrusion,cueHidden:!document.querySelector('#park-contact-cue:not([hidden])')});
+     const plateauMaxStep=Math.max(0,...plateau.slice(1).map((q,index)=>Math.hypot(q.x-plateau[index].x,q.z-plateau[index].z)));
+     rows.push({riding,before,slide,wall,wallStop,retreat,intrusion,plateauSamples:plateau.length,plateauMaxStep});
     }
    }finally{stop();await board(boardBefore);__tp([original.x,original.y,original.z]);await frames(3);}
    return rows;
   });
   for(const r of result){
    assert(r.slide.z-r.before.z>1,JSON.stringify(r));assert(!r.intrusion,JSON.stringify(r));
-   assert(r.wallStop.x>=r.wall+.35,JSON.stringify(r));assert(r.retreat.x-r.wallStop.x>1,JSON.stringify(r));
-   assert(r.cue,JSON.stringify(r));assert(r.cueHidden,JSON.stringify(r));
+   assert(r.wallStop.x>=r.wall+.35,JSON.stringify(r));assert(r.plateauSamples>=8&&r.plateauMaxStep<.01,JSON.stringify(r));assert(r.retreat.x-r.wallStop.x>1,JSON.stringify(r));
   }
   console.log('PASS model contact survey',JSON.stringify({mobile,...report,movement:result.map(r=>({board:r.riding,slide:r.slide.z-r.before.z,retreat:r.retreat.x-r.wallStop.x}))}));
  });

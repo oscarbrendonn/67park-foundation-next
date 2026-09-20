@@ -19,5 +19,5 @@ gateway.on('upgrade',(req,socket,head)=>{
  out.on('upgrade',(r,peer,other)=>{socket.write('HTTP/1.1 101 Switching Protocols\r\n'+Object.entries(r.headers).map(([k,v])=>k+': '+v+'\r\n').join('')+'\r\n');if(other.length)socket.write(other);if(head.length)peer.write(head);socket.pipe(peer).pipe(socket);socket.on('error',()=>peer.destroy());peer.on('error',()=>socket.destroy());});
  out.on('error',()=>socket.destroy());out.end();
 });
-gateway.listen(port,'127.0.0.1',()=>console.log('Isolated homes preview http://127.0.0.1:'+port+'/67park-feel-lab/'));
+gateway.listen(port,'127.0.0.1',()=>console.log('Isolated homes preview http://127.0.0.1:'+port+'/67park-foundation-next/'));
 for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{gateway.close();app.close().then(()=>process.exit(0));});

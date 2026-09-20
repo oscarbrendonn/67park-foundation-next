@@ -1,5 +1,5 @@
-import {assetFetch} from '/67park-feel-lab/app/entry-loading.js';
-const islandFetch=(u,...a)=>assetFetch(typeof u==='string'&&u.startsWith('./')?'/67park-feel-lab/island/'+u.slice(2):u,...a);
+import {assetFetch} from '/67park-foundation-next/app/entry-loading.js';
+const islandFetch=(u,...a)=>assetFetch(typeof u==='string'&&u.startsWith('./')?'/67park-foundation-next/island/'+u.slice(2):u,...a);
 import {withIslandFoliage} from '../app/island-asset-cache.js';
 import * as THREE from 'three';
 import {GLTFLoader} from './GLTFLoader.js';
@@ -39,7 +39,7 @@ export function finishHouseMaterial62(source,exposure={value:1}){
 async function loadSmallIslandPropsUncached({scene,renderer,sample,variant},foliageShared){
  const forceDetail=typeof location==='object'?new URLSearchParams(location.search).get('props-detail'):null;
  const [houseGltf,foliageGltf,layout]=await Promise.all([
-  new GLTFLoader().loadAsync('/67park-feel-lab/island/small-island-houses-v62.glb?v=roof1'),
+  new GLTFLoader().loadAsync('/67park-foundation-next/island/small-island-houses-v62.glb?v=roof1'),
   foliageShared,
   islandFetch('./small-island-placements-v47.json?v=placement2').then(r=>{if(!r.ok)throw Error('Küçük ada yerleşimi yüklenemedi');return r.json();})
  ]);
@@ -208,5 +208,5 @@ async function loadSmallIslandPropsUncached({scene,renderer,sample,variant},foli
 }
 
 export function loadSmallIslandProps(options){
- return withIslandFoliage(options.assetSession,()=>new GLTFLoader().loadAsync('/67park-feel-lab/island/small-island-props-v45.glb?v=round1'),foliage=>loadSmallIslandPropsUncached(options,foliage));
+ return withIslandFoliage(options.assetSession,()=>new GLTFLoader().loadAsync('/67park-foundation-next/island/small-island-props-v45.glb?v=round1'),foliage=>loadSmallIslandPropsUncached(options,foliage));
 }

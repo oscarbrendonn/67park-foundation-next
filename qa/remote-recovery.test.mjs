@@ -4,7 +4,7 @@ import fs from 'node:fs';
 
 // Use the shipped module, only resolve its browser-root imports for Node.
 const prefix=new URL('../',import.meta.url).href;
-const code=fs.readFileSync(new URL('../app/claude-remote-state.js',import.meta.url),'utf8').replaceAll('"/67park-feel-lab/','"'+prefix);
+const code=fs.readFileSync(new URL('../app/claude-remote-state.js',import.meta.url),'utf8').replaceAll('"/67park-foundation-next/','"'+prefix);
 const {installClaudeRemoteNetwork}=await import('data:text/javascript;base64,'+Buffer.from(code).toString('base64'));
 class Socket extends EventTarget {
  listeners=0;

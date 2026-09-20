@@ -3,7 +3,7 @@
 const {chromium}=require('playwright');
 const fs=require('node:fs');
 const {browserLaunchOptions,assertBrowserRenderer}=require('./browser-launch.cjs');
-const base=process.env.PARK_DIAGNOSTIC_URL||'http://127.0.0.1:8521/67park-feel-lab/';
+const base=process.env.PARK_DIAGNOSTIC_URL||'http://127.0.0.1:8521/67park-foundation-next/';
 const software=process.env.PARK_SOFTWARE_RENDER==='1';
 const backend=process.env.PARK_SOFTWARE_DRIVER==='webgl'?'swiftshader-webgl':'swiftshader';
 (async()=>{

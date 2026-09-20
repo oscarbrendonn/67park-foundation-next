@@ -3,7 +3,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {clone} from 'three/addons/utils/SkeletonUtils.js';
 import {configureStudioLighting} from '../app/studio-lighting.js?v=1';
 
-const ASSETS='https://oscarbrendonn.github.io/67park-feel-lab/models/';
+const ASSETS='https://oscarbrendonn.github.io/67park-foundation-next/models/';
 const STORAGE='67park.style-studio.v1';
 const icons={shoes:'M3 16v-6l5 1 3 4 8 2c2 0 3 2 2 4H3v-5Zm0 2h17M9 13l-2 2m5 0-2 2',back:'M12 20c-1-5-9-5-9-12 5 0 8 2 9 7 1-5 4-7 9-7 0 7-8 7-9 12Zm0-5v6M5 11l4 3m10-3-4 3',top:'m8 4-5 3 3 5 2-1v10h8V11l2 1 3-5-5-3c0 5-8 5-8 0Z',hat:'M4 14c0-5 2-9 7-9s7 4 7 9M3 14h17l2 3H3Zm8-9v8',glasses:'M2 10h2m16 0h2M10 10h4M4 7h6v7H4Zm10 0h6v7h-6Z'};
 const categories=[

@@ -1,6 +1,6 @@
 const {chromium}=require('/tmp/rush-test-tools/node_modules/playwright');
 const assert=require('node:assert/strict');
-const base=process.env.FEEL_URL||'http://127.0.0.1:8497/67park-feel-lab/';
+const base=process.env.FEEL_URL||'http://127.0.0.1:8497/67park-foundation-next/';
 (async()=>{const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
 try{for(const route of ['lane-rush/?v=feel-1','skybound-soft/?claudeQA=passive','rockets/?practice=1&forestQA=1','balloon/?practice=1']){
  if(process.env.ROUTE&&!route.startsWith(process.env.ROUTE))continue;

@@ -6,7 +6,7 @@ import {createCityHeightSampler58} from './city-height-sampler58.js';
 // Additive, reversible lower-central district. No source terrain, road, grass,
 // approved upper-square architecture, or player-interface code is replaced.
 export async function loadLowerPlaza83({scene,renderer,sample,variant}){
-  const gltf=await new GLTFLoader().loadAsync('/67park-feel-lab/island/lower-plaza-v83.glb?v=83.1');
+  const gltf=await new GLTFLoader().loadAsync('/67park-foundation-next/island/lower-plaza-v83.glb?v=83.1');
   let metadata;gltf.scene.traverse(o=>{if(o.userData.plaza83)metadata=o.userData.plaza83;});
   if(metadata?.version!==83||metadata.shops?.length!==11)throw Error('Lower plaza asset contract mismatch');
   const {cx,cz,ground}=metadata;

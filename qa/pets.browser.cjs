@@ -1,6 +1,6 @@
 const {chromium}=require('/tmp/rush-test-tools/node_modules/playwright');
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
-const BASE=process.env.FEEL_URL||'http://127.0.0.1:8497/67park-feel-lab/';
+const BASE=process.env.FEEL_URL||'http://127.0.0.1:8497/67park-foundation-next/';
 const OUT=fs.mkdtempSync('/tmp/67park-pets-');
 const wait=(p,fn,arg)=>p.waitForFunction(fn,arg,{timeout:180000});
 (async()=>{

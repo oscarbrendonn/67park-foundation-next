@@ -171,9 +171,16 @@ export function createRideAsset84(source,{asset,transform,material}){
   }
   return h==null?null:origin.y+h*scale.y;
  }
+ const deckLocal=new T.Vector3();
+ const deck=meta.kind==='carousel'?{kind:'carousel',asset,center:{x:origin.x,z:origin.z},innerRadius:.5*Math.min(scale.x,scale.z),radius:(meta.radius+.22)*Math.max(scale.x,scale.z),get angle(){return angle;},ground:(x,z)=>{
+  // The mast is fixed at the carousel's center and horse saddles sit above
+  // the deck. Neither is a standing-deck contact that should be transported.
+  const p=deckLocal.set(x,origin.y,z).applyMatrix4(inv),r=Math.hypot(p.x/scale.x,p.z/scale.z);
+  return r<=.5||r>meta.radius+.22?null:ground(x,z);
+ }}:null;
  sync();const bounds=new T.Box3().setFromObject(source).applyMatrix4(transform);
  const draws=blockers.length,triangles=blockers.reduce((n,m)=>n+(m.geometry.index.count/3)*(m.isInstancedMesh?m.count:1),0);
- return {asset,label:labels[asset],group,blockers,bounds,entry,ground,advance,seat,nearestSeat,boardingSeat,claimSeat,releaseSeat,seatStatus,
+ return {asset,label:labels[asset],group,blockers,bounds,entry,ground,deck:()=>deck,advance,seat,nearestSeat,boardingSeat,claimSeat,releaseSeat,seatStatus,
   poles:()=>poleBases.map(b=>{const p=b.p.clone().applyAxisAngle(T.Object3D.DEFAULT_UP,angle).applyMatrix4(transform);return {x:p.x,z:p.z,minY:origin.y+b.minY,maxY:origin.y+b.maxY,radius:b.radius};}),
   get occupied(){return occupied||occupants.size>0;},set occupied(value){occupied=!!value;},
   get angle(){return angle;},stats:{draws,triangles,seats:meta.kind==='ferris'?12*seatsPerCabin:seats.length,seatsPerCabin,cabinCount:meta.kind==='ferris'?12:0,period:meta.period,instancedCabins:meta.kind==='ferris'?instances.length:0,instancedHorses:meta.kind==='carousel'?instances.length:0,openCabin:!!meta.openCabin,liftStroke:(meta.lift?.stroke||0)*scale.y,liftPeriod:meta.lift?meta.period/meta.lift.cycles:null},

@@ -1,4 +1,4 @@
-export const OBSTACLE_PRACTICE_URL='/67park-feel-lab/?map=obstacle&practice=1&bots=1&v=release-40c';
+export const OBSTACLE_PRACTICE_URL='/67park-foundation-next/?map=obstacle&practice=1&bots=1&v=release-40c';
 // Local course is deliberately not sent as an unsupported matchmaking mode.
 export function obstaclePracticeCard(jsx,disabled){
  const props={href:disabled?undefined:OBSTACLE_PRACTICE_URL,'aria-disabled':disabled,
