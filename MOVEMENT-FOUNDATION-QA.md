@@ -31,7 +31,7 @@ or replacement tunnel is part of this change.
 
 Current local evidence after URL/cache-key migration:
 
-- `npm test`: 132 tests, 131 passed, one optional fixture skipped, zero failed.
+- `npm test`: 133 tests, 132 passed, one optional fixture skipped, zero failed.
 - Apple M4 / Chromium: all 16 actual path crossings (walk/skate, both ways,
   four entrances) passed in desktop and mobile-browser viewports. Keyboard and
   trusted touch joystick both climbed the pictured approximately 25 cm curb.
@@ -46,8 +46,8 @@ Current local evidence after URL/cache-key migration:
   forward pressure, and retreat for both walking and skating. Intended velocity
   alone is not used as proof that the character moved through a wall.
 
-Full hardware regression/900000 ms mobile-browser soak and hosted CI remain
-separate mandatory gates; focused checks alone do not authorize publication.
+Hardware regression and hosted CI remain separate mandatory gates; focused
+checks alone do not authorize publication.
 
 The first full local desktop run passed with zero JavaScript errors and its
 peer still connected. Its mobile run stopped at the added car route: a fixed
@@ -56,6 +56,28 @@ waits for actual heading and uses trusted mobile touch controls. The complete
 curb-to-car mobile sequence then passed with the same height/surface assertions
 (car stopped at x170.634, z115.678, y9.478786 on `8_PARK_PATIKA_UST`). The initial
 hosted run was cancelled pending this correction; it is not a release pass.
+
+Hosted run `35527383423` on `bf7529c` passed recovery, graphics, house contacts,
+the walk/skate path routes and the authoritative car curb route. It then failed
+the new carousel test's sampling assertion: the angle target was reached in two
+frames, while the assertion requires at least three. Observed orbit error was
+0.0000045 m. This is not a release pass; deployment was skipped. The sampling
+loop must collect both the required frame count and angle before evaluating the
+unchanged transport tolerances.
+
+The corrected sampling loop preserves all orbit tolerances and requires both
+three animation-frame samples and 0.45 rad of accumulated wrapped rotation.
+An exact fake-page callback test covers crossing that angle in two frames, with
+and without a TAU wrap; it now waits for the third sample. Fresh hardware
+desktop/mobile runs passed all eight carousel checks per viewport.
+
+The full hardware mobile-browser run completed its 900000 ms soak with
+`FOUNDATION_BROWSER_PASS`, zero JavaScript errors and the peer still connected
+(`.qa-results/foundation-next-mobile-final.log`). It also passed chat, reconnect,
+100 home transitions, repeated actions, outfit changes and feature isolation.
+Together with the earlier full desktop pass this verifies the current runtime
+locally. The subsequent edit is test sampling only, not changed game physics.
+Hosted CI still needs to pass again before this can be called a release.
 
 The required release workflow retains asset-failure/retry, connection recovery,
 graphics, physical wall/corner/curb checks, grass/coast/roof/plaza checks, chat

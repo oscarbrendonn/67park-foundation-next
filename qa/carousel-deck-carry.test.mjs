@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import {createCarouselDeckCarry,isCarouselDeckContact,rotateCarouselDeckPoint} from '../island/carousel-deck-carry-v1.js';
 import {loadIslandWorldSource} from '../server/runtime/server/island-world-source.js';
 import {isLocalCarryActive,registerRemoteCarryAvatar,setCarryLocalId} from '../app/park-carry.js';
+import carouselBrowser from './carousel-deck.browser.cjs';
 
 const deck={kind:'carousel',center:{x:10,z:-4},innerRadius:.5,radius:3,angle:0,ground:()=>2};
 const standing=(x=12,z=-4,extra={})=>({deck,position:{x,y:2.555,z},grounded:true,vertical:0,footOffset:.555,...extra});
@@ -104,4 +105,29 @@ test('angle wrap carries the short forward arc rather than treating it as a stal
  const moved=carry.step(sample()),expected=rotateCarouselDeckPoint({x:12,z:-4},wrapped.center,.09);
  assert.ok(moved,'a short wrap-around update carries');
  assert(Math.hypot(moved.x-expected.x,moved.z-expected.z)<1e-12,JSON.stringify({moved,expected}));
+});
+
+async function orbitBrowserFixture(initialAngle=0){
+ const stop=Symbol('first orbit complete'),center={x:10,z:-4},state={x:12,y:2.555,z:-4},deck={center,radius:3,angle:initialAngle,ground:()=>2};
+ const body={translation:()=>({...state}),linvel:()=>({x:0,y:0,z:0}),setLinvel:()=>{}};
+ const keys=['__islandWorld','__eggyInput','__candy','__tp','localStorage','requestAnimationFrame'],saved=new Map(keys.map(key=>[key,Object.getOwnPropertyDescriptor(globalThis,key)]));
+ const restore=()=>{for(const [key,descriptor]of saved)descriptor?Object.defineProperty(globalThis,key,descriptor):delete globalThis[key];};
+ const install=(key,value)=>Object.defineProperty(globalThis,key,{value,configurable:true,writable:true,enumerable:true});
+ let rafs=0;const rotate=delta=>{const x=state.x-center.x,z=state.z-center.z,c=Math.cos(delta),s=Math.sin(delta);state.x=center.x+c*x+s*z;state.z=center.z-s*x+c*z;};
+ const ride={asset:'carousel',deck:()=>deck,group:{getObjectByName:()=>({rotation:{y:deck.angle}})}};
+ install('__islandWorld',{spawn:[0,.555,0],rides:[ride]});install('__eggyInput',{playerRef:{body},input:{x:0,z:0,run:false}});install('__candy',{state:()=>({mounted:null})});install('__tp',([x,y,z])=>Object.assign(state,{x,y,z}));install('localStorage',{getItem:key=>key==='67park-feel-lab-muted'?'1':null});
+ install('requestAnimationFrame',callback=>{rafs++;if(rafs>19){deck.angle=(deck.angle+.23)%(Math.PI*2);rotate(.23);}callback(rafs*16);return rafs;});
+ const reports=[],oldLog=console.log;console.log=(name,payload)=>{if(name==='PASS carousel deck orbit')reports.push(JSON.parse(payload));};
+ const page={evaluate:async(fn,arg)=>fn(arg),screenshot:async()=>{},keyboard:{press:async()=>{}},getByRole:()=>({tap:async()=>{}})};
+ try{
+  let error;try{await carouselBrowser(page,{mobile:false,check:async(name,action)=>{await action();if(name.includes('standing avatar follows'))throw stop;}});}catch(caught){error=caught;}
+  assert.equal(error,stop);assert.equal(reports.length,1);return reports[0];
+ }finally{console.log=oldLog;restore();}
+}
+
+test('browser orbit sampling waits for three animation frames across a short threshold crossing and TAU wrap',async()=>{
+ for(const angle of [0,Math.PI*2-.04]){
+  const result=await orbitBrowserFixture(angle);
+  assert.equal(result.frames,3,JSON.stringify(result));assert(result.delta>=.45&&result.error<.12,JSON.stringify(result));
+ }
 });

@@ -14,12 +14,21 @@ module.exports=async function checkCarouselDeck(page,{mobile=false,check}){
      __tp(w.spawn);for(let f=0;f<4;f++)await frame();
      const x=d.center.x+d.radius*.65,z=d.center.z;
      __tp([x,d.ground(x,z)+.555,z]);for(let f=0;f<15;f++)await frame();
-     const start={...b.translation()},angle=d.angle,time=performance.now();let frames=0;
-     while(Math.atan2(Math.sin(d.angle-angle),Math.cos(d.angle-angle))<.45){
+     const start={...b.translation()},angle=d.angle,time=performance.now();let frames=0,previousAngle=angle,delta=0;
+     // A CPU renderer can advance enough carousel time in two rAFs to cross
+     // the orbit distance threshold. Keep sampling until both independent
+     // pieces of evidence are present: three animation-frame samples and .45 rad of
+     // continuous signed rotation. Summing short wrapped steps stays correct
+     // across the carousel's 0 / TAU boundary.
+     while(frames<12000){
       await frame();frames++;
-      if(performance.now()-time>45000)throw Error('Carousel network clock did not advance');
+      const nextAngle=d.angle,step=Math.atan2(Math.sin(nextAngle-previousAngle),Math.cos(nextAngle-previousAngle));
+      previousAngle=nextAngle;delta+=step;
+      if(frames>=3&&delta>=.45)break;
+      if(performance.now()-time>45000)throw Error('Carousel network clock did not advance: '+JSON.stringify({frames,delta}));
      }
-     const end={...b.translation()},delta=Math.atan2(Math.sin(d.angle-angle),Math.cos(d.angle-angle));
+     if(frames>=12000)throw Error('Carousel sample limit reached before orbit proof: '+JSON.stringify({frames,delta}));
+     const end={...b.translation()};
      const dx=start.x-d.center.x,dz=start.z-d.center.z;
      const expected={x:d.center.x+Math.cos(delta)*dx+Math.sin(delta)*dz,z:d.center.z-Math.sin(delta)*dx+Math.cos(delta)*dz};
      return {asset,start,end,delta,frames,expected,error:Math.hypot(end.x-expected.x,end.z-expected.z),distance:Math.hypot(end.x-start.x,end.z-start.z),floor:d.ground(end.x,end.z),visualAngle:ride.group.getObjectByName('LUNA84_CAROUSEL').rotation.y,angle:d.angle,mounted:__candy.state().mounted,muted:localStorage.getItem('67park-feel-lab-muted')};
