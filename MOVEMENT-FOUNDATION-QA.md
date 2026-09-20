@@ -277,6 +277,33 @@ The normal desktop route passed all five hops and the closed-wall check too
 This is local evidence only. The final hosted gate, entire mobile soak, Pages
 publication and live interaction checks are still required before release.
 
+### Hosted cap fix confirmed; final roof-hop driver sequencing
+
+Run `35540974077` confirmed the production correction: mobile hop 4 performed
+the real air jump (`jumped=2`, `jumpsLeft=0`) and reached the cap. The later
+hop 5 timed out for a different reason. At `x=16.2868`, its feet were `20.10`
+and the roof bevel was `20.15`; the driver reached that real edge before its
+second tap. The subsequent tap was correctly a fresh ground jump, not the
+air jump required by the assertion. The character ultimately stood on the
+roof at `20.785`, with zero JavaScript/game faults, but the gate stayed red.
+
+Only the final short test transfer now defers horizontal steering until the
+second airborne jump is physically accepted. Every earlier transfer keeps its
+original steering. Both jump proofs, all five landing targets, the closed-wall
+check and the full hosted soak are unchanged. This is a QA driver correction;
+it makes no additional production physics or geometry change.
+
+The revised driver passed the normal and 400ms mobile routes. In both, the
+final air jump is accepted with zero remaining air jumps before horizontal
+travel starts, then the avatar lands on the roof at `20.785` (full logs:
+`.qa-results/plaza-finalhop-normal-mobile.log` and
+`.qa-results/plaza-finalhop-400-mobile.log`). The full unit suite passed
+152/153 with one unchanged optional skip and zero failures
+(`.qa-results/roof-sequence-unit.log`).
+The normal desktop route passed too
+(`.qa-results/plaza-finalhop-normal-desktop.log`). Hosted regression and live
+publication remain required; these focused results do not replace the gate.
+
 The required release workflow retains asset-failure/retry, connection recovery,
 graphics, physical wall/corner/curb checks, grass/coast/roof/plaza checks, chat
 spam, player safety, 100 home transitions, repeated actions, outfit changes,

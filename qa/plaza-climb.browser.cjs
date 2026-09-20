@@ -4,6 +4,9 @@ function plazaJumpAccepted({before,minVelocity,expectedJumpsLeft}){
  const b=__eggyInput.playerRef.body,p=b.translation(),v=b.linvel(),s=window.__qaPlazaGorillaState?.();
  return s?.frames>before.frames&&s.grounded===false&&s.jumpsLeft===expectedJumpsLeft&&p.y>before.y+.12&&v.y>minVelocity;
 }
+function plazaDirectionReady({deferUntilAirJump=false,airJumpAccepted=false}={}){
+ return !deferUntilAirJump||airJumpAccepted;
+}
 function stableWallContact(){
  const p=__eggyInput.playerRef.body.translation(),i=__eggyInput.input,frame=__islandWorld.renderer.info.render.frame,samples=window.__qaPlazaWallSamples,last=samples[samples.length-1];
  if(!last||last.frame!==frame)samples.push({frame,x:p.x,y:p.y,z:p.z,intent:Math.hypot(i.x,i.z)});
@@ -114,26 +117,28 @@ module.exports=async function checkPlazaClimb(page,{mobile=false,check}){
   },{x,target,deadline:actionTimeout});}
   async function stop(){await page.evaluate(()=>{window.__qaPlazaSteer=(window.__qaPlazaSteer||0)+1;const i=__eggyInput.input,b=__eggyInput.playerRef.body;i.x=i.z=0;i.run=false;const v=b.linvel();b.setLinvel({x:0,y:v.y,z:0},true);});}
   let hopNumber=0;
-  async function hop(target,{double=true}={}){
+  async function hop(target,{double=true,deferDirectionUntilAirJump=false}={}){
    const hop=++hopNumber;
    // Do not pre-arm movement on a narrow support: wait until the runtime has
    // advanced the landing into a fresh grounded jump budget while input is off.
    await page.waitForFunction(()=>{const s=window.__qaPlazaGorillaState?.(),i=__eggyInput.input;return s?.grounded===true&&s?.jumpsLeft===1&&Math.hypot(i.x,i.z)<.01&&!i.run;},null,{timeout:actionTimeout});
    await trace(`hop ${hop} grounded first-jump ready`);
    const firstLabel=`hop ${hop} first jump`,start=await queueJump(firstLabel,1,1),x=Math.sign(target-start.x);
-   // Queue the real jump first, then hold analog before the next simulation
-   // frame. This preserves the grounded jump budget while giving the long
-   // awning transfer its first airborne movement sample.
-   await direction(x,target);
+   // Long transfers steer from the first airborne simulation sample. The
+   // final short roof transfer instead stays still through its air jump so a
+   // low-FPS frame cannot walk it onto the roof bevel before that jump lands.
+   if(plazaDirectionReady({deferUntilAirJump:deferDirectionUntilAirJump}))await direction(x,target);
    await confirmJump(firstLabel,start,3,1);
    if(double){
     await page.waitForFunction(y=>{const b=__eggyInput.playerRef.body;return b.translation().y>y+1&&b.linvel().y<2.8;},start.y,{timeout:actionTimeout});
     await trace(`hop ${hop} second jump window`);
     const secondLabel=`hop ${hop} double jump`,second=await queueJump(secondLabel,2,0);
-    // Touch-end can clear live analog input. Reclaim it in the same turn as
-    // the queued double jump, before waiting to prove the impulse.
-    await direction(x,target);
+    if(plazaDirectionReady({deferUntilAirJump:deferDirectionUntilAirJump}))await direction(x,target);
     await confirmJump(secondLabel,second,4,0);
+    // Touch-end can clear live analog input. Reclaim it only after the actual
+    // air-jump proof for the final short transfer; all earlier hops preserve
+    // their existing immediate steering.
+    if(deferDirectionUntilAirJump&&plazaDirectionReady({deferUntilAirJump:deferDirectionUntilAirJump,airJumpAccepted:true}))await direction(x,target);
    }
    await page.waitForFunction(()=>window.__qaPlazaAtTarget,null,{timeout:actionTimeout});
    await trace('target reached');
@@ -151,7 +156,7 @@ module.exports=async function checkPlazaClimb(page,{mobile=false,check}){
    await page.screenshot({path:'.qa-results/plaza-awning-'+(mobile?'mobile':'desktop')+'.png',timeout:90000});
    const sill=await hop(17.12,{double:false});assert(sill.y>16.15&&sill.y<16.4,JSON.stringify({sill}));
    const cap=await hop(17.14);assert(cap.y>19&&cap.y<19.3,JSON.stringify({cap}));
-   const roof=await hop(15.7);assert(roof.y>20.3,JSON.stringify({roof}));
+   const roof=await hop(15.7,{deferDirectionUntilAirJump:true});assert(roof.y>20.3,JSON.stringify({roof}));
    await page.waitForTimeout(600);
    await page.screenshot({path:'.qa-results/plaza-roof-'+(mobile?'mobile':'desktop')+'.png',timeout:90000});
    // Walk off the eaves into the court; no old collider-box invisible platform.
@@ -179,3 +184,4 @@ module.exports=async function checkPlazaClimb(page,{mobile=false,check}){
 };
 module.exports.stableWallContact=stableWallContact;
 module.exports.plazaJumpAccepted=plazaJumpAccepted;
+module.exports.plazaDirectionReady=plazaDirectionReady;

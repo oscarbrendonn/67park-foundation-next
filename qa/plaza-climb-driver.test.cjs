@@ -1,6 +1,6 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {stableWallContact,plazaJumpAccepted}=require('./plaza-climb.browser.cjs');
+const {stableWallContact,plazaJumpAccepted,plazaDirectionReady}=require('./plaza-climb.browser.cjs');
 
 function fixture(run){
  const names=['window','__islandWorld','__eggyInput'];
@@ -85,3 +85,9 @@ test('plaza jump proof rejects grounded or stale controller samples',()=>fixture
  gorilla.frames=11;
  assert.equal(plazaJumpAccepted(args),true);
 }));
+
+test('final roof-hop steering waits for the accepted air jump, while other hops retain immediate steering',()=>{
+ assert.equal(plazaDirectionReady({deferUntilAirJump:true,airJumpAccepted:false}),false);
+ assert.equal(plazaDirectionReady({deferUntilAirJump:true,airJumpAccepted:true}),true);
+ assert.equal(plazaDirectionReady({deferUntilAirJump:false,airJumpAccepted:false}),true);
+});
