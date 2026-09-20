@@ -8,8 +8,9 @@ kimi-party and mobile repositories are not edited or pushed.
 
 No model, texture, color or map geometry is replaced. Repository URL prefixes
 are mechanically changed so this independent site loads its own code/assets;
-existing saved-player keys are retained. No paid server, public-backend restart
-or replacement tunnel is part of this change.
+existing saved-player keys are retained. No paid server is used. The later,
+explicitly approved free-backend restoration is documented below; the movement
+change itself did not restart or modify the old public service.
 
 ## Behavioral contract
 
@@ -118,9 +119,20 @@ Post-correction evidence before hosted publication:
 - Generated bundle comparison confirms only descriptor timing metadata changed.
   Eighteen importer/entry files changed cache keys only (`carousel-time-1`).
   No models, textures, colors or geometry changed.
-- The complete hardware regression, including the required 900000 ms mobile
-  soak, is running in `.qa-results/carousel-time-full-hardware.log`. Hosted
-  regression remains mandatory and is not replaced by these focused passes.
+- The complete hardware regression finished successfully (exit 0), including
+  all recovery checks, desktop foundation and the required 900000 ms mobile
+  soak: `.qa-results/carousel-time-full-hardware.log`. Both foundation summaries
+  report zero JavaScript errors and the peer still connected. Hosted regression
+  remains mandatory; this is not a physical-phone performance certificate.
+
+Hosted run `35529906700` now passes both normal and deliberately delayed
+carousel transport, including walking/skating, on the CPU renderer. Recovery,
+quality, house contacts, all 16 curb crossings, the driven car, grass/coast and
+roof routes passed too. It still failed the desktop shrub-to-awning jump route:
+the final position was x18.256, y10.215 on the ground rather than the awning.
+There was no recorded JavaScript error, lost WebGL context or disconnected
+socket at failure. The same route passed on local hardware, so its slow-frame
+trajectory is being investigated; deployment was skipped, not forced through.
 
 The required release workflow retains asset-failure/retry, connection recovery,
 graphics, physical wall/corner/curb checks, grass/coast/roof/plaza checks, chat
@@ -140,9 +152,29 @@ geometry/probe behavior and the models were not changed by this narrow fix.
 
 ## Public online status
 
-The inherited preview backend is
-`https://things-silk-insured-athletics.trycloudflare.com`. Its hostname did not
-resolve during this work. Isolated local multiplayer tests use their own QA
-authority; they do not establish public online availability. A new game link
-must only be described as online after Pages and the actual backend interaction
-have both been verified.
+The inherited `things-silk-insured-athletics.trycloudflare.com` hostname stopped
+resolving. After the user's explicit approval, the independent checkout's test
+backend was started on loopback port 8498 and exposed through the free temporary
+`https://fall-indexed-shipped-muscle.trycloudflare.com` tunnel. The original
+social/safety JSON files were copied byte-for-byte into a separate private data
+directory outside this repo; the original checkout and data were not changed.
+
+The public HTTPS health check passed with zero service/lobby/room faults.
+An incompatible protocol received HTTP 426, and an unrelated Origin received
+HTTP 403. A two-guest HTTPS/WSS smoke passed bidirectional chat, movement and
+authenticated reconnect with the same identity while the other guest remained
+connected and continued sending movement. It closes only its own sockets and
+does not claim that public home/minigame transitions were tested by this smoke.
+The complete isolated acceptance tests cover those scenarios separately.
+
+`qa/live-online-smoke.mjs` can repeat this bounded check with
+`LIVE_SMOKE_ENDPOINT` and `LIVE_SMOKE_ORIGIN=https://oscarbrendonn.github.io`.
+It must not log tokens, guest identities or message payloads. The frontend
+endpoint and all affected importer cache keys are refreshed (`online-next-1`);
+a normalized diff verified that the other 51 source changes are cache-only.
+The fresh unit suite passed 136/137, with one optional fixture skipped.
+
+The final config still requires the complete hosted regression and Pages
+deployment, followed by live frontend/module/icon and browser checks. This
+endpoint is a temporary playtest service, not permanent hosting: the host Mac
+and tunnel must remain running. No paid service or uptime guarantee is implied.

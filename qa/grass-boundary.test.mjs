@@ -60,7 +60,7 @@ test('published loader runs the contour repair before the final terrain sampler'
  }
  const main=fs.readFileSync(new URL('../app/main.js',import.meta.url),'utf8');
  assert(main.includes('runtime.bundle.js?v=carousel-time-1'));
- assert(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('app/main.js?v=carousel-time-1'));
+ assert(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('app/main.js?v=online-next-1'));
 });
 
 test('live geometry: no sand opening, height discontinuity or material change', {skip:!process.env.GRASS_FIXTURE},async()=>{

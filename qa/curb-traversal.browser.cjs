@@ -4,7 +4,7 @@ module.exports=async function checkCurbTraversal(page,{mobile=false,check}){
  await check('park path entrances: walk and skate up/down, not invisible walls',async()=>{
   const rows=await page.evaluate(async()=>{
    const w=__islandWorld,body=__eggyInput.playerRef.body,input=__eggyInput.input;
-   const board=(await import('./app/chunk-G7D6MVRW.js?v=recovery-graphics-1')).i;
+   const board=(await import('./app/chunk-G7D6MVRW.js?v=online-next-1')).i;
    const original={...body.translation()},ridingBefore=board.on,rows=[];
    const frame=()=>new Promise(requestAnimationFrame);
    const stop=()=>{input.x=input.z=0;input.run=false;body.setLinvel({x:0,y:0,z:0},true);};

@@ -31,7 +31,7 @@ module.exports=async function checkHouseRoofs(page,{mobile=false,check}){
  });
  await check(mobile?'touch double-jump reaches a roof, walks its slope and gets down':'keyboard double-jump reaches a roof, walks its slope and gets down',async()=>{
   const before=await page.evaluate(async()=>{
-   const board=(await import('./app/chunk-G7D6MVRW.js?v=recovery-graphics-1')).i;
+   const board=(await import('./app/chunk-G7D6MVRW.js?v=online-next-1')).i;
    return {position:{...__eggyInput.playerRef.body.translation()},board:board.on};
   });
   const jump=()=>mobile?page.getByRole('button',{name:'Jump',exact:true}).tap():page.keyboard.press('Space');
@@ -72,7 +72,7 @@ module.exports=async function checkHouseRoofs(page,{mobile=false,check}){
    if(mobile)await page.getByRole('button',{name:'Skate',exact:true}).tap();else await page.keyboard.press('KeyV');
    await moveTo(167.9);
    await page.waitForFunction(()=>{const p=__eggyInput.playerRef.body.translation();return Math.abs(p.y-__islandWorld.roofSupports.sample(p.x,p.z).y-.555)<.12;},null,{timeout:actionTimeout});
-   const skated=await page.evaluate(async()=>({p:{...__eggyInput.playerRef.body.translation()},board:(await import('./app/chunk-G7D6MVRW.js?v=recovery-graphics-1')).i.on}));
+   const skated=await page.evaluate(async()=>({p:{...__eggyInput.playerRef.body.translation()},board:(await import('./app/chunk-G7D6MVRW.js?v=online-next-1')).i.on}));
    assert(skated.board&&skated.p.x>summit.x+.7,JSON.stringify(skated));
    await page.keyboard.press('KeyV');
    await moveTo(171.5);

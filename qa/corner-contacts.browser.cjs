@@ -18,7 +18,7 @@ module.exports=async function checkCornerContacts(page,{mobile=false,check}){
  await check('model-matched corners: walk and skate slide, retreat, closed walls',async()=>{
   const result=await page.evaluate(async()=>{
    const w=__islandWorld,{body}=__eggyInput.playerRef,input=__eggyInput.input;
-   const module=await import('./app/chunk-G7D6MVRW.js?v=recovery-graphics-1');
+   const module=await import('./app/chunk-G7D6MVRW.js?v=online-next-1');
    const original={...body.translation()},boardBefore=module.i.on,rows=[];
    let phase='setup';
    const pause=ms=>new Promise(r=>setTimeout(r,ms));

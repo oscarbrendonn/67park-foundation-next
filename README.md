@@ -5,9 +5,10 @@ Independent continuation of the tested foundation, camera and movement work.
 Repository: https://github.com/oscarbrendonn/67park-foundation-next
 
 The new game URL is not a verified online release until the required foundation
-gate, Pages deployment and live backend checks all pass. The temporary backend
-was unreachable during the September 20 movement fix; a green source push is
-not evidence of a working public multiplayer session.
+gate, Pages deployment and live backend checks all pass. The old temporary
+backend was unreachable during the September 20 movement fix. With explicit
+user approval, a separate free test backend and temporary tunnel were restored;
+a green source push alone is not evidence of a working public game.
 
 This checkout starts at `0972ae8` (the preserved Astra camera correction on top
 of feel-lab `8e4966a`). The original feel-lab, kimi-party and mobile repositories
