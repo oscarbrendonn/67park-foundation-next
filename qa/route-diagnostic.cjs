@@ -25,7 +25,7 @@ const assert=require('node:assert/strict');
   const page=await context.newPage(),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   await page.goto(process.env.PARK_DIAGNOSTIC_URL||'http://127.0.0.1:8521/67park-foundation-next/?claudeQA=passive',{waitUntil:'domcontentloaded'});
-  await page.waitForFunction(()=>window.__islandWorld?.ready&&window.__candyOnline?.data.connected&&!document.querySelector('.wardrobe'),null,{timeout:180000});
+  await page.waitForFunction(()=>window.__islandWorld?.ready&&window.__candyOnline?.data.connected&&window.__eggyInput?.playerRef?.body&&!document.querySelector('.wardrobe'),null,{timeout:180000});
   await assertBrowserRenderer(page);fs.mkdirSync('.qa-results',{recursive:true});
   const check=async(name,action)=>{await action();assert.deepEqual(errors,[]);console.log('ROUTE_DIAGNOSTIC_PASS',name)};
   if(process.env.PARK_DIAGNOSTIC_PLAZA_ONLY!=='1')await require('./house-roofs.browser.cjs')(page,{mobile,check});

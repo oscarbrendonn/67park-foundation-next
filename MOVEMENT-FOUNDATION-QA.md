@@ -134,6 +134,31 @@ There was no recorded JavaScript error, lost WebGL context or disconnected
 socket at failure. The same route passed on local hardware, so its slow-frame
 trajectory is being investigated; deployment was skipped, not forced through.
 
+The exact awning miss was subsequently reproduced by the focused hardware
+diagnostic with 400 ms between animation callbacks. The recorded second-jump
+confirmation was x23.920/y14.607; by x20.095 the body had already descended to
+y15.017, reaching the target only after falling. Both jump impulses and the
+surface geometry were present. The test driver now starts the analog run just
+before the one long transfer, retaining the existing late second-jump timing.
+It does not alter jump strength, physics, surfaces or success heights.
+
+That fix exposed another overly specific test prerequisite: the solid wall
+stopped the avatar at x17.0302, inside the existing accepted exterior range,
+but the old sampling loop waited for x<17.01. It now requires eight distinct
+rendered-frame positions under held input, within the unchanged final x/y
+bounds, with less than 0.03 m horizontal spread. Repeated polling of the same
+frame cannot fake a successful wall-contact test. Four unit cases exercise
+the actual exported predicate: duplicate frames, released input, continued
+travel and out-of-bounds positions.
+
+Final focused desktop/mobile routes passed both normally and with the 400 ms
+diagnostic delay. Delayed runs reached awning y15.342, sill y16.255, upper cap
+y19.115 and roof y20.785; the wall held at x17.0302. The full unit suite now has
+141 tests: 140 passed, one optional fixture skipped, no failures
+(`.qa-results/online-next-route-unit.log`). Only QA driver/diagnostic code and
+test registration changed in this follow-up. It still needs a fresh full
+hosted regression, including the unchanged 15-minute mobile soak, before Pages.
+
 The required release workflow retains asset-failure/retry, connection recovery,
 graphics, physical wall/corner/curb checks, grass/coast/roof/plaza checks, chat
 spam, player safety, 100 home transitions, repeated actions, outfit changes,
