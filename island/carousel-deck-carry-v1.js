@@ -2,6 +2,12 @@ const finite=value=>Number.isFinite(value);
 const TAU=Math.PI*2;
 
 function normalizedAngle(delta){return Math.atan2(Math.sin(delta),Math.cos(delta));}
+const monotonicNow=()=>globalThis.performance?.now?.()??Date.now();
+
+function deckAngularSpeed(deck){
+ const speed=deck?.angularSpeed;
+ return finite(speed)&&speed>0?speed:null;
+}
 
 /**
  * Return true only for the free, grounded avatar standing on a carousel deck.
@@ -31,19 +37,34 @@ export function rotateCarouselDeckPoint(position,center,delta){
  * including while the avatar is in the air or outside the deck. That prevents
  * a later landing/rejoin from replaying skipped rotation as a teleport.
  */
-export function createCarouselDeckCarry({maxAngleStep=.25}={}){
- let previousDeck=null,previousAngle=null;
+export function createCarouselDeckCarry({maxAngleStep=.25,maxElapsed=5,angleJitter=.06,maxDeckArc=6,now=monotonicNow}={}){
+ let previousDeck=null,previousAngle=null,previousTime=null,angleCredit=0;
  return {
-  reset(){previousDeck=null;previousAngle=null;},
+  reset(){previousDeck=null;previousAngle=null;previousTime=null;angleCredit=0;},
   step(sample){
-   const deck=sample?.deck,angle=deck?.angle;
-   if(!finite(angle)){previousDeck=null;previousAngle=null;return null;}
+   const deck=sample?.deck,angle=deck?.angle,time=finite(sample?.now)?sample.now:now();
+   if(!finite(angle)||!finite(time)){previousDeck=null;previousAngle=null;previousTime=null;angleCredit=0;return null;}
    const changed=deck!==previousDeck||previousAngle===null;
    const delta=changed?0:normalizedAngle(angle-previousAngle);
-   previousDeck=deck;previousAngle=angle;
-   // A late/restarted network clock must not fling a nearby avatar through a
-   // half-turn. Normal render/network updates are far below this threshold.
-   if(changed||Math.abs(delta)<1e-9||Math.abs(delta)>maxAngleStep||!isCarouselDeckContact(sample))return null;
+   const elapsed=changed?0:(time-previousTime)/1e3;
+   previousDeck=deck;previousAngle=angle;previousTime=time;
+   const contact=isCarouselDeckContact(sample),speed=deckAngularSpeed(deck),magnitude=Math.abs(delta);
+   // A trusted carousel rate funds one bounded angle budget. This bridges the
+   // capped local extrapolation followed by a delayed network packet without
+   // granting fresh jitter on every frame or replaying a hidden-tab interval.
+   if(changed){angleCredit=speed===null?0:angleJitter;return null;}
+   if(elapsed<0||elapsed>maxElapsed){angleCredit=speed===null?0:angleJitter;return null;}
+   const maxCredit=speed===null?0:speed*maxElapsed+angleJitter;
+   if(speed!==null)angleCredit=Math.min(maxCredit,angleCredit+speed*elapsed);
+   const orbitRadius=contact?Math.hypot(sample.position.x-deck.center.x,sample.position.z-deck.center.z):Infinity;
+   const travel=orbitRadius*magnitude;
+   const allowed=speed===null?maxAngleStep:angleCredit;
+   if(magnitude<1e-9)return null;
+   if(magnitude>allowed||(speed!==null&&delta<-angleJitter)){angleCredit=speed===null?0:angleJitter;return null;}
+   if(speed!==null)angleCredit=Math.min(maxCredit,angleCredit-delta);
+   // Valid off-deck samples still spend their budget so rejoining cannot replay
+   // skipped rotation. Only a contacting avatar is subject to deck arc carry.
+   if(travel>maxDeckArc||!contact)return null;
    return rotateCarouselDeckPoint(sample.position,deck.center,delta);
   },
  };

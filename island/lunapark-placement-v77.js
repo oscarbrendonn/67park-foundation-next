@@ -2,7 +2,7 @@ import * as T from 'three';
 import {GLTFLoader} from './GLTFLoader.js';
 import {mergeGeometries} from './utils/BufferGeometryUtils.js';
 import {finishCityMaterial60} from './city-props-v60.js';
-import {createRideAsset84} from './lunapark-rides-v84.js?v=foundation-next-movement-1.1';
+import {createRideAsset84} from './lunapark-rides-v84.js?v=carousel-time-1.1';
 import {seasideScale89,prepareSeasideAsset89} from './seaside-scale-v89.js?v=91';
 export const layout77=[
  ['ferris',173,-173.7,0],['carousel',192.7,-161.5,0],['carouselSmall',188.845,-135.693,0],

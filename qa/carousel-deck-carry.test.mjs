@@ -46,6 +46,68 @@ test('leaving, rejoining, and a stale clock do not replay skipped rotation as a 
  deck.angle=Math.PI+.1;assert.ok(carry.step(standing()),'the next normal network tick carries again');
 });
 
+test('a rated carousel carries continuous 1.2–4.5 second frames, including a TAU wrap',()=>{
+ let now=0;
+ const timed={...deck,radius:1,angle:Math.PI*2-.04,angularSpeed:.2,period:Math.PI*10};
+ const carry=createCarouselDeckCarry({now:()=>now});
+ const sample=()=>({deck:timed,position:{x:10.8,y:2.555,z:-4},grounded:true,vertical:0,footOffset:.555});
+ assert.equal(carry.step(sample()),null,'first timed sample establishes the monotonic clock');
+ for(const elapsed of [1.2,1.6,3,4.5]){
+  now+=elapsed*1e3;timed.angle=(timed.angle+timed.angularSpeed*elapsed)%(Math.PI*2);
+  assert.ok(carry.step(sample()),`continuous ${elapsed}s frame is carried`);
+ }
+});
+
+test('a rated angle budget carries a delayed server packet without per-frame jitter credit',()=>{
+ let now=0;
+ const timed={...deck,radius:1,angle:0,angularSpeed:.2,period:Math.PI*10};
+ const carry=createCarouselDeckCarry({now:()=>now});
+ const sample=()=>({deck:timed,position:{x:10.8,y:2.555,z:-4},grounded:true,vertical:0,footOffset:.555});
+ assert.equal(carry.step(sample()),null);
+ now=1600;timed.angle=.04;
+ assert.ok(carry.step(sample()),'the capped local extrapolation spends only its observed angle');
+ now=1616;timed.angle=.34;
+ assert.ok(carry.step(sample()),'the queued server packet spends the accrued 1.6s rate budget');
+ now=1632;timed.angle=.64;
+ assert.equal(carry.step(sample()),null,'a second .3rad packet cannot mint another jitter allowance');
+});
+
+test('small signed network corrections do not drain the trusted angle budget twice',()=>{
+ let now=0;
+ const timed={...deck,radius:1,angle:0,angularSpeed:.2,period:Math.PI*10};
+ const carry=createCarouselDeckCarry({now:()=>now});
+ const sample=()=>({deck:timed,position:{x:10.8,y:2.555,z:-4},grounded:true,vertical:0,footOffset:.555});
+ assert.equal(carry.step(sample()),null);
+ for(let i=0;i<8;i++){
+  now+=16;timed.angle-=.01;assert.ok(carry.step(sample()),`negative correction ${i} remains tolerable`);
+  now+=16;timed.angle+=.01;assert.ok(carry.step(sample()),`matching positive correction ${i} remains tolerable`);
+ }
+});
+
+test('rated carry rejects clock jumps, backward turns, suspended frames, and an unsafe outer arc',()=>{
+ let now=0;
+ const timed={...deck,radius:1,angle:0,angularSpeed:.2,period:Math.PI*10};
+ const carry=createCarouselDeckCarry({now:()=>now});
+ const sample=(position={x:10.8,y:2.555,z:-4})=>({deck:timed,position,grounded:true,vertical:0,footOffset:.555});
+ assert.equal(carry.step(sample()),null);
+ now=16;timed.angle=.35;assert.equal(carry.step(sample()),null,'a sudden positive clock jump is not rate-explainable');
+ now=2e3;timed.angle=.05;assert.equal(carry.step(sample()),null,'a backward .3rad jump is rejected despite a long enough elapsed time');
+ now=8e3;timed.angle=.05+timed.angularSpeed*6;assert.equal(carry.step(sample()),null,'a suspended tab frame never replays its full rotation');
+ now=8016;timed.angle+=timed.angularSpeed*.016;assert.ok(carry.step(sample()),'the first normal post-suspension delta resumes safely');
+ now=7990;timed.angle+=.003;assert.equal(carry.step(sample()),null,'a non-monotonic timestamp rebases without transporting');
+ now=8006;timed.angle+=timed.angularSpeed*.016;assert.ok(carry.step(sample()),'normal progression resumes after a timestamp reset');
+ const outer={...deck,radius:8.442,angle:0,angularSpeed:.2,period:Math.PI*10};
+ const outerCarry=createCarouselDeckCarry({now:()=>now});
+ const outerSample=position=>({deck:outer,position,grounded:true,vertical:0,footOffset:.555});
+ assert.equal(outerCarry.step(outerSample({x:10.8,y:2.555,z:-4})),null);
+ now+=4500;outer.angle=.9;
+ assert.ok(outerCarry.step(outerSample({x:10.8,y:2.555,z:-4})),'the same 4.5s turn is safe near the mast');
+ const unsafeCarry=createCarouselDeckCarry({now:()=>now});
+ assert.equal(unsafeCarry.step(outerSample({x:18,y:2.555,z:-4})),null);
+ now+=4500;outer.angle=1.8;
+ assert.equal(unsafeCarry.step(outerSample({x:18,y:2.555,z:-4})),null,'the outer rim arc remains bounded to six metres');
+});
+
 test('the production free-player tick samples deck carry before the normal contact sweep',async()=>{
  const source=await fs.readFile(new URL('../app/chunk-OZ77422N.js',import.meta.url),'utf8');
  const shipped=await fs.readFile(new URL('../island/runtime.bundle.js',import.meta.url),'utf8');
@@ -60,6 +122,7 @@ test('the production free-player tick samples deck carry before the normal conta
  assert.match(source,/if\(x\.blocked\|\|D\)\{Object\.assign\(n,x\.position\);e\.setTranslation/,'skate contact commits a clear deck move too');
  assert.match(shipped,/deck:\(\)=>carouselDeck84/,'the shipped island runtime exposes the descriptor used by the player tick');
  assert.match(shipped,/get angle\(\)\{return P\}/,'the shipped descriptor reads the existing network-synchronised angle');
+ assert.match(shipped,/period:t\.period,angularSpeed:6\.283185307179586\/t\.period/,'the shipped descriptor exposes the trusted carousel rate');
 });
 
 test('real ride descriptors expose only rotating carousel deck contacts',async()=>{
@@ -68,6 +131,8 @@ test('real ride descriptors expose only rotating carousel deck contacts',async()
  for(const asset of ['carousel','carouselSmall']){
   const ride=rides.find(candidate=>candidate.asset===asset),deck=ride.deck();
   assert.equal(deck.kind,'carousel');
+  assert.equal(deck.period,ride.stats.period,'descriptor exposes the authored ride period');
+  assert.ok(Math.abs(deck.angularSpeed-Math.PI*2/ride.stats.period)<1e-12,'descriptor exposes the authored angular velocity');
   assert.equal(deck.ground(deck.center.x,deck.center.z),null,'fixed center mast is excluded');
   assert.ok(Number.isFinite(deck.ground(deck.center.x+deck.innerRadius+.1,deck.center.z)),'standing deck surface is included');
   const before=deck.angle;ride.advance(.05);assert.notEqual(deck.angle,before,'descriptor observes the existing ride clock');

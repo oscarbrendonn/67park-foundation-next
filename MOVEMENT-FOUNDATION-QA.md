@@ -29,7 +29,7 @@ or replacement tunnel is part of this change.
 
 ## Release gate
 
-Current local evidence after URL/cache-key migration:
+Local evidence through `2868d2c`, before the slow-frame runtime correction:
 
 - `npm test`: 133 tests, 132 passed, one optional fixture skipped, zero failed.
 - Apple M4 / Chromium: all 16 actual path crossings (walk/skate, both ways,
@@ -75,9 +75,52 @@ The full hardware mobile-browser run completed its 900000 ms soak with
 `FOUNDATION_BROWSER_PASS`, zero JavaScript errors and the peer still connected
 (`.qa-results/foundation-next-mobile-final.log`). It also passed chat, reconnect,
 100 home transitions, repeated actions, outfit changes and feature isolation.
-Together with the earlier full desktop pass this verifies the current runtime
-locally. The subsequent edit is test sampling only, not changed game physics.
-Hosted CI still needs to pass again before this can be called a release.
+Together with the earlier full desktop pass this verified that runtime locally.
+The subsequent `2868d2c` edit changed test sampling only. Its hosted run did not
+pass, so this is not a release certificate for the slow-frame correction below.
+
+### Low-frame-rate transport correction
+
+Hosted run `35528410821` passed the recovery, graphics, house, path and car
+checks, then exposed an actual deck-transport failure: over three samples the
+rotor advanced 1.042 rad, but the avatar lagged its expected point by 4.293 m.
+No JavaScript error or connection loss accompanied the movement failure.
+
+The old transport helper discarded every per-frame rotation above 0.25 rad,
+even when it was normal movement after a slow frame. An independent hardware
+browser reproduction now delays the main thread by 1600 ms while retaining the
+real network and ride clock. Before the correction it produced 1.76–1.85 m
+orbit errors (`.qa-results/carousel-low-fps-baseline.log`).
+
+`qa/carousel-low-fps.browser.cjs` is now part of the required release gate. It
+checks three real delayed frames for walking and idle skating on both decks,
+with the existing 0.12 m orbit and 0.1 m height tolerances, real drawing progress,
+no mount and muted game audio. It does not mock the network or change game time.
+The runtime correction must preserve bounded suspension/clock-jump handling
+as well as normal jump, dismount and closed-wall behavior. Its results are
+recorded separately from the earlier normal-frame-rate passes above.
+
+The correction uses the authored carousel speed and a monotonic, bounded angle
+budget, including delayed network delivery after the 180 ms extrapolation cap.
+Jitter allowance is not added every frame. Backwards clock jumps, elapsed gaps
+over five seconds and transport arcs over six metres are discarded. The arc is
+measured at the avatar's actual radius. Normal wall sweeps are unchanged.
+
+Post-correction evidence before hosted publication:
+
+- Fresh hardware desktop and mobile-browser checks passed normal orbit, skate,
+  jump/landing and walk-off on both decks, plus all four delayed walk/skate
+  scenarios per viewport. Delayed-frame orbit error was below 0.1 mm in these
+  runs; the original same-browser reproduction exceeded 1.7 m.
+- `.qa-results/carousel-time-final-unit.log`: 137 tests, 136 passed, one optional
+  fixture skipped, zero failed. Includes slow frames, delayed packets, signed
+  clock corrections, wrap, backwards time, suspension and unsafe outer arcs.
+- Generated bundle comparison confirms only descriptor timing metadata changed.
+  Eighteen importer/entry files changed cache keys only (`carousel-time-1`).
+  No models, textures, colors or geometry changed.
+- The complete hardware regression, including the required 900000 ms mobile
+  soak, is running in `.qa-results/carousel-time-full-hardware.log`. Hosted
+  regression remains mandatory and is not replaced by these focused passes.
 
 The required release workflow retains asset-failure/retry, connection recovery,
 graphics, physical wall/corner/curb checks, grass/coast/roof/plaza checks, chat

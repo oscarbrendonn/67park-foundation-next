@@ -172,7 +172,7 @@ export function createRideAsset84(source,{asset,transform,material}){
   return h==null?null:origin.y+h*scale.y;
  }
  const deckLocal=new T.Vector3();
- const deck=meta.kind==='carousel'?{kind:'carousel',asset,center:{x:origin.x,z:origin.z},innerRadius:.5*Math.min(scale.x,scale.z),radius:(meta.radius+.22)*Math.max(scale.x,scale.z),get angle(){return angle;},ground:(x,z)=>{
+ const deck=meta.kind==='carousel'?{kind:'carousel',asset,center:{x:origin.x,z:origin.z},innerRadius:.5*Math.min(scale.x,scale.z),radius:(meta.radius+.22)*Math.max(scale.x,scale.z),period:meta.period,angularSpeed:TAU/meta.period,get angle(){return angle;},ground:(x,z)=>{
   // The mast is fixed at the carousel's center and horse saddles sit above
   // the deck. Neither is a standing-deck contact that should be transported.
   const p=deckLocal.set(x,origin.y,z).applyMatrix4(inv),r=Math.hypot(p.x/scale.x,p.z/scale.z);

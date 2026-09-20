@@ -102,6 +102,7 @@ async function run(mobile){
   await require('./curb-traversal.browser.cjs')(page,{mobile,check});
   await require('./car-curb.browser.cjs')(page,{mobile,check});
   await require('./carousel-deck.browser.cjs')(page,{mobile,check});
+  await require('./carousel-low-fps.browser.cjs')(page,{mobile,check});
   await require('./grass-boundary.live.cjs')(page,{mobile,check});
   await require('./southeast-divider.live.cjs')(page,{mobile,check});
   await require('./house-roofs.browser.cjs')(page,{mobile,check});

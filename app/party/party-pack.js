@@ -1,6 +1,6 @@
 import {createParkLaunchers} from "./park-launchers.js?v=hatch-ends-1";
 import {createParkPets} from '../pets/park-pets.js?v=pets-soft-2';
-import {createHousing} from '../housing.js?v=foundation-next-movement-1';
+import {createHousing} from '../housing.js?v=carousel-time-1';
 import '../chat-send-focus.js?v=homes-1';
 import {createParkSocialToys} from "./park-social-toys.js?v=balloon-lift-2";
 import {installSkateRailFinish} from './skate-rail-finish.js?v=1';

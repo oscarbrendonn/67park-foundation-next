@@ -1509,7 +1509,7 @@ await entryStage(6,'Preparing the wooden piers');
     seasideTimber79=createSeasideTimber81({scene:sahne,terrainRoot:kok,renderer,variant:'kimi'});
   } catch(e){renderer.domElement.dataset.seasideTimber79='error: '+e.message;console.error('Seaside timber',e);}
   try {
-    const {loadLunapark77}=await import('./lunapark-placement-v77.js?v=foundation-next-movement-1');
+    const {loadLunapark77}=await import('./lunapark-placement-v77.js?v=carousel-time-1');
 await entryStage(7,'Preparing rides and boats');
     lunapark77=await loadLunapark77({scene:sahne,renderer,sample:zeminVurusu,sea:kimiSu.position.y,variant:'kimi',terrainRoot:kok,timberSample:seasideTimber79?.sample});
   } catch(e){renderer.domElement.dataset.lunapark77='error: '+e.message;console.error('Amusement park',e);}

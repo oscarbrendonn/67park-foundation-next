@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {installRideControls84} from './lunapark-rides-v84.js?v=foundation-next-movement-1.1';
+import {installRideControls84} from './lunapark-rides-v84.js?v=carousel-time-1.1';
 import {disposeParkObject} from './park-assets-v28.js';
 
 // Imported ONLY by ?qa=... links. No NPCs, extra avatars, controls, or asset
