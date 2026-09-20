@@ -159,6 +159,42 @@ y19.115 and roof y20.785; the wall held at x17.0302. The full unit suite now has
 test registration changed in this follow-up. It still needs a fresh full
 hosted regression, including the unchanged 15-minute mobile soak, before Pages.
 
+Hosted run `35532018753` passed the full desktop foundation and the mobile
+curb/car/carousel/grass/coast/roof-geometry checks, then failed the mobile house
+roof approach at x163.116/y9.953. Pages was skipped. The exact old driver passed
+a uniform 400 ms main-world callback delay locally; that delay alone did not
+reproduce the hosted failure.
+
+A bounded, software-rendered SwiftShader diagnostic reproduced the missed
+approach. Trusted pointer capture showed the second tap arriving at frame 147,
+y11.378 with vertical velocity -3.4: the character was already falling. The
+per-action stability wait in `locator.tap()` consumed additional render frames
+after the requested near-apex timing. The QA input helper now resolves and
+validates the visible, enabled, unobstructed fixed Jump button before launching,
+then uses real trusted touchscreen input at that point. Desktop keyboard input
+is unchanged. Both timing-sensitive house and plaza jump routes use this helper;
+all physical landing, summit, skating and closed-wall assertions remain intact.
+
+With that input correction, the software diagnostic's second tap arrived at
+frame 143, y11.493/vy -0.4, and the first required roof landing succeeded at
+x163.556/y12.918. Its deliberately shortened 30-second diagnostic deadline
+expired during the later slope traverse, so this is causal first-landing
+evidence, **not** a completed software route or release pass. Normal hardware
+desktop and mobile-emulation house routes completed with the correction. The
+diagnostic deadline can only shorten the original action limit; the hosted
+workflow does not set it. No game physics, geometry, models or colors changed.
+
+The corrected mobile house route also completed with the 400 ms diagnostic
+delay (landing y12.817, summit y14.747, skating and closed wall retained).
+The shared-input plaza route completed under the same delay: awning y15.342,
+sill y16.255, cap y19.115, roof y20.785 and closed wall x17.0302. Captured
+roof-tap evidence is retained under `.qa-results/roof-tap-*.log`; partial
+software evidence is labelled separately from completed routes. The final
+unit run `.qa-results/prepared-jump-unit.log` has 147 tests: 146 passed, the
+same optional external-fixture skip, zero failures. Six new input-helper
+cases cover target validation, rejecting unusable/occluded controls and
+preserving keyboard input. A fresh hosted full gate is still required.
+
 The required release workflow retains asset-failure/retry, connection recovery,
 graphics, physical wall/corner/curb checks, grass/coast/roof/plaza checks, chat
 spam, player safety, 100 home transitions, repeated actions, outfit changes,

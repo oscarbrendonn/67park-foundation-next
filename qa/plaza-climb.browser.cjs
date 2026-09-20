@@ -1,4 +1,5 @@
 const assert=require('node:assert/strict');
+const {prepareJumpInput}=require('./jump-input.cjs');
 function stableWallContact(){
  const p=__eggyInput.playerRef.body.translation(),i=__eggyInput.input,frame=__islandWorld.renderer.info.render.frame,samples=window.__qaPlazaWallSamples,last=samples[samples.length-1];
  if(!last||last.frame!==frame)samples.push({frame,x:p.x,y:p.y,z:p.z,intent:Math.hypot(i.x,i.z)});
@@ -39,7 +40,7 @@ module.exports=async function checkPlazaClimb(page,{mobile=false,check}){
  });
  await check(mobile?'touch jumps: paving → shrub → striped awning → window cap → roof':'keyboard jumps: paving → shrub → striped awning → window cap → roof',async()=>{
   const before=await page.evaluate(()=>{window.__qaPlazaTrace=[];return {position:{...__eggyInput.playerRef.body.translation()},board:__candy.state().board};});
-  const jump=()=>mobile?page.getByRole('button',{name:'Jump',exact:true}).tap():page.keyboard.press('Space');
+  const jump=await prepareJumpInput(page,{mobile,timeout:actionTimeout});
   const trace=stage=>page.evaluate(stage=>{const b=__eggyInput.playerRef.body,p=b.translation();window.__qaPlazaTrace.push({stage,t:Math.round(performance.now()),p:{...p},v:{...b.linvel()}});if(window.__qaPlazaTrace.length>96)window.__qaPlazaTrace.shift();},stage);
   async function jumpAndConfirm(label,minVelocity){
    const before=await page.evaluate(()=>{const b=__eggyInput.playerRef.body,p=b.translation();return {x:p.x,y:p.y,z:p.z,vy:b.linvel().y};});

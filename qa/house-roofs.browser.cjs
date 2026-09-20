@@ -1,5 +1,8 @@
 const assert=require('node:assert/strict');
-const actionTimeout=process.env.PARK_SOFTWARE_RENDER==='1'?240000:45000;
+const {prepareJumpInput}=require('./jump-input.cjs');
+const defaultActionTimeout=process.env.PARK_SOFTWARE_RENDER==='1'?240000:45000;
+const requestedDiagnosticDeadline=Number(process.env.PARK_DIAGNOSTIC_ROUTE_DEADLINE);
+const actionTimeout=Number.isFinite(requestedDiagnosticDeadline)&&requestedDiagnosticDeadline>0?Math.min(defaultActionTimeout,requestedDiagnosticDeadline):defaultActionTimeout;
 
 module.exports=async function checkHouseRoofs(page,{mobile=false,check}){
  await check('all house roofs match their rendered surfaces, with bounded shared indices',async()=>{
@@ -34,7 +37,7 @@ module.exports=async function checkHouseRoofs(page,{mobile=false,check}){
    const board=(await import('./app/chunk-G7D6MVRW.js?v=online-next-1')).i;
    return {position:{...__eggyInput.playerRef.body.translation()},board:board.on};
   });
-  const jump=()=>mobile?page.getByRole('button',{name:'Jump',exact:true}).tap():page.keyboard.press('Space');
+  let jump;
   async function place(){
    await page.evaluate(async()=>{
     const w=__islandWorld,input=__eggyInput.input;input.x=input.z=0;input.run=false;
@@ -59,7 +62,7 @@ module.exports=async function checkHouseRoofs(page,{mobile=false,check}){
   }
   try{
    if(before.board)await page.keyboard.press('KeyV');
-   await place();await jump();
+   jump=await prepareJumpInput(page,{mobile,timeout:actionTimeout});await place();await jump();
    await page.waitForFunction(()=>{const b=__eggyInput.playerRef.body,p=b.translation();return p.y>11.15&&b.linvel().y<2.8;},null,{timeout:actionTimeout});
    await jump();await moveTo(163.35);
    await page.waitForFunction(()=>{const w=__islandWorld,b=__eggyInput.playerRef.body,p=b.translation(),roof=w.roofSupports.sample(p.x,p.z);return roof&&roof.y>w.terrainGround(p.x,p.z)+2.7&&Math.abs(p.y-roof.y-.555)<.08&&Math.abs(b.linvel().y)<.5;},null,{timeout:actionTimeout});
