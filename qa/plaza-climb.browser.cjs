@@ -39,21 +39,53 @@ module.exports=async function checkPlazaClimb(page,{mobile=false,check}){
   console.log('PASS plaza geometry',JSON.stringify({mobile,...result}));
  });
  await check(mobile?'touch jumps: paving → shrub → striped awning → window cap → roof':'keyboard jumps: paving → shrub → striped awning → window cap → roof',async()=>{
-  const before=await page.evaluate(()=>{window.__qaPlazaTrace=[];return {position:{...__eggyInput.playerRef.body.translation()},board:__candy.state().board};});
+  const before=await page.evaluate(async()=>{
+   // Import the exact runtime singleton already used by main.js. A cache-busted
+   // copy would observe a different controller and make the jump proof bogus.
+   const {claudeGorillaState}=await import('/67park-foundation-next/app/claude-gorilla-runtime.js?v=foundation-next-movement-1');
+   window.__qaPlazaGorillaState=()=>{const s=claudeGorillaState();return {grounded:!!s.grounded,jumped:s.jumped,jumpsLeft:s.jumpsLeft,frames:s.frames};};
+   window.__qaPlazaTrace=[];window.__qaPlazaJumpProof=[];window.__qaPlazaJumpLatches=[];window.__qaPlazaStopGorillaObserver=false;
+   // `jumped` is intentionally reset by the controller on later frames. Sample
+   // the live singleton on rAF and retain only the first expected transition
+   // for each armed real tap; physical rise is verified separately below.
+   const observe=()=>{
+    if(window.__qaPlazaStopGorillaObserver)return;
+    const o=window.__qaPlazaJumpObservation,s=window.__qaPlazaGorillaState?.(),b=__eggyInput.playerRef.body;
+    if(o&&!o.latch&&s?.frames>o.armedState.frames&&s?.jumped===o.expectedJumped&&s?.jumpsLeft===o.expectedJumpsLeft){
+     const entry={stage:o.label+' controller latched',t:Math.round(performance.now()),frame:__islandWorld.renderer.info.render.frame,p:{...b.translation()},v:{...b.linvel()},gorilla:{...s}};
+     o.latch=entry;window.__qaPlazaJumpLatches.push(entry);window.__qaPlazaJumpProof.push(entry);
+     if(window.__qaPlazaJumpLatches.length>12)window.__qaPlazaJumpLatches.shift();if(window.__qaPlazaJumpProof.length>24)window.__qaPlazaJumpProof.shift();
+    }
+    window.__qaPlazaGorillaObserver=requestAnimationFrame(observe);
+   };
+   window.__qaPlazaGorillaObserver=requestAnimationFrame(observe);
+   return {position:{...__eggyInput.playerRef.body.translation()},board:__candy.state().board};
+  });
   const jump=await prepareJumpInput(page,{mobile,timeout:actionTimeout});
-  const trace=stage=>page.evaluate(stage=>{const b=__eggyInput.playerRef.body,p=b.translation();window.__qaPlazaTrace.push({stage,t:Math.round(performance.now()),p:{...p},v:{...b.linvel()}});if(window.__qaPlazaTrace.length>96)window.__qaPlazaTrace.shift();},stage);
-  async function jumpAndConfirm(label,minVelocity){
-   const before=await page.evaluate(()=>{const b=__eggyInput.playerRef.body,p=b.translation();return {x:p.x,y:p.y,z:p.z,vy:b.linvel().y};});
+  const trace=stage=>page.evaluate(stage=>{
+   const b=__eggyInput.playerRef.body,p=b.translation(),s=window.__qaPlazaGorillaState?.(),entry={stage,t:Math.round(performance.now()),p:{...p},v:{...b.linvel()},gorilla:s&&{...s}};
+   window.__qaPlazaTrace.push(entry);if(window.__qaPlazaTrace.length>96)window.__qaPlazaTrace.shift();
+   if(/grounded first-jump ready|first jump confirmed|double jump confirmed/.test(stage)){window.__qaPlazaJumpProof.push(entry);if(window.__qaPlazaJumpProof.length>24)window.__qaPlazaJumpProof.shift();}
+  },stage);
+  async function queueJump(label,expectedJumped,expectedJumpsLeft){
+   const before=await page.evaluate(({label,expectedJumped,expectedJumpsLeft})=>{
+    const b=__eggyInput.playerRef.body,p=b.translation();
+    window.__qaPlazaJumpObservation={label,expectedJumped,expectedJumpsLeft,armedFrame:__islandWorld.renderer.info.render.frame,armedState:window.__qaPlazaGorillaState?.()};
+    return {x:p.x,y:p.y,z:p.z,vy:b.linvel().y};
+   },{label,expectedJumped,expectedJumpsLeft});
    await jump();
-   // Touch buttons queue their click for the next simulation step. Confirm the
-   // *resulting physical impulse* before steering, so a browser frame that
-   // lands between the tap and rAF cannot turn a missed jump into a route pass.
+   return before;
+  }
+  async function confirmJump(label,before,minVelocity){
+   // The rAF latch preserves the controller transition even when `jumped`
+   // resets before the body has risen .12m. The physical impulse remains an
+   // independent required check, so neither signal can fabricate a pass.
+   await page.waitForFunction(label=>window.__qaPlazaJumpLatches?.some(l=>l.stage===label+' controller latched'),label,{timeout:actionTimeout});
    await page.waitForFunction(({before,minVelocity})=>{
     const b=__eggyInput.playerRef.body,p=b.translation(),v=b.linvel();
     return p.y>before.y+.12&&v.y>minVelocity;
    },{before,minVelocity},{timeout:actionTimeout});
    await trace(label+' confirmed');
-   return before;
   }
   async function direction(x,target){await page.evaluate(({x,target,deadline})=>{
    const token=(window.__qaPlazaSteer||0)+1;window.__qaPlazaSteer=token;window.__qaPlazaAtTarget=false;
@@ -61,7 +93,7 @@ module.exports=async function checkPlazaClimb(page,{mobile=false,check}){
    const tick=()=>{
     if(window.__qaPlazaSteer!==token)return;
     const i=__eggyInput.input,b=__eggyInput.playerRef.body,p=b.translation(),remaining=(target-p.x)*x;
-    const trace=window.__qaPlazaTrace||(window.__qaPlazaTrace=[]);trace.push({stage:'steer',t:Math.round(performance.now()),p:{...p},v:{...b.linvel()},remaining});if(trace.length>96)trace.shift();
+    const trace=window.__qaPlazaTrace||(window.__qaPlazaTrace=[]),s=window.__qaPlazaGorillaState?.();trace.push({stage:'steer',t:Math.round(performance.now()),p:{...p},v:{...b.linvel()},remaining,gorilla:s&&{...s}});if(trace.length>96)trace.shift();
     if(remaining<=.06||performance.now()-started>deadline){i.x=i.z=0;i.run=false;const v=b.linvel();b.setLinvel({x:0,y:v.y,z:0},true);window.__qaPlazaAtTarget=remaining<=.06;return;}
     const yaw=__islandWorld.camera.userData.feelLab.yaw;
     // Normal analog input, with a deliberately early walking approach. The
@@ -73,29 +105,27 @@ module.exports=async function checkPlazaClimb(page,{mobile=false,check}){
    };tick();
   },{x,target,deadline:actionTimeout});}
   async function stop(){await page.evaluate(()=>{window.__qaPlazaSteer=(window.__qaPlazaSteer||0)+1;const i=__eggyInput.input,b=__eggyInput.playerRef.body;i.x=i.z=0;i.run=false;const v=b.linvel();b.setLinvel({x:0,y:v.y,z:0},true);});}
+  let hopNumber=0;
   async function hop(target,{double=true}={}){
-   const launch=await page.evaluate(()=>({x:__eggyInput.playerRef.body.translation().x}));
-   const x=Math.sign(target-launch.x),longTransfer=Math.abs(target-launch.x)>4;
-   // Arm the real analog control one simulation sample before the only long
-   // transfer. A sparse renderer otherwise spends the first airborne sample
-   // discovering a zero horizontal velocity, making this test driver
-   // undershoot the awning despite both accepted jump impulses.
-   if(longTransfer){
-    await direction(x,target);
-    await page.waitForFunction(x=>__eggyInput.playerRef.body.linvel().x*x>.3,x,{timeout:actionTimeout});
-    await trace('long transfer armed');
-   }
-   const start=await jumpAndConfirm('first jump',3);
-   // Begin the actual analog leg during the first arc: the longest transfer
-   // (shrub → awning) needs both jump arcs, not just the second one.
+   const hop=++hopNumber;
+   // Do not pre-arm movement on a narrow support: wait until the runtime has
+   // advanced the landing into a fresh grounded jump budget while input is off.
+   await page.waitForFunction(()=>{const s=window.__qaPlazaGorillaState?.(),i=__eggyInput.input;return s?.grounded===true&&s?.jumpsLeft===1&&Math.hypot(i.x,i.z)<.01&&!i.run;},null,{timeout:actionTimeout});
+   await trace(`hop ${hop} grounded first-jump ready`);
+   const firstLabel=`hop ${hop} first jump`,start=await queueJump(firstLabel,1,1),x=Math.sign(target-start.x);
+   // Queue the real jump first, then hold analog before the next simulation
+   // frame. This preserves the grounded jump budget while giving the long
+   // awning transfer its first airborne movement sample.
    await direction(x,target);
+   await confirmJump(firstLabel,start,3);
    if(double){
     await page.waitForFunction(y=>{const b=__eggyInput.playerRef.body;return b.translation().y>y+1&&b.linvel().y<2.8;},start.y,{timeout:actionTimeout});
-    await trace('second jump window');
-    await jumpAndConfirm('double jump',4);
-    // The touch click is allowed to refresh the live input singleton. Reclaim
-    // this same route vector only after the second physical impulse lands.
+    await trace(`hop ${hop} second jump window`);
+    const secondLabel=`hop ${hop} double jump`,second=await queueJump(secondLabel,2,0);
+    // Touch-end can clear live analog input. Reclaim it in the same turn as
+    // the queued double jump, before waiting to prove the impulse.
     await direction(x,target);
+    await confirmJump(secondLabel,second,4);
    }
    await page.waitForFunction(()=>window.__qaPlazaAtTarget,null,{timeout:actionTimeout});
    await trace('target reached');
@@ -128,12 +158,13 @@ module.exports=async function checkPlazaClimb(page,{mobile=false,check}){
    await stop();
    const wall=await page.evaluate(()=>({...__eggyInput.playerRef.body.translation()}));
    assert(wall.x>=16.85&&wall.x<17.5&&wall.y<11,JSON.stringify({wall}));
-   console.log('PASS plaza route',JSON.stringify({mobile,shrub,awning,sill,cap,roof,wall}));
+   const jumpProof=await page.evaluate(()=>window.__qaPlazaJumpProof);
+   console.log('PASS plaza route',JSON.stringify({mobile,shrub,awning,sill,cap,roof,wall,jumpProof}));
   }catch(error){
-   console.log('PLAZA_ROUTE_FAILURE',JSON.stringify(await page.evaluate(()=>{const w=__islandWorld,b=__eggyInput.playerRef.body,p=b.translation();return {p,v:b.linvel(),input:__eggyInput.input,board:__candy.state().board,surface:w.characterGround(p.x,p.z,p.y-.555),ahead:w.characterGround(p.x-.45,p.z,p.y-.555),trace:window.__qaPlazaTrace,errors:__candyErrors};})));
+   console.log('PLAZA_ROUTE_FAILURE',JSON.stringify(await page.evaluate(()=>{const w=__islandWorld,b=__eggyInput.playerRef.body,p=b.translation();return {p,v:b.linvel(),gorilla:window.__qaPlazaGorillaState?.(),input:__eggyInput.input,board:__candy.state().board,surface:w.characterGround(p.x,p.z,p.y-.555),ahead:w.characterGround(p.x-.45,p.z,p.y-.555),jumpProof:window.__qaPlazaJumpProof,trace:window.__qaPlazaTrace,errors:__candyErrors};})));
    throw error;
   }finally{
-   await stop();await page.evaluate(p=>__tp([p.x,p.y,p.z]),before.position);
+   await stop();await page.evaluate(p=>{__tp([p.x,p.y,p.z]);window.__qaPlazaStopGorillaObserver=true;cancelAnimationFrame(window.__qaPlazaGorillaObserver);delete window.__qaPlazaJumpObservation;delete window.__qaPlazaJumpLatches;delete window.__qaPlazaGorillaState;delete window.__qaPlazaJumpProof;delete window.__qaPlazaTrace;},before.position);
    if(before.board)await page.keyboard.press('KeyV');
   }
  });

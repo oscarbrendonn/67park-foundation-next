@@ -195,6 +195,32 @@ same optional external-fixture skip, zero failures. Six new input-helper
 cases cover target validation, rejecting unusable/occluded controls and
 preserving keyboard input. A fresh hosted full gate is still required.
 
+### Grounded launch and retained jump evidence
+
+Hosted run `35534801570` on `3deee71` passed the complete desktop suite and
+the mobile house-roof route. It then failed the mobile shrub-to-awning
+transfer; Pages deployment was skipped. The trace shows the test's pre-run
+leaving the curved shrub before the first tap: x24.557/y12.744 became
+x23.957/y12.544, and the first impulse had the air-jump velocity (7.6).
+The later tap produced no second impulse. This is consistent with the
+controller consuming the remaining airborne jump, not a missing awning.
+
+The plaza driver now waits for a grounded controller with its jump budget
+restored and no movement input, sends the trusted jump first, then applies
+analog movement. After touch-end it restores analog input without delaying
+the next jump arc. A read-only frame observer retains the controller's
+ground-jump/air-jump transitions, which otherwise last only one frame;
+physical upward movement is required independently. No controller budget,
+vertical position or velocity is written to manufacture a jump. The landing
+heights, complete route, closed-wall assertions and mandatory release gate
+remain unchanged. This is a test-driver correction, not a game-physics change.
+
+The normal mobile diagnostic completed the route with retained controller
+proof for each required ground and air jump. The reviewed driver's full unit
+run (`.qa-results/grounded-launch-unit.log`) passed 146 of 147 tests, with the
+same optional external-fixture skip and zero failures. Syntax and whitespace
+checks also passed. These focused checks do not replace the hosted gate.
+
 The required release workflow retains asset-failure/retry, connection recovery,
 graphics, physical wall/corner/curb checks, grass/coast/roof/plaza checks, chat
 spam, player safety, 100 home transitions, repeated actions, outfit changes,
