@@ -38,15 +38,24 @@ Current local evidence after URL/cache-key migration:
 - Both carousel sizes passed desktop and mobile-browser orbit, idle skate,
   actual jump/landing and walk-off checks. Orbit error was under 0.2 mm in the
   observed runs, airborne horizontal transport was zero, exit drift was zero.
-- Keyboard-controlled mounted car crossed the actual road-to-pink-path curb
-  on the isolated authority, then braked and dismounted normally. This is not
-  a physical-phone driving test.
+- Mounted car crossed the actual road-to-pink-path curb on the isolated
+  authority, then braked and dismounted normally. Desktop uses keyboard input;
+  mobile-browser checks use the actual steering wheel, Reverse, Brake and Exit
+  touch controls. This is not a physical-phone driving test.
 - House wall checks passed actual sliding, a stable exterior position under
   forward pressure, and retreat for both walking and skating. Intended velocity
   alone is not used as proof that the character moved through a wall.
 
 Full hardware regression/900000 ms mobile-browser soak and hosted CI remain
 separate mandatory gates; focused checks alone do not authorize publication.
+
+The first full local desktop run passed with zero JavaScript errors and its
+peer still connected. Its mobile run stopped at the added car route: a fixed
+one-second keyboard turn was not a reliable mobile-control test. The driver now
+waits for actual heading and uses trusted mobile touch controls. The complete
+curb-to-car mobile sequence then passed with the same height/surface assertions
+(car stopped at x170.634, z115.678, y9.478786 on `8_PARK_PATIKA_UST`). The initial
+hosted run was cancelled pending this correction; it is not a release pass.
 
 The required release workflow retains asset-failure/retry, connection recovery,
 graphics, physical wall/corner/curb checks, grass/coast/roof/plaza checks, chat
