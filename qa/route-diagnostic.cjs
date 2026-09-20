@@ -28,7 +28,7 @@ const assert=require('node:assert/strict');
   await page.waitForFunction(()=>window.__islandWorld?.ready&&window.__candyOnline?.data.connected&&!document.querySelector('.wardrobe'),null,{timeout:180000});
   await assertBrowserRenderer(page);fs.mkdirSync('.qa-results',{recursive:true});
   const check=async(name,action)=>{await action();assert.deepEqual(errors,[]);console.log('ROUTE_DIAGNOSTIC_PASS',name)};
-  await require('./house-roofs.browser.cjs')(page,{mobile,check});
+  if(process.env.PARK_DIAGNOSTIC_PLAZA_ONLY!=='1')await require('./house-roofs.browser.cjs')(page,{mobile,check});
   if(process.env.PARK_DIAGNOSTIC_ROOF_ONLY!=='1')await require('./plaza-climb.browser.cjs')(page,{mobile,check});
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});
