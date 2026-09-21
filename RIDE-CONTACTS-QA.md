@@ -20,6 +20,14 @@ backend/tunnel are unchanged by this fix.
   instance transforms. Free standing characters follow the cabin translation;
   jumping, leaving contact, mounted/held characters and stale clock jumps do
   not receive cabin carry. This is separate from carousel deck rotation.
+- The hosted run `35602195888` exposed a slow-frame carry failure. A fixed
+  2 m transport cutoff rejected legitimate continuous wheel travel; after
+  admitting that travel, an unchanged previous sweep anchor could still push
+  the rider back against the moved cabin. Transport now uses the authored
+  angular rate, a bounded elapsed-time credit and a 6 m maximum displacement.
+  Delays longer than 5 seconds or discontinuous clock changes do not carry.
+  The player's previous sweep anchor receives the same carrier translation;
+  their relative movement still passes through the existing collision checks.
 - Current ground decorators forward the fourth `ignoreRideContacts` argument:
   only the obsolete Ferris/coaster query is omitted. Other terrain, vehicles,
   social toys and home interior queries keep their own ground and collision.
@@ -40,12 +48,21 @@ backend/tunnel are unchanged by this fix.
   unchanged outside/home queries.
 - All 14 authored coaster support columns retain solid centers; every authored
   upper skating-route segment still matches the rendered deck support.
-- Full local unit suite: 219 tests, 217 passed, 2 pre-existing optional fixture
-  skips, no failures (`.qa-results/ride-contacts-unit-final.log`).
+- Full local unit suite: 221 tests, 219 passed, 2 pre-existing optional fixture
+  skips, no failures (`.qa-results/ride-contacts-unit-release.log`). The new
+  slow-frame case was observed failing before the correction, then passed.
 - Actual desktop and mobile-viewport game checks cover walk/skate open-bay
   traversal, column stops, moving-cabin carry, jumping and walking off. The
   mobile run also uses trusted touch joystick events. The exit test follows a
   cabin-relative open corridor instead of aiming at a stale world-space point.
+- A fixture is placed once on the current cabin transform immediately before
+  the production contact pass; it is not repeatedly teleported or force-marked
+  grounded. The subsequent 12 settling frames and carry/release checks remain.
+- Actual hardware-browser diagnostic: eight 2.6-second delays, with both
+  pre-settled and immediately delayed placement, retained cabin-relative
+  position and sub-micrometre numeric floor error after the sweep-anchor fix
+  (`.qa-results/ride-carry-delayed-2600-verified.log`). This is a deliberately
+  delayed contact diagnostic, not a device performance claim.
 - The existing skateboard jump/camera performance test is retained and passed
   locally. These browser checks also require new drawn frames, bounded frame
   gaps, a visible character, game audio muted and no JS/WebGL errors.

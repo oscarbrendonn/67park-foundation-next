@@ -117,6 +117,68 @@ test('unmounted standing avatar follows the cabin; jumping and stale transforms 
  assert.deepEqual(p,stale,'a discontinuous wheel-clock jump must not transport the avatar');
 });
 
+test('real Ferris carry admits rate-proven long frames and rejects clock discontinuities',()=>{
+ const rate=Math.PI*2/ferris.stats.period;
+ assert(Number.isFinite(rate)&&rate>0,'Ferris must expose its network period');
+ const make=()=>{
+  let now=0,p={x:0,y:0,z:0},v={x:0,y:0,z:0};
+  const timed=createRideContacts(lunapark,{now:()=>now});
+  const body={translation:()=>({...p}),linvel:()=>({...v}),setTranslation:q=>p={...q},setLinvel:q=>v={...q}};
+  const place=angle=>{ferris.setNetworkAngle(angle);const seat=ferris.seat(0);p={x:seat.position.x+1.53,y:seat.floor+foot,z:seat.position.z+.975};v={x:0,y:0,z:0};timed.prepareBody(body);return seat;};
+  const move=(seconds,angle)=>{now+=seconds*1e3;ferris.setNetworkAngle(angle);timed.prepareBody(body);return {p:{...p},seat:ferris.seat(0)};};
+  return {place,move,dispose:()=>timed.dispose()};
+ };
+ const follows=seconds=>{
+  const run=make();try{
+   const start=run.place(0),after=run.move(seconds,rate*seconds);
+   assert(Math.hypot(after.seat.position.x-start.position.x,after.seat.position.y-start.position.y)>2,'fixture must exceed the legacy 2m cutoff');
+   close(after.p.x,after.seat.position.x+1.53);close(after.p.y,after.seat.floor+foot);
+  }finally{run.dispose();}
+ };
+ follows(2.6);follows(4.5);
+
+ {const run=make();try{
+   const start=run.place(0),after=run.move(5.01,rate*5.01);
+   close(after.p.x,start.position.x+1.53);close(after.p.y,start.floor+foot);
+  }finally{run.dispose();}}
+
+ for(const delta of [.1,-.1]){const run=make();try{
+   const start=run.place(0),after=run.move(.016,delta);
+   assert(Math.hypot(after.seat.position.x-start.position.x,after.seat.position.y-start.position.y)<2,'small clock discontinuity must fit below the legacy distance cutoff');
+   close(after.p.x,start.position.x+1.53);close(after.p.y,start.floor+foot);
+  }finally{run.dispose();}}
+
+ {const run=make();try{
+   run.place(0);
+   // Local ride extrapolation is capped at 180ms, then a delayed packet
+   // catches the trusted wheel up on the next 16ms frame. The elapsed-time
+   // credit earned before that packet must admit its continuous catch-up.
+   run.move(1.6,rate*.18);const after=run.move(.016,rate*1.616);
+   close(after.p.x,after.seat.position.x+1.53);close(after.p.y,after.seat.floor+foot);
+  }finally{run.dispose();}}
+ ferris.setNetworkAngle(0);
+});
+
+test('cabin transport advances the player sweep anchor instead of colliding with its moved floor',()=>{
+ let now=0,p,v={x:0,y:0,z:0};
+ const timed=createRideContacts(lunapark,{now:()=>now});
+ const body={translation:()=>({...p}),linvel:()=>({...v}),setTranslation:q=>p={...q},setLinvel:q=>v={...q}};
+ try{
+  ferris.setNetworkAngle(0);const seat=ferris.seat(8*4);
+  p={x:seat.position.x+1.53,y:seat.floor+foot,z:seat.position.z+.975};
+  timed.prepareBody(body);const previous={...p};
+  now=2600;ferris.setNetworkAngle(Math.PI*2/ferris.stats.period*2.6);
+  const carry=timed.prepareBody(body);
+  assert(carry&&Math.hypot(carry.x,carry.y,carry.z)>2);
+  const from={x:previous.x+carry.x,y:previous.y+carry.y,z:previous.z+carry.z},feet=p.y-foot;
+  const result=resolveCharacterContact(walk,{from,to:p,velocity:v,wasGrounded:true,
+   ground:(x,z)=>timed.obstacle(x,z,feet,.36,base),supportGround:(x,z)=>timed.ground(x,z,feet,.36,base)});
+  assert(!result.blocked,JSON.stringify(result));assert(result.grounded);
+  close(result.position.x,p.x);close(result.position.y,p.y);
+  assert(movement.includes('if(rideCarry&&p)p={x:p.x+rideCarry.x,y:p.y+rideCarry.y,z:p.z+rideCarry.z}'),'shipped controller must translate its sweep anchor with the carrier');
+ }finally{timed.dispose();ferris.setNetworkAngle(0);}
+});
+
 test('outside ride bounds and replacement home floors retain their original queries',()=>{
  const scene=new T.Scene();scene.add(group);const original=()=>42;
  const world={scene,lunapark,ground:original,rideGround:()=>base,renderer:{domElement:{dataset:{}}}};

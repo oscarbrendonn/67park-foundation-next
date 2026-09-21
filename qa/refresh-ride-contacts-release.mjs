@@ -28,8 +28,12 @@ edit('island/runtime.bundle.js',s=>{
  s=once(s,'traffic:V,rides:w0?.rides??[],','traffic:V,rides:w0?.rides??[],lunapark:w0,rideGround:(x,z)=>K0(x,z,false,true),');
  return once(s,'return __parkInstallCourts(installHouseRoofSupports(await ll(options)))','return __parkInstallCourts(installRideContacts(installHouseRoofSupports(await ll(options))))');
 });
-edit('app/chunk-OZ77422N.js',s=>once(s,'e.setEnabled(!0);t.constrainSwimmer?.(e,a);let n=e.translation(),r=e.linvel();',
- 'e.setEnabled(!0);t.constrainSwimmer?.(e,a);t.rideContacts?.prepareBody(e,{skip:!!Te.seat||isLocalCarryActive()||!!de.blocked||!!ie.on,jumpQueued:!!N.jumpQueued});let n=e.translation(),r=e.linvel();'));
+edit('app/chunk-OZ77422N.js',s=>{
+ if(!s.includes('const rideCarry=t.rideContacts?.prepareBody'))s=once(s,'e.setEnabled(!0);t.constrainSwimmer?.(e,a);let n=e.translation(),r=e.linvel();',
+  'e.setEnabled(!0);t.constrainSwimmer?.(e,a);t.rideContacts?.prepareBody(e,{skip:!!Te.seat||isLocalCarryActive()||!!de.blocked||!!ie.on,jumpQueued:!!N.jumpQueued});let n=e.translation(),r=e.linvel();');
+ return once(s,'t.rideContacts?.prepareBody(e,{skip:!!Te.seat||isLocalCarryActive()||!!de.blocked||!!ie.on,jumpQueued:!!N.jumpQueued});let n=e.translation(),r=e.linvel();',
+  'const rideCarry=t.rideContacts?.prepareBody(e,{skip:!!Te.seat||isLocalCarryActive()||!!de.blocked||!!ie.on,jumpQueued:!!N.jumpQueued});if(rideCarry&&p)p={x:p.x+rideCarry.x,y:p.y+rideCarry.y,z:p.z+rideCarry.z};let n=e.translation(),r=e.linvel();');
+});
 // Keep the repair-data cache key and all network/camera/store singleton keys.
 for(const file of ['app/main.js','explore/explore.js'])edit(file,s=>s.replace(/runtime\.bundle\.js\?v=[a-zA-Z0-9_-]+/g,'runtime.bundle.js?v='+revision));
 const htmls=['index.html','play/index.html','balloon/index.html','race/index.html','rockets/index.html','sports/index.html','lane-rush/index.html','skybound-soft/index.html','explore/index.html','overview/index.html','style-studio/index.html'];

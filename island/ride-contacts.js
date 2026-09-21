@@ -2,17 +2,21 @@ import * as T from 'three';
 import {createRideSolidSampler} from './ride-solid-sampler.js?v=ride-contacts-1';
 
 const FOOT=.555,HEAD=1.45,SKIN=.012;
+const TAU=Math.PI*2,MAX_ELAPSED=5,ANGLE_JITTER=.06,MAX_CARRY_DISTANCE=6;
+const monotonicNow=()=>globalThis.performance?.now?.()??Date.now();
 const finite=p=>p&&Number.isFinite(p.x+p.y+p.z);
 const inBox=(b,x,z)=>x>=b.min.x-.001&&x<=b.max.x+.001&&z>=b.min.z-.001&&z<=b.max.z+.001;
 
 // The coaster is hollow underneath, and the Ferris cabins move. Index their
 // rendered surfaces once; do not cast through the entire park on every step.
 // A single cabin index is shared by all twelve upright cabin instances.
-export function createRideContacts({group,rides}){
+export function createRideContacts({group,rides},{now=monotonicNow}={}){
  group.updateWorldMatrix(true,true);
  const coaster=group.children.filter(m=>m.isMesh&&m.name==='LUNA77_coaster');
  const ferris=rides.find(r=>r.asset==='ferris');
  if(!coaster.length||!ferris)throw Error('Ride contact geometry missing');
+ const angularSpeed=TAU/ferris.stats.period;
+ if(!Number.isFinite(angularSpeed)||angularSpeed<=0)throw Error('Ferris contact clock missing');
  const fixed=ferris.group.children.filter(m=>m.isMesh&&!m.isInstancedMesh);
  const cabins=ferris.group.children.filter(m=>m.isInstancedMesh&&m.name.startsWith('LUNA84_UPRIGHT_CABINS_'));
  if(cabins.length!==3||cabins.some(m=>m.count!==12))throw Error('Ferris cabin instances changed');
@@ -78,14 +82,26 @@ export function createRideContacts({group,rides}){
  }
  function prepareBody(body,{skip=false,jumpQueued=false}={}){
   if(disposed||skip){bodyStates.delete(body);return;}
-  let p={...body.translation()},v=body.linvel(),before=bodyStates.get(body);
+  let p={...body.translation()},v=body.linvel(),before=bodyStates.get(body),carried=null;
   if(!finite(p)||!finite(v)||!contains(p.x,p.z)){bodyStates.delete(body);return;}
   sync();
   if(before&&Math.hypot(p.x-before.position.x,p.y-before.position.y,p.z-before.position.z)>8)before=null;
-  if(before?.contact&&v.y<=.2&&!jumpQueued&&Math.abs(p.y-FOOT-before.contact.y)<.22){
+  const time=now(),angle=ferris.angle,maxCredit=angularSpeed*MAX_ELAPSED+ANGLE_JITTER;
+  let angleCredit=ANGLE_JITTER,continuous=false;
+  if(before&&Number.isFinite(time+angle+before.time+before.angle)){
+   const elapsed=(time-before.time)/1e3,delta=Math.atan2(Math.sin(angle-before.angle),Math.cos(angle-before.angle));
+   if(elapsed>=0&&elapsed<=MAX_ELAPSED){
+    angleCredit=Math.min(maxCredit,before.angleCredit+angularSpeed*elapsed);
+    continuous=Math.abs(delta)<=angleCredit&&delta>=-ANGLE_JITTER;
+    angleCredit=continuous?Math.min(maxCredit,angleCredit-delta):ANGLE_JITTER;
+   }
+  }
+  if(continuous&&before?.contact&&v.y<=.2&&!jumpQueued&&Math.abs(p.y-FOOT-before.contact.y)<.22){
    const row=matrices[before.contact.cabin],delta=row.origin.clone().sub(before.origin);
-   // A resumed tab or stale server clock cannot fling the avatar around the wheel.
-   if(delta.length()<=2){p.x+=delta.x;p.y+=delta.y;p.z+=delta.z;body.setTranslation(p,true);}
+   // Prove continuous travel from the authored wheel rate and elapsed time.
+   // A slow frame may legitimately cover >2m; a stale/resumed clock still
+   // cannot fling an avatar. Credit also bridges capped network extrapolation.
+   if(delta.length()<=MAX_CARRY_DISTANCE){p.x+=delta.x;p.y+=delta.y;p.z+=delta.z;body.setTranslation(p,true);carried={x:delta.x,y:delta.y,z:delta.z};}
   }
   if(before&&v.y>0){
    let cap=Infinity;
@@ -99,7 +115,10 @@ export function createRideContacts({group,rides}){
   const near=hit&&hit.cabin!==null&&Math.abs(p.y-FOOT-hit.y)<.12?hit:
    sample(p.x,p.z).surfaces.find(s=>s.cabin!==null&&Math.abs(p.y-FOOT-s.y)<.095);
   const contact=v.y<=.2&&!jumpQueued?near:null;
-  bodyStates.set(body,{position:p,contact,origin:contact?matrices[contact.cabin].origin.clone():null});
+  bodyStates.set(body,{position:p,contact,origin:contact?matrices[contact.cabin].origin.clone():null,time,angle,angleCredit});
+  // The caller moves its previous sweep anchor by the same carrier delta.
+  // Only the player's own relative motion is swept against cabin walls.
+  return carried;
  }
  return {contains,sample,support,ground,obstacle,prepareBody,stats,dispose(){disposed=true;statics.dispose();cabin.dispose();cache.clear();localMeshes.length=0;stats.disposed=true;}};
 }
