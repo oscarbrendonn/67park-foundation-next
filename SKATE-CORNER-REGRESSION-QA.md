@@ -219,6 +219,28 @@ actual-map fixture additionally passes all eight tests with no skips
 (`.qa-results/skate-recovery-geometry-publish.log`). Publication remains gated
 by the next hosted regression, 15-minute soak, Pages deployment and live checks.
 
+The next hosted candidate acda734, workflow 35561914070, passed the entire
+download/match/reconnect recovery sequence above, then stopped at the new
+skateboard route's fixed 800 ms input interval. Mesa llvmpipe drew four frames
+and advanced 0.864 m, below the unchanged movement assertion; its measured
+716.6 ms frame gap was below the existing 15-second CPU-renderer stall limit.
+This run did not reach the remaining foundation checks, soak or publication.
+The software-rendering QA route now keeps real KeyD held until both at least
+eight metres and four drawn frames are observed, bounded by 15 seconds, with
+key release guaranteed on failure. No teleport, physics change, distance
+relaxation or skipped scenario is used. Hardware keeps its original 800 ms
+input interval and 50 ms p95 / 250 ms maximum frame-gap limits. Its fresh
+focused run passed with 53 frames, 8.451 m, p95 16.7 ms and maximum 16.8 ms
+(`.qa-results/skate-camera-hardware-route.log`).
+
+An additional fresh mobile-viewport studio stress run completed 40 paced and
+1,000 burst shoe changes, five studio reopen/back-slot cycles, then actual
+world movement and the same two-jump skateboard route. The closed studio left
+one world canvas, no blocked wardrobe client and no JS errors; the subsequent
+ride drew 53 frames over 8.440 m with p95 16.7 ms / maximum 16.8 ms and no new
+camera index trees. Evidence: `.qa-results/studio-stress-current.log`. This is
+hardware Chromium with a mobile viewport, not a physical iPhone or Android.
+
 ## Release distinction
 
 The ab6028d material-only workflow 35552864028 is now successful. That gate
