@@ -16,9 +16,10 @@ export function recordedEntryLoadFailure(errors){
  });
 }
 // The root park already keeps a connection banner above the scene. Give its
-// local Style Studio the foreground while it is open; match recovery remains
-// actionable because a match URL never takes this branch.
-export const recoveryCoveredByWardrobe=(match,doc)=>!match&&!!doc?.querySelector?.('.wardrobe');
+// local Style Studio the foreground while it is open, except a terminal
+// version/account block: its Reload action must stay reachable. Match recovery
+// also remains actionable because a match URL never takes this branch.
+export const recoveryCoveredByWardrobe=(match,doc,blocked=false)=>!blocked&&!match&&!!doc?.querySelector?.('.wardrobe');
 export function currentParkSocket(channel){const ws=state.channels.get(channel);return ws&&ws.readyState<2?ws:null;}
 export function connectionProblem(message,{blocked=false,retryAt=0}={}){
  if(message!==state.error||blocked!==state.blocked)state.changedAt=Date.now();
@@ -151,7 +152,7 @@ export function installConnectionRecoveryUI(win=window,doc=document){
   // This assignment deliberately precedes the signature return below: closing
   // the wardrobe must restore an already-active recovery panel on the next
   // check without changing its connection state or retry schedule.
-  panel.hidden=recoveryCoveredByWardrobe(match,doc)||!visible||(!text&&!state.blocked);
+  panel.hidden=recoveryCoveredByWardrobe(match,doc,state.blocked)||!visible||(!text&&!state.blocked);
   const signature=[text,failed,state.blocked,match,Date.now()<state.retryAt].join('|');
   if(signature===lastSignature)return;lastSignature=signature;
   label.textContent=text;retry.textContent=state.blocked?'Reload latest version':failed?'Retry loading':'Retry connection';

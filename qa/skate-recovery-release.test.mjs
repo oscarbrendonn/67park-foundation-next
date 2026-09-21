@@ -4,6 +4,7 @@ import fs from 'node:fs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 const revision='skate-corner-recovery-1';
 const geometryRevision='curb-touch-finish-1';
+const recoveryRevision='recovery-visibility-2';
 test('camera preparation completes before the world is returned, with one shared module instance',()=>{
  for(const file of ['island/runtime.js','island/runtime.bundle.js']){
   const source=read(file);assert(source.includes("../app/feel-camera-meshes.js?v="+revision));
@@ -27,8 +28,9 @@ test('camera preparation completes before the world is returned, with one shared
  for(const file of ['index.html','play/index.html','balloon/index.html','race/index.html','rockets/index.html','sports/index.html','lane-rush/index.html','skybound-soft/index.html','explore/index.html','overview/index.html','style-studio/index.html']){
   const html=read(file),match=html.match(/<script type="importmap">([\s\S]*?)<\/script>/);if(!match)continue;
   const map=JSON.parse(match[1]).imports,path='/67park-foundation-next/app/connection-recovery.js';
-  for(const key of [path,path+'?v=recovery-graphics-1'])assert.equal(map[key],path+'?v='+revision,file+' recovery import');
+  for(const key of [path,path+'?v=recovery-graphics-1',path+'?v='+revision])assert.equal(map[key],path+'?v='+recoveryRevision,file+' recovery import');
   assert(!html.includes('src="'+path+'?v=recovery-graphics-1"'),file+' standalone recovery script');
+  assert(!html.includes('src="'+path+'?v='+revision+'"'),file+' previous standalone recovery script');
  }
 });
 

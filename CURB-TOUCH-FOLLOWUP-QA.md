@@ -1,6 +1,7 @@
 # Close-angle curb and input follow-up — 2026-09-21
 
-Status: local candidate after published `2a4711c`; not a new verified live release.
+Status: `29d29f0` was pushed, but hosted run `35587567244` failed before
+publication. This is not a new verified live release.
 The original `67park-feel-lab` repository and site are unchanged.
 
 ## Bounded production changes
@@ -15,7 +16,9 @@ The original `67park-feel-lab` repository and site are unchanged.
 - Neither change adds a mesh, draw call, collision rule or per-frame callback.
   Buildings, models, inventory, controls and other ground outlines are unchanged.
 - `curb-touch-finish-1` refreshes only the geometry JSON and its runtime/entry
-  ancestors. The shared camera/audio/wardrobe/recovery module versions are kept.
+  ancestors. Shared camera/audio/wardrobe modules remain `skate-corner-recovery-1`.
+  The terminal recovery UI follow-up below uses `recovery-visibility-2`, with
+  previous recovery URLs aliased to the same instance in every entry import map.
 
 ## Direct evidence
 
@@ -50,6 +53,27 @@ The original `67park-feel-lab` repository and site are unchanged.
   errors; the peer stayed connected. `.qa-results/curb-touch-foundation.log`.
 
 ## Remaining release boundary
+
+Hosted run `35587567244` passed the unit and icon checks, then caught a recovery
+UI regression in its first browser case. HTTP 426 correctly set the incompatible
+version state, but the open `.wardrobe` loading view kept the recovery section
+hidden for the entire 30-second assertion. This is not a geometry or skate test
+failure; those hosted scenarios did not run. The gate was not bypassed. The
+follow-up must keep terminal version/conflict actions accessible during entry
+while preserving the intentional ordinary-offline Studio deferral.
+
+That narrow follow-up now bypasses the Studio deferral only when recovery is
+terminally blocked. A deterministic browser fixture holds the real selected
+Goril model download, waits for the loading wardrobe and the original five-second
+modal settle, then checks the warning is visible, non-inert and passes button
+hit-testing before releasing the download and actually reloading. The complete
+local recovery browser sequence passed on Apple M4/Metal: explicit reload,
+quality/framebuffer changes, remote motion after socket replacement, failed
+minigame download/retry, same-identity match reconnect while the peer continues,
+and both return-to-park paths. Log: `.qa-results/recovery-visibility-hardware.log`.
+The unit suite remains 179 total, 177 pass, two existing optional fixture skips,
+zero failures (`.qa-results/recovery-visibility-unit.log`). No timeout or scenario
+was removed, and the public backend is still untouched.
 
 The full hosted regression, 15-minute mobile-viewport soak and Pages gate are
 unchanged and still required for this new candidate. Push or unit success alone

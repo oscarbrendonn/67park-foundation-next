@@ -16,7 +16,7 @@ async function main(){
   localStorage.setItem('67park-feel-lab.character.v3',JSON.stringify({base:'goril'}));localStorage.setItem('67park-feel-lab.player-profile.v1',JSON.stringify({version:1,base:'goril'}));localStorage.setItem('67park-feel-lab-muted','1');
   localStorage.setItem('67park.feel-lab.player-settings.v1',JSON.stringify({graphics:'low'}));
  });
- const page=await context.newPage(),errors=[];let friend,releaseLateRecovery;
+ const page=await context.newPage(),errors=[];let friend,releaseLateRecovery,releaseMismatchEntry;
  page.on('pageerror',e=>errors.push(String(e)));
  const roomEvents=[];
  page.on('framenavigated',frame=>{if(frame===page.mainFrame()){roomEvents.push({at:Date.now(),direction:'navigation',path:new URL(frame.url()).pathname});if(roomEvents.length>50)roomEvents.shift();}});
@@ -26,18 +26,30 @@ async function main(){
  });
  try{
   const ready=()=>page.waitForFunction(()=>window.__islandWorld?.ready&&window.__eggyNet?.connected&&window.__candyOnline?.data.connected&&!document.querySelector('.wardrobe'),null,{timeout:180000});
-  // Real HTTP contract mismatch, not an artificial DOM message.
+  // Real HTTP contract mismatch while a known entry GLB is still in flight:
+  // the terminal Reload action must not defer to the loading wardrobe.
+  let mismatchEntryHeld=false;
+  const mismatchEntry=new Promise(resolve=>{releaseMismatchEntry=resolve});
+  await page.route('**/models/goril-motion-v3.glb*',async route=>{
+   mismatchEntryHeld=true;await mismatchEntry;return route.continue();
+  });
   await page.route('**/kimi/api/session*',route=>route.fulfill({status:426,contentType:'application/json',body:JSON.stringify({code:'CLIENT_UPDATE_REQUIRED',protocol:{min:2,max:2}})}));
   await page.goto(base+'?claudeQA=passive',{waitUntil:'domcontentloaded',timeout:120000});
+  await page.waitForFunction(()=>document.querySelector('.wardrobe')&&!window.__islandWorld?.ready,null,{timeout:30000});
   await page.locator('#park-connection-recovery[data-state=incompatible]').waitFor({timeout:30000});
-  // Let the asynchronous wardrobe modal/inert effect settle. Clicking before
-  // it mounts used to hide an inaccessible-recovery-button race.
+  // Retain the original late-modal settle check. The selected avatar download
+  // is still held, so entry cannot complete while modal/inert effects settle.
   await page.waitForTimeout(5000);
-  assert.equal(await page.locator('#park-connection-recovery').evaluate(el=>el.inert),false);
+  assert(mismatchEntryHeld,'fixture must hold the actual selected entry GLB');
+  assert(await page.locator('.wardrobe').isVisible(),'entry must still be covered by its loading wardrobe');
+  assert.deepEqual(await page.locator('#park-connection-recovery').evaluate(el=>({hidden:el.hidden,inert:el.inert})),{hidden:false,inert:false});
+  assert(await page.getByRole('button',{name:'Reload latest version',exact:true}).isVisible());
+  await page.getByRole('button',{name:'Reload latest version',exact:true}).click({trial:true});
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('67park-feel-lab.player-profile.v1')).base),'goril');
   await page.screenshot({path:'.qa-results/version-mismatch-mobile.png'});
-  await page.unroute('**/kimi/api/session*');await page.getByRole('button',{name:'Reload latest version',exact:true}).click();await ready();
-  console.log('RECOVERY_BROWSER_PASS incompatible version and explicit reload');
+  releaseMismatchEntry();releaseMismatchEntry=null;
+  await page.unroute('**/models/goril-motion-v3.glb*');await page.unroute('**/kimi/api/session*');await page.getByRole('button',{name:'Reload latest version',exact:true}).click();await ready();
+  console.log('RECOVERY_BROWSER_PASS incompatible version stays actionable during entry and reloads');
   await assertBrowserRenderer(page);
   const check=async(name,fn)=>{const before=await page.evaluate(()=>__islandWorld.renderer.info.render.frame);await fn();await page.waitForFunction(n=>__islandWorld.renderer.info.render.frame>n+2,before,{timeout:15000});console.log('PASS',name)};
   await require('./recovery-graphics.browser.cjs')(page,{mobile:true,check});
@@ -134,6 +146,6 @@ async function main(){
   assert.deepEqual(errors.filter(error=>!(/Failed to fetch dynamically imported module/.test(error)&&error.includes('online-match-3GT2AEG7.js'))),[],'Unexpected runtime error during recovery');
   assert.equal((await(await fetch(origin+'/health')).json()).faults,0);
  }catch(error){await page.screenshot({path:'.qa-results/recovery-failure.png'}).catch(()=>{});console.error('RECOVERY_STATE',await page.evaluate(()=>({path:location.pathname,text:document.body.innerText.slice(-1800),ready:window.__islandWorld?.ready,online:window.__candyOnline?.data,match:!!window.__onlineMatch})).catch(()=>({})),errors,roomEvents);throw error}
- finally{releaseLateRecovery?.();friend?.close();await context.close();}
+ finally{releaseMismatchEntry?.();releaseLateRecovery?.();friend?.close();await context.close();}
 }
 main().catch(e=>{console.error(e);process.exitCode=1}).finally(async()=>{await browser?.close();server?.kill('SIGTERM')});

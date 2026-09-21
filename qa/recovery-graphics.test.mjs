@@ -19,10 +19,11 @@ test('a match recovery mounted after a rejected entry import preserves the inlin
  assert.equal(recordedEntryLoadFailure([]),false);
  assert.equal(recordedEntryLoadFailure(['ordinary chat update',null]),false);
 });
-test('root recovery yields only to an open wardrobe, never a match warning',()=>{
+test('only transient root recovery yields to an open wardrobe',()=>{
  const open={querySelector:selector=>selector==='.wardrobe'?{}:null},closed={querySelector:()=>null};
  assert(recoveryCoveredByWardrobe(null,open));
  assert.equal(recoveryCoveredByWardrobe('ROOM-A',open),false);
+ assert.equal(recoveryCoveredByWardrobe(null,open,true),false,'terminal Reload remains reachable while the entry wardrobe loads');
  assert.equal(recoveryCoveredByWardrobe(null,closed),false);
  assert.equal(recoveryCoveredByWardrobe(null,{}),false,'minimal document stubs need no querySelector');
 });
