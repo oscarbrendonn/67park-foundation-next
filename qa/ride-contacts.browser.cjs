@@ -5,6 +5,9 @@ const {prepareJumpInput}=require('./jump-input.cjs');
 // the reported positions have passed through the same walk/skate contact sweep
 // that players use in the shipped park.
 module.exports=async function checkRideContacts(page,{mobile=false,check}){
+ const contactRevision=await page.evaluate(()=>__islandWorld.rideContacts?.stats);
+ assert.equal(contactRevision?.launchSyncVersion,1,'current grounded launch synchronization must be loaded');
+ assert.equal(contactRevision?.addedDrawCalls,0);assert.equal(contactRevision?.newAssetDownloads,0);
  await check('coaster red rails have four rounded closed ends without extra draws',async()=>{
   const finish=await page.evaluate(()=>JSON.parse(__islandWorld.renderer.domElement.dataset.coasterRailFinish1));
   assert.deepEqual(finish,{version:1,rails:2,caps:4,addedTriangles:528,addedDraws:0,deckChanged:false});
@@ -283,8 +286,14 @@ module.exports=async function checkRideContacts(page,{mobile=false,check}){
     }
     const first=rows[0],last=rows.at(-1);
     const armed=window.__qaRideJumpArmed,trace=window.__qaRideJumpTrace||[],events=window.__qaRideJumpEvents||[],inputEvent=events.find(event=>event.type==='keydown'||event.type==='pointerdown'),inputRow=trace.find(row=>row.source==='keydown'||row.source==='pointerdown');
-    const accepted=!!inputRow&&trace.some(row=>row.gorilla?.frames>inputRow.gorilla?.frames&&row.gorilla?.grounded===false&&row.gorilla?.jumpsLeft===1&&row.p.y>inputRow.p.y+.12&&row.v.y>3);
-    return {rows,maxGap:Math.max(...rows.map(r=>r.gap)),cabinTravel:Math.abs(last.expected.x-first.expected.x),bodyTravel:Math.hypot(last.p.x-first.p.x,last.p.z-first.p.z),mounted:__candy.state().mounted,armed,inputRow,inputKinematics:inputEvent?.cabin,dispatchDelayMs:inputRow?.t-armed.t,accepted,events,trace,physics:window.__qaRideJumpPhysics};
+    // Input arrives between physics frames. Measure the jump from its actual
+    // synchronized launch, not the older cabin pose visible at event time.
+    // Prove the synchronization below; a missing or arbitrary teleport cannot
+    // manufacture this baseline. Free-flight rise/speed bounds are unchanged.
+    const physics=window.__qaRideJumpPhysics,launch=physics.find(row=>row.before.jumpQueued);
+    const launched=!!inputRow&&!!launch&&trace.some(row=>row.frame>launch.frame&&row.gorilla?.jumped===1&&row.gorilla?.grounded===false&&row.gorilla?.jumpsLeft===1&&row.v.y>3);
+    const accepted=launched&&trace.some(row=>row.frame>launch.frame&&row.gorilla?.grounded===false&&row.gorilla?.jumpsLeft===1&&row.p.y>launch.after.p.y+.12&&row.v.y>3);
+    return {rows,maxGap:Math.max(...rows.map(r=>r.gap)),cabinTravel:Math.abs(last.expected.x-first.expected.x),bodyTravel:Math.hypot(last.p.x-first.p.x,last.p.z-first.p.z),mounted:__candy.state().mounted,armed,inputRow,inputKinematics:inputEvent?.cabin,dispatchDelayMs:inputRow?.t-armed.t,accepted,launched,launch,events,trace,physics};
    },setup);
    }catch(error){
     const diagnostic=await page.evaluate(()=>{const b=__eggyInput.playerRef.body;return {armed:window.__qaRideJumpArmed,events:window.__qaRideJumpEvents,trace:window.__qaRideJumpTrace,p:{...b.translation()},v:{...b.linvel()},gorilla:window.__qaRideGorillaState?.(),input:{...__eggyInput.input}};});
@@ -296,6 +305,11 @@ module.exports=async function checkRideContacts(page,{mobile=false,check}){
    assert.equal(airborne.events[0].isTrusted,true,'jump must come from real keyboard/touch input');
    assert.equal(airborne.events[0].type,mobile?'pointerdown':'keydown');
    if(mobile)assert.equal(airborne.events[0].target,'Jump','trusted touch must hit the visible Jump button');
+   const launch=airborne.launch;
+   assert(launch?.carried&&launch.before.jumpQueued,'first jump must synchronize verified cabin support');
+   assert(Math.abs(launch.after.p.y-.555-launch.before.cabin.floor)<.08,'launch must align to the real current cabin floor');
+   for(const axis of ['x','y','z'])assert(Math.abs(launch.after.p[axis]-launch.before.p[axis]-launch.carried[axis])<.0001,'launch translation must equal carrier delta: '+axis);
+   assert(airborne.physics.filter(row=>row.t>launch.t).every(row=>row.carried===null),'after launch no airborne carrier transport is allowed');
    assert(airborne.accepted&&airborne.rows.length>=3&&airborne.maxGap>.07&&airborne.cabinTravel>.025&&airborne.bodyTravel<.1&&airborne.inputKinematics?.floorVelocity<-.05&&Math.abs(airborne.inputKinematics.horizontalVelocity)>.3,JSON.stringify(airborne));
 
    const walkPlacement=await freshFerrisPlacement();let walked;

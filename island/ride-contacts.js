@@ -33,7 +33,7 @@ export function createRideContacts({group,rides},{now=monotonicNow}={}){
  const matrices=Array.from({length:12},()=>({matrix:new T.Matrix4(),inverse:new T.Matrix4(),box:new T.Box3(),origin:new T.Vector3()}));
  const point=new T.Vector3();let version=-1,disposed=false;
  const cache=new Map(),bodyStates=new WeakMap(),jumpGrounded=new WeakMap();
- const stats={revision:'ride-contacts-1',groundedJumpVersion:1,staticTriangles:statics.stats.triangles,cabinTriangles:cabin.stats.triangles,
+ const stats={revision:'ride-contacts-1',groundedJumpVersion:1,launchSyncVersion:1,staticTriangles:statics.stats.triangles,cabinTriangles:cabin.stats.triangles,
   cabinInstances:12,estimatedNumericBytes:statics.stats.bytes+cabin.stats.bytes,addedDrawCalls:0,newAssetDownloads:0,queries:0};
  function sync(){
   if(version===cabins[0].instanceMatrix.version)return;
@@ -97,7 +97,12 @@ export function createRideContacts({group,rides},{now=monotonicNow}={}){
     angleCredit=continuous?Math.min(maxCredit,angleCredit-delta):ANGLE_JITTER;
    }
   }
-  if(continuous&&before?.contact&&v.y<=.2&&!jumpQueued&&Math.abs(p.y-FOOT-before.contact.y)<.22){
+  // Queueing a jump does not make the rider airborne until the controller
+  // consumes it. Synchronize its verified support BEFORE launch, just as for
+  // a standing rider. Save the narrow release proof before moving p.
+  const supported=continuous&&before?.contact&&v.y<=.2&&Math.abs(p.y-FOOT-before.contact.y)<.22;
+  const queuedRelease=!!(jumpQueued&&supported&&Math.hypot(p.x-before.position.x,p.z-before.position.z)<=.12);
+  if(supported&&(!jumpQueued||queuedRelease)){
    const row=matrices[before.contact.cabin],delta=row.origin.clone().sub(before.origin);
    // Prove continuous travel from the authored wheel rate and elapsed time.
    // A slow frame may legitimately cover >2m; a stale/resumed clock still
@@ -115,14 +120,11 @@ export function createRideContacts({group,rides},{now=monotonicNow}={}){
   // never attach a jumping avatar or somebody walking underneath a cabin.
   const near=hit&&hit.cabin!==null&&Math.abs(p.y-FOOT-hit.y)<.12?hit:
    sample(p.x,p.z).surfaces.find(s=>s.cabin!==null&&Math.abs(p.y-FOOT-s.y)<.095);
-  // A delayed, descending cabin can leave a player more than the support
-  // probe distance above it during the exact frame a first jump is queued.
-  // Preserve only that verified prior contact for one grounded query: it is
-  // not a carry, and cannot survive a walk-off, teleport, stale clock, or
-  // an already-upward body.
-  const releasedJump=!!(jumpQueued&&continuous&&before?.contact&&v.y<=.2&&
-   Math.abs(p.y-FOOT-before.contact.y)<.22&&Math.hypot(p.x-before.position.x,p.z-before.position.z)<=.12);
-  if(releasedJump)jumpGrounded.set(body,true);
+  // Exactly one grounded query can consume this synchronized launch. Do not
+  // retain contact for the next frame, even if vertical speed is still zero.
+  // Walk-off, teleport, stale clock, oversized carrier travel and an already
+  // upward body cannot acquire this token or queued transport.
+  if(queuedRelease&&carried)jumpGrounded.set(body,true);
   const contact=v.y<=.2&&!jumpQueued?near:null;
   bodyStates.set(body,{position:p,contact,origin:contact?matrices[contact.cabin].origin.clone():null,time,angle,angleCredit});
   // The caller moves its previous sweep anchor by the same carrier delta.

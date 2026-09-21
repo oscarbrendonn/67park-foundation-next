@@ -1,5 +1,5 @@
 import {applyParkEntryFinish} from '../app/park-entry-finish.js?v=park-entry-finish-1';
-import {installRideContacts} from './ride-contacts.js?v=ride-jump-contact-1';
+import {installRideContacts} from './ride-contacts.js?v=ride-launch-sync-1';
 import {installSkateRailFinish} from '../app/party/skate-rail-finish.js?v=1';
 import {prepareCameraMeshes} from '../app/feel-camera-meshes.js?v=skate-corner-recovery-1';
 import {applySidewalkMaterials} from '../app/sidewalk-materials.js?v=sidewalk-materials-1';

@@ -66,3 +66,14 @@ test('Ferris requires exactly one trusted keyboard or Jump-targeted touch event'
  assert(code.includes('window.__qaRideJumpArmed&&dispatched&&gap>.07'),'no airborne samples before the trusted input');
  assert(code.includes('delete window.__qaRideJumpArmed'));
 });
+
+test('Ferris proves the synchronized launch before measuring unchanged free-flight bounds',()=>{
+ const code=fs.readFileSync(require.resolve('./ride-contacts.browser.cjs'),'utf8');
+ assert(code.includes('physics.find(row=>row.before.jumpQueued)'));
+ assert(code.includes('row.frame>launch.frame&&row.gorilla?.jumped===1'));
+ assert(code.includes('row.p.y>launch.after.p.y+.12&&row.v.y>3'));
+ assert(code.includes('launch.after.p.y-.555-launch.before.cabin.floor'));
+ assert(code.includes('launch.after.p[axis]-launch.before.p[axis]-launch.carried[axis]'));
+ assert(code.includes('every(row=>row.carried===null)'));
+ assert(!code.includes('row.p.y>inputRow.p.y+.12'),'event-time position is not the launch baseline');
+});

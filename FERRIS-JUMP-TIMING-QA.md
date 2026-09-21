@@ -1,6 +1,108 @@
-# Ferris trusted-input scheduling
+# Ferris grounded launch synchronization and trusted-input scheduling
 
-## Current correction: three distinct clocks
+## Current production correction: synchronize support before consuming jump
+
+Candidate `329e0ca` / hosted run `35653182246` failed on desktop; Pages was
+skipped. The earlier scheduling-only candidates did not fix the production
+ordering bug. Input was captured in 6 ms, but the first physics preparation
+arrived 1,153 ms later and the next arrived another 1,068 ms later. The cabin
+advanced while `jumpQueued` prevented grounded carrier transport. The token
+then allowed a jump from the old cabin pose. The subsequent genuine roof
+contact correctly stopped it. Evidence: `.qa-results/ci-35653182246-failure.log`.
+
+`island/ride-contacts.js` now saves the existing narrow grounded-contact proof,
+transports that proven rider to the current cabin before the queued jump is
+consumed, and returns the same carrier delta used by the controller's existing
+previous-sweep-anchor correction. Only a successful bounded carry grants the
+single-use jump token. Queuing immediately clears retained contact, so the
+airborne rider is not carried. Walk-off, teleport, upward motion, stale time,
+discontinuous angle, skip and disposal guards remain enforced. Roof collision
+is retained. No model, material, network, controller tuning or workflow changes
+are included; there are no new drawing calls, assets or frame loops.
+
+The exact latest CI replay was added first and failed against old production
+code. It now proves current-floor alignment, single token consumption, the
+original >0.12 m / >3 m/s free-flight conjunction and a separate real roof
+strike. The older CI replay also requires prelaunch synchronization and retains
+its exact authored roof cap. A 54-case real-asset launch matrix spans three
+cabins, two descending phases and independent launch/airborne gaps through
+2.6 seconds: 48 unobstructed jumps preserve rise/speed and six expected real
+roof contacts clamp. Those six collisions are not counted as free-flight passes.
+
+The browser arming phase is unchanged this time. The free-flight measurement
+now starts from the actual queued physics launch rather than a stale input-time
+position. Assertions first require alignment with the current cabin floor and
+translation equal to the proven carrier delta, then the unchanged displacement,
+velocity, first-jump/air-jump budget, unique trusted input, travel and clearance
+bounds. The bounded airborne trace must receive no subsequent carrier delta.
+This is not an assertion retry or permission to pass through a roof.
+
+Entry and runtime loaders use `english-ui-1-launch-sync-1`; nested contact
+imports use `ride-launch-sync-1`, exposing `launchSyncVersion:1`. The unchanged
+movement singleton remains `ride-jump-contact-1`, courts/rules remain
+`english-ui-1`, and camera/network/social singleton keys are preserved.
+
+Current verification is recorded below as it completes. All historical results
+in the following sections describe earlier candidates, not approval of this
+production change. Full hosted regression, 900,000 ms mobile soak, Pages and
+live verification remain mandatory. Physical iPhone testing belongs to the
+user and is still pending; the local boat prototype is not included.
+
+### Current local evidence
+
+- Final `.qa-results/ferris-launch-sync-unit-final.log`: 260 total, 258 passed,
+  two pre-existing optional fixture skips, zero failures (including the
+  wardrobe fault-order regression added after the first local full run).
+- `.qa-results/ferris-launch-sync-unit.log`: 259 total, 257 passed, two
+  pre-existing optional fixture skips, zero failures.
+- `.qa-results/ferris-launch-sync-browser.log`: desktop and 390x844 touch
+  viewport `RIDE_CONTACT_BROWSER_PASS`; trusted input captured in 5 / 36 ms,
+  accepted first jumps, zero airborne body drift, no JS/WebGL errors.
+- `.qa-results/ferris-launch-sync-delayed.log`: 2,200 ms automation dispatch
+  plus 800 ms blocked input passed both profiles. Actual captures were
+  3,006 / 3,038 ms, accepted jumps and zero airborne body drift. Existing open
+  bay, solid column, normal/delayed carrier, walk-off, real touch joystick and
+  skateboard/camera checks remained enabled.
+- `.qa-results/ferris-launch-sync-slow-frames.log`: eight 1,000 ms blocked
+  callbacks in each profile, both `RIDE_CONTACT_BROWSER_PASS`, no JS/WebGL
+  errors. Actual capture was 4 / 2,024 ms, body drift zero, cabin travel
+  1.9113 / 3.8847 m. In the mobile run the network angle stayed unchanged at
+  the launch preparation (zero carrier delta). This is stress evidence, not
+  exact reproduction of the hosted cabin clock; the recorded-clock unit
+  independently requires the >1 m grounded launch synchronization.
+- All browser evidence above uses Apple M4 Chrome, not physical iPhone or
+  Android. The game stayed muted. These targeted tests do not certify general
+  frame-rate performance or the unrelated boat prototype.
+
+### Full-run wardrobe fault setup correction
+
+The first full local run stopped before the Ferris cases, in the wardrobe
+offline fixture: room socket `readyState:2` (CLOSING), room connected flag true,
+and navigator offline remained at the 30-second precondition timeout. No JS
+or WebGL error was recorded. This failed run is retained in
+`.qa-results/ferris-launch-sync-foundation-desktop.log`; it is not a pass.
+
+The fixture formerly enabled Chromium HTTP offline emulation before requesting
+the established WebSockets' graceful close, blocking their close handshake.
+It now installs the same new-socket refusal first, closes established sockets
+while their handshake can complete, waits for both genuine disconnected flags,
+then enables HTTP offline mode and requires navigator offline as well as both
+flags. The wardrobe button hit target, 9.2-second interruption, panel visibility,
+actual reconnect, preview-loss retry and disposal assertions are unchanged.
+No production network or recovery code was modified. A source-order regression
+preserves this fault-injection sequence and the full acceptance checks.
+
+The corrected full hardware desktop run
+`.qa-results/ferris-launch-sync-foundation-desktop-final.log` ended
+`FOUNDATION_BROWSER_PASS` with `mobile:false`, `soakMs:0`, `errors:0` and
+`peerStillConnected:true`. It includes wardrobe offline controls and visible
+resume/retry/disposal, all existing ride/geometry/camera/curb routes, real roof
+and plaza jump routes, chat spam and reconnect, 100 home transitions, 1,000
+punch/interact events, 20 outfit changes and optional-feature isolation.
+This local desktop result does not replace hosted mobile soak or live release
+verification. The failed first local run remains recorded above.
+
+## Historical scheduling correction: three distinct clocks
 
 Run `35647642059` / `2f6c94b` subsequently failed on the mobile free-jump
 assertion. Desktop completed, but this run did not deploy. The earlier local

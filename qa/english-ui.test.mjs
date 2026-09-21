@@ -43,10 +43,10 @@ test('reachable island loader and validation error messages are English',()=>{
 });
 
 test('English revision invalidates the changed entry and loader without replacing game singleton revisions',()=>{
- assert(read('index.html').includes('app/main.js?v=english-ui-1'));
- assert(read('explore/index.html').includes('explore.js?v=english-ui-1'));
- for(const file of ['app/main.js','explore/explore.js'])assert(read(file).includes('runtime.bundle.js?v=english-ui-1'));
- const bundle=read('island/runtime.bundle.js');assert(bundle.includes('coaster-rail-finish.js?v=coaster-rail-finish-1'));assert(bundle.includes('ride-contacts.js?v=ride-jump-contact-1'));
+ assert(read('index.html').includes('app/main.js?v=english-ui-1-launch-sync-1"'));
+ assert(read('explore/index.html').includes('explore.js?v=english-ui-1-launch-sync-1"'));
+ for(const file of ['app/main.js','explore/explore.js'])assert.match(read(file),/runtime\.bundle\.js\?v=english-ui-1-launch-sync-1["']/);
+ const bundle=read('island/runtime.bundle.js');assert(bundle.includes('coaster-rail-finish.js?v=coaster-rail-finish-1'));assert(bundle.includes('ride-contacts.js?v=ride-launch-sync-1'));
  for(const file of entries){
   const imports=JSON.parse(read(file).match(/<script type="importmap">([\s\S]*?)<\/script>/)[1]).imports;
   const movement='/67park-foundation-next/app/chunk-OZ77422N.js';

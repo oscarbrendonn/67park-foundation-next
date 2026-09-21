@@ -161,7 +161,7 @@ test('real Ferris carry admits rate-proven long frames and rejects clock discont
  ferris.setNetworkAngle(0);
 });
 
-test('only a continuous lost Ferris contact grants the queued first-jump token',()=>{
+test('only continuous verified Ferris support can synchronize a queued first jump',()=>{
  const rate=Math.PI*2/ferris.stats.period,delay=.8;
  let cabin=0,start;
  ferris.setNetworkAngle(0);
@@ -182,24 +182,26 @@ test('only a continuous lost Ferris contact grants the queued first-jump token',
   const timed=createRideContacts(lunapark,{now:()=>now});
   const body={translation:()=>({...p}),linvel:()=>({...v}),setTranslation:q=>p={...q},setLinvel:q=>v={...q}};
   const begin=()=>{ferris.setNetworkAngle(0);timed.prepareBody(body);};
-  const release=(seconds=delay)=>{now+=seconds*1e3;ferris.setNetworkAngle(rate*seconds);timed.prepareBody(body,{jumpQueued:true});};
+  const release=(seconds=delay,angle=rate*seconds)=>{now+=seconds*1e3;ferris.setNetworkAngle(angle);return timed.prepareBody(body,{jumpQueued:true});};
   return {timed,body,begin,release,get p(){return p;},set p(next){p=next;},set v(next){v=next;},dispose:()=>timed.dispose()};
  };
  try{
   {const run=make();try{
-   run.begin();run.release();assert(ferris.seat(cabin*4).floor<start.floor-.12);
+   run.begin();const carry=run.release();assert(carry&&Math.hypot(carry.x,carry.y,carry.z)>.12,'verified queued support synchronizes before launch');assert(ferris.seat(cabin*4).floor<start.floor-.12);
+   close(run.p.y,ferris.seat(cabin*4).floor+foot,.00001);
    assert.equal(run.timed.consumeJumpGrounded(run.body,0),true);
    assert.equal(run.timed.consumeJumpGrounded(run.body,0),false,'token is single-use');
   }finally{run.dispose();}}
   {const run=make();try{
-   run.begin();run.release(nearGapDelay);const gap=start.floor-ferris.seat(cabin*4).floor;
+   run.begin();const carry=run.release(nearGapDelay);assert(carry,'near-gap queued launch still synchronizes verified support');const gap=start.floor-ferris.seat(cabin*4).floor;
    assert(gap>.08&&gap<.12,`expected current floor gap in near probe, got ${gap}`);
    assert.equal(run.timed.consumeJumpGrounded(run.body,0),true,'queued first jump retains prior contact while current floor remains near');
   }finally{run.dispose();}}
-  {const run=make();try{run.begin();run.p={...run.p,x:run.p.x+.13};run.release();assert.equal(run.timed.consumeJumpGrounded(run.body,0),false,'walk-off cannot inherit support');}finally{run.dispose();}}
-  {const run=make();try{run.begin();run.p={...run.p,x:run.p.x+9};run.release();assert.equal(run.timed.consumeJumpGrounded(run.body,0),false,'teleport clears support');}finally{run.dispose();}}
-  {const run=make();try{run.begin();run.release(5.01);assert.equal(run.timed.consumeJumpGrounded(run.body,0),false,'stale clock cannot grant support');}finally{run.dispose();}}
-  {const run=make();try{run.begin();run.v={x:0,y:.3,z:0};run.release();assert.equal(run.timed.consumeJumpGrounded(run.body,0),false,'upward body cannot grant support');}finally{run.dispose();}}
+  {const run=make();try{run.begin();run.p={...run.p,x:run.p.x+.13};assert.equal(run.release(),null,'walk-off cannot receive queued transport');assert.equal(run.timed.consumeJumpGrounded(run.body,0),false,'walk-off cannot inherit support');}finally{run.dispose();}}
+  {const run=make();try{run.begin();run.p={...run.p,x:run.p.x+9};assert.equal(run.release(),null,'teleport cannot receive queued transport');assert.equal(run.timed.consumeJumpGrounded(run.body,0),false,'teleport clears support');}finally{run.dispose();}}
+  {const run=make();try{run.begin();assert.equal(run.release(5.01),null,'stale clock cannot receive queued transport');assert.equal(run.timed.consumeJumpGrounded(run.body,0),false,'stale clock cannot grant support');}finally{run.dispose();}}
+  {const run=make();try{run.begin();assert.equal(run.release(.016,Math.PI/2),null,'discontinuous wheel angle cannot receive queued transport');assert.equal(run.timed.consumeJumpGrounded(run.body,0),false,'discontinuous wheel angle cannot grant support');}finally{run.dispose();}}
+  {const run=make();try{run.begin();run.v={x:0,y:.3,z:0};assert.equal(run.release(),null,'upward body cannot receive queued transport');assert.equal(run.timed.consumeJumpGrounded(run.body,0),false,'upward body cannot grant support');}finally{run.dispose();}}
   {const run=make();try{
    run.p={x:start.x,y:start.y+2,z:start.z};run.v={x:0,y:0,z:0};ferris.setNetworkAngle(0);run.timed.prepareBody(run.body);
    run.release();assert.equal(run.timed.consumeJumpGrounded(run.body,0),false,'noncontact cannot grant support');
@@ -208,6 +210,11 @@ test('only a continuous lost Ferris contact grants the queued first-jump token',
    run.begin();run.release();run.timed.dispose();
    assert.equal(run.timed.consumeJumpGrounded(run.body,0),false,'disposed contacts cannot grant a queued jump');
   }
+  {const run=make();try{
+   run.begin();const before={...run.p};ferris.setNetworkAngle(rate*delay);
+   assert.equal(run.timed.prepareBody(run.body,{skip:true,jumpQueued:true}),undefined,'skipped body clears queued carry state');
+   assert.deepEqual(run.p,before,'skipped body is never transported');assert.equal(run.timed.consumeJumpGrounded(run.body,0),false,'skipped body cannot grant support');
+  }finally{run.dispose();}}
  }finally{ferris.setNetworkAngle(0);}
 });
 
@@ -239,7 +246,7 @@ test('outside ride bounds and replacement home floors retain their original quer
  installRideContacts(world);assert.equal(world.characterGround(0,0,0),42);assert.equal(world.characterObstacle(0,0,0),43);
  // The captured callbacks in the real roof installer read world.ground.
  world.ground=()=>70;assert.equal(world.characterGround(500,500,70),70);assert.equal(world.characterObstacle(500,500,70),71);
- assert.equal(world.rideContacts.stats.addedDrawCalls,0);assert.equal(world.rideContacts.stats.newAssetDownloads,0);assert.equal(world.rideContacts.stats.groundedJumpVersion,1);
+ assert.equal(world.rideContacts.stats.addedDrawCalls,0);assert.equal(world.rideContacts.stats.newAssetDownloads,0);assert.equal(world.rideContacts.stats.groundedJumpVersion,1);assert.equal(world.rideContacts.stats.launchSyncVersion,1);
  assert(world.rideContacts.stats.estimatedNumericBytes<6000000,JSON.stringify(world.rideContacts.stats));
  world.dispose();assert(world.rideContacts.stats.disposed);
 });
@@ -262,7 +269,7 @@ test('ground decorators forward ride filtering and entry maps preserve one movem
  assert(source.includes('floor(x,z,ignoreCar,ignoreRideContacts)'));
  for(const file of ['island/runtime.js','island/runtime.bundle.js']){
   const code=await fs.readFile(new URL('../'+file,import.meta.url),'utf8');
-  assert(code.includes("./ride-contacts.js?v=ride-jump-contact-1"));assert(code.includes('rideGround:'));
+  assert(code.includes("./ride-contacts.js?v=ride-launch-sync-1"));assert(code.includes('rideGround:'));
  }
  for(const file of ['balloon/index.html','explore/index.html','index.html','lane-rush/index.html','play/index.html','race/index.html','rockets/index.html','skybound-soft/index.html','sports/index.html','style-studio/index.html']){
   const html=await fs.readFile(new URL('../'+file,import.meta.url),'utf8');
@@ -273,7 +280,32 @@ test('ground decorators forward ride filtering and entry maps preserve one movem
  }
 });
 
-test('CI 35647642059 replays a real first jump followed by its descending cabin roof',()=>{
+test('CI 35653182246 launches from the current cabin floor then releases its carrier',()=>{
+ let now=765888,p={x:168.67926025390625,y:11.956159591674805,z:-173.10000610351562},v={x:0,y:0,z:0};
+ const timed=createRideContacts(lunapark,{now:()=>now});
+ const body={translation:()=>({...p}),linvel:()=>({...v}),setTranslation:q=>p={...q},setLinvel:q=>v={...q}};
+ try{
+  ferris.setNetworkAngle(4.328975050305563);timed.prepareBody(body);
+  now=767041;ferris.setNetworkAngle(4.43139969745885);
+  const carry=timed.prepareBody(body,{jumpQueued:true});
+  assert(carry&&Math.hypot(carry.x,carry.y,carry.z)>1,'queued jump must first synchronize its proven grounded carrier');
+  close(p.y,ferris.seat(0).floor+foot,.00001);
+  assert.equal(timed.consumeJumpGrounded(body,0),true);
+  assert.equal(timed.consumeJumpGrounded(body,0),false);
+  const launch={...p};v.y=8;p.y+=.4;
+  now=768109;ferris.setNetworkAngle(4.524582826222855);
+  assert.equal(timed.prepareBody(body),null,'airborne rider must never be transported');
+  close(p.x,launch.x,.00001);close(p.y,launch.y+.4,.00001);assert.equal(v.y,8);
+  assert(p.y>launch.y+.12&&v.y>3,'unchanged free-flight displacement and speed bounds');
+  // The fix must not disable a later genuine head strike on the same roof.
+  const roof=timed.sample(p.x,p.z).intervals.filter(s=>s.cabin===0&&s.min>p.y-foot+1.45-.012);
+  assert(roof.length);const cap=Math.min(...roof.map(s=>s.min))-1.45+foot-.012;
+  p.y+=2;now+=16;timed.prepareBody(body);
+  close(p.y,cap,.00001);assert.equal(v.y,0);
+ }finally{timed.dispose();ferris.setNetworkAngle(0);}
+});
+
+test('CI 35647642059 synchronizes the historical queued launch, then retains its real airborne roof clamp',()=>{
  // Three distinct clocks from the retained hosted trace: trusted touch at
  // 432401ms, queued input consumption at 432889ms, next contact at 433464ms.
  // A dispatch-only headroom check missed the two later slow game frames.
@@ -283,24 +315,26 @@ test('CI 35647642059 replays a real first jump followed by its descending cabin 
  try{
   ferris.setNetworkAngle(2.9446322474983537);timed.prepareBody(body);
   now=432889;ferris.setNetworkAngle(2.988684357818692);
-  timed.prepareBody(body,{jumpQueued:true});
+  const carry=timed.prepareBody(body,{jumpQueued:true});
+  assert(carry&&Math.hypot(carry.x,carry.y,carry.z)>.1,'queued historical launch must synchronize its verified cabin');
+  close(p.x,ferris.seat(2*4).position.x+1.53,.00002);close(p.y,ferris.seat(2*4).floor+foot,.00002);
   assert.equal(timed.consumeJumpGrounded(body,0),true,'the original queued first jump is valid');
-  v.y=8;p.y=14.388453483581543;
+  const synced={...p};v.y=8;p.y=14.388453483581543;
   now=433464;ferris.setNetworkAngle(3.038853847167258);
   const roof=timed.sample(p.x,p.z).intervals.find(s=>s.cabin===2&&s.min>14.5&&s.min<16);
   assert(roof,'captured collision must belong to the real occupied cabin');
   close(roof.min,15.07247100830078,.00001);
   timed.prepareBody(body);
   close(p.y,14.165471076965332,.00001);assert.equal(v.y,0);
-  assert(p.y>13.988451957702637+.12,'body rose before the legitimate roof contact');
-  assert(!(p.y>13.988451957702637+.12&&v.y>3),'this is not the free-flight observation required by the browser gate');
+  assert(14.388453483581543>synced.y+.12,'body rose from the synchronized cabin floor before the legitimate roof contact');
+  assert(!(p.y>synced.y+.12&&v.y>3),'the retained exact roof strike is not a free-flight observation');
  }finally{timed.dispose();ferris.setNetworkAngle(0);}
 });
 
-test('Ferris free-jump fixture proves all-cabin roof clearance across bounded input and physics clocks',t=>{
- // The replay above deliberately keeps the real roof collision. This separate
- // fixture chooses a free-flight phase and proves it cannot meet that roof
- // before the next un-clamped, production-timed jump step has been observed.
+test('Ferris historical 650ms roof budget remains a stronger all-cabin free-flight bound',t=>{
+ // This is the original conservative transform-only budget. It intentionally
+ // remains narrower than the real launch test below, where longer delays may
+ // correctly meet an authored cabin roof and must be classified as a strike.
  const rate=Math.PI*2/ferris.stats.period,head=1.45,skin=.012,safety=.02;
  const probes=[[0,0],[.35,0],[-.35,0],[0,.35],[0,-.35]];
  // `a` is arm -> trusted input. `b` and `c` are the two subsequent prepare
@@ -379,5 +413,67 @@ test('Ferris free-jump fixture proves all-cabin roof clearance across bounded in
   assert(referenceStep>.12&&referenceVelocity>3,JSON.stringify({referenceStep,referenceVelocity}));
   assert(minMargin>safety,JSON.stringify({minMargin,minimum,phaseSamples,safety}));
   t.diagnostic(JSON.stringify({minMargin,phaseSamples,worstClock:minimum&&{a:minimum.a,b:minimum.b,c:minimum.c,dx:minimum.dx,dz:minimum.dz,cabin:minimum.cabin,angle:minimum.angle,flightStep:minimum.flightStep,flightVelocity:minimum.flightVelocity},bounds:{armFloorVelocity:'(-.38,-.32)',armHorizontalVelocity:'>.9',armToInput:'0..3.1/.05',prepareGaps:'[0,.016,.033,.05,.325,.488,.575,.65]',freeStep:'max(0,jump-gravity*boundedSimulationStep(b))*boundedSimulationStep(c)',jump:CHARACTER_CONTROL.jump,gravity:CHARACTER_CONTROL.gravity,safety}}));
+ }finally{ferris.setNetworkAngle(0);}
+});
+
+test('Ferris launch-aligned prepares synchronize grounded riders and preserve real airborne roof strikes',t=>{
+ const rate=Math.PI*2/ferris.stats.period,head=1.45,skin=.012;
+ const probes=[[0,0],[.35,0],[-.35,0],[0,.35],[0,-.35]];
+ // These include both hosted gaps and the 2.6s continuous-carry boundary
+ // already exercised by the normal carrier test. They are independent clocks:
+ // first is last grounded prepare -> queued launch, second is airborne prepare.
+ const launchGaps=[.016,1.153,2.6],airborneGaps=[.016,1.068,2.6];
+ const state=(cabin,angle)=>{
+  ferris.setNetworkAngle(angle);
+  const seat=ferris.seat(cabin*4),seats=Array.from({length:12},(_,n)=>ferris.seat(n*4));
+  const cx=seats.reduce((sum,s)=>sum+s.position.x,0)/12,cy=seats.reduce((sum,s)=>sum+s.position.y,0)/12;
+  return {p:{x:seat.position.x+1.53,y:seat.floor+foot,z:seat.position.z+.975},floorVelocity:(seat.position.x-cx)*rate,horizontalVelocity:-(seat.position.y-cy)*rate};
+ };
+ const ceilingCap=(timed,p,feet)=>{
+  let ceiling=Infinity;
+  for(const [dx,dz]of probes)for(const span of timed.sample(p.x+dx,p.z+dz).intervals)if(span.min>=feet+head-skin)ceiling=Math.min(ceiling,span.min);
+  return ceiling-head+foot-skin;
+ };
+ let launches=0,freeFlights=0,roofStrikes=0,minCarry=Infinity;
+ try{
+  for(const cabin of [0,4,8]){
+   const phases=[];
+   for(let angle=0;angle<Math.PI*2&&phases.length<2;angle+=.01){
+    const armed=state(cabin,angle);
+    if(armed.floorVelocity>-.38&&armed.floorVelocity<-.32&&armed.horizontalVelocity>.9&&phases.every(previous=>Math.abs(previous-angle)>.03))phases.push(angle);
+   }
+   assert.equal(phases.length,2,`cabin ${cabin} needs two real descending launch phases`);
+   for(const angle of phases)for(const launchGap of launchGaps)for(const airborneGap of airborneGaps){
+    let now=0,p={...state(cabin,angle).p},v={x:0,y:0,z:0};
+    const timed=createRideContacts(lunapark,{now:()=>now});
+    const body={translation:()=>({...p}),linvel:()=>({...v}),setTranslation:q=>p={...q},setLinvel:q=>v={...q}};
+    try{
+     ferris.setNetworkAngle(angle);timed.prepareBody(body);
+     now=launchGap*1e3;ferris.setNetworkAngle(angle+rate*launchGap);
+     const carry=timed.prepareBody(body,{jumpQueued:true});
+     assert(carry&&Math.hypot(carry.x,carry.y,carry.z)>1e-5,'only a current, proven grounded launch receives carrier synchronization');
+     minCarry=Math.min(minCarry,Math.hypot(carry.x,carry.y,carry.z));
+     const launch={...p},seat=ferris.seat(cabin*4);
+     close(launch.x,seat.position.x+1.53,.00001);close(launch.y,seat.floor+foot,.00001);
+     assert.equal(timed.consumeJumpGrounded(body,0),true,'synchronized launch exposes exactly one grounded query');
+     assert.equal(timed.consumeJumpGrounded(body,0),false,'launch token cannot carry into another jump');
+     // The live trace has already applied its bounded gravity frame by the
+     // first airborne observation: vy=8 and rise=.4m. Keep that exact model.
+     v.y=8;p.y=launch.y+.4;
+     now+=(airborneGap*1e3);ferris.setNetworkAngle(angle+rate*(launchGap+airborneGap));
+     const cap=ceilingCap(timed,p,launch.y-foot),expectsStrike=Number.isFinite(cap)&&p.y>cap;
+     assert.equal(timed.prepareBody(body),null,'airborne body never receives a second carrier delta');
+     if(expectsStrike){
+      close(p.y,cap,.00001);assert.equal(v.y,0,'real roof contact remains a physical clamp');roofStrikes++;
+     }else{
+      close(p.y,launch.y+.4,.00001);assert.equal(v.y,8);
+      assert(p.y>launch.y+.12&&v.y>3,'unobstructed launch preserves the unchanged browser observation');freeFlights++;
+     }
+     launches++;
+    }finally{timed.dispose();}
+   }
+  }
+  assert(freeFlights>0&&roofStrikes>0,JSON.stringify({launches,freeFlights,roofStrikes,minCarry}));
+  t.diagnostic(JSON.stringify({launches,freeFlights,roofStrikes,minCarry,launchGaps,airborneGaps,cabins:[0,4,8],phasesPerCabin:2}));
  }finally{ferris.setNetworkAngle(0);}
 });

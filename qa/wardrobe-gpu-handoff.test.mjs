@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import fs from 'node:fs';
 import {createWardrobeGpuHandoff} from '../app/wardrobe-gpu-handoff.js';
 
 function createFixture(){
@@ -8,6 +9,18 @@ function createFixture(){
  return {documentRef,eventTarget,handoff:createWardrobeGpuHandoff({documentRef,eventTarget})};
 }
 function client({capture=()=>{},dispose=()=>{}}={}){return {capture,dispose};}
+
+test('wardrobe fault closes established sockets before enabling HTTP offline emulation',()=>{
+ const code=fs.readFileSync(new URL('./wardrobe-recovery.browser.cjs',import.meta.url),'utf8');
+ const refuse=code.indexOf('await page.routeWebSocket('),close=code.indexOf('__eggyNet.ws?.close();'),
+  disconnected=code.indexOf('await page.waitForFunction(()=>!__eggyNet.connected&&!__candyOnline.data.connected)'),
+  offline=code.indexOf('await page.context().setOffline(true)');
+ assert(refuse>=0&&refuse<close&&close<disconnected&&disconnected<offline);
+ assert(code.includes('!navigator.onLine&&!__eggyNet.connected&&!__candyOnline.data.connected'));
+ assert(code.includes("await page.locator('#park-connection-recovery').waitFor({state:'visible',timeout:5000})"));
+ assert(code.includes('interruptSockets=false;await page.context().setOffline(false)'));
+ assert(code.includes('await page.waitForFunction(()=>__eggyNet.connected&&__candyOnline.data.connected'));
+});
 
 test('visible pageshow and visibilitychange redraw active preview clients',()=>{
  const {documentRef,eventTarget,handoff}=createFixture();let captures=0;

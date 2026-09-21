@@ -20,9 +20,14 @@ module.exports=async function wardrobeRecovery(page,{mobile=false,check=async(_n
    else socket.connectToServer();
   });
   try{
-   await page.context().setOffline(true);
+   // Let established sockets finish their real close handshake before HTTP
+   // offline emulation blocks the transport. New sockets are already refused
+   // above, so reconnection cannot race this transition. Reversing this order
+   // can leave Chromium in CLOSING with no close event for the whole test.
    await page.evaluate(()=>{__eggyNet.ws?.close();__candyOnline.ws?.close();});
    await page.waitForFunction(()=>!__eggyNet.connected&&!__candyOnline.data.connected);
+   await page.context().setOffline(true);
+   await page.waitForFunction(()=>!navigator.onLine&&!__eggyNet.connected&&!__candyOnline.data.connected);
    await page.waitForTimeout(9200);
    assert.equal(await page.locator('#park-connection-recovery').isVisible(),false,'network panel must not cover local wardrobe controls');
    await page.getByRole('button',{name:'Enter the park',exact:true}).click();
