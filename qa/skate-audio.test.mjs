@@ -90,7 +90,18 @@ test('spam stays bounded and sound node failures never escape into movement',()=
 test('shared player publishes feedback and entry cache keys include the sound fix',()=>{
   const read=p=>fs.readFileSync(new URL(p,import.meta.url),'utf8');
   assert(read('../app/main.js').includes('publishSkateFeedback(sk.events,A)'));
-  assert(read('../app/party/party-pack.js').includes('./party-audio.js?v=skate-sfx-1'));
-  const html=read('../index.html');assert(html.includes('app/main.js?v=online-next-1'));
-  assert(html.includes('app/party/party-pack.js?v=online-next-1'));
+  assert(read('../app/party/party-pack.js').includes('./party-audio.js?v=vehicle-feedback-1'));
+  const html=read('../index.html');assert(html.includes('app/main.js?v=park-entry-finish-1'));
+  assert(html.includes('app/party/party-pack.js?v=vehicle-feedback-1'));
+});
+
+test('horn uses two finite voices, shares mute/SFX/visibility, and rejects held spam',()=>{
+ const {host,sfx,ctx,settings,mute}=setup();
+ for(let i=0;i<1000;i++)sfx.play('horn');
+ assert.equal(sfx.stats().counts.horn,1);assert.equal(ctx.sources.length,2);
+ assert(ctx.sources.every(s=>s.stopTime-s.startTime<.25));ctx.finish();
+ ctx.currentTime+=1;mute(true);sfx.play('horn');mute(false);settings.sfx=0;sfx.play('horn');settings.sfx=.8;
+ host.document.hidden=true;sfx.play('horn');host.document.hidden=false;
+ assert.equal(sfx.stats().counts.horn,1);assert.equal(sfx.stats().voices,0);
+ sfx.play('horn');assert.equal(sfx.stats().counts.horn,2);ctx.finish();
 });

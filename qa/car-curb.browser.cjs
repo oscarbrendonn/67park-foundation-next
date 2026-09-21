@@ -55,6 +55,7 @@ module.exports=async function checkCarCurb(page,{mobile=false,check}){
    await page.keyboard.press('KeyE');
    await page.waitForFunction(()=>__candy.state().mounted==='car',null,{timeout:12000});
    mounted=true;
+   const verifyFeedback=await require('./vehicle-feedback.browser.cjs')(page,{mobile});
 
    // Reverse-left arcs from the public-road stop toward the park entrance.
    // Desktop uses the physical keys. On mobile, wait for the post-mount HUD
@@ -78,6 +79,8 @@ module.exports=async function checkCarCurb(page,{mobile=false,check}){
     // Heading is server physics, rather than a wall-clock turn duration.
     return c&&c.speed<-2.5&&c.yaw<start.yaw-.5;
    },fixture.car,{timeout:5000});
+   const steering=await page.evaluate(()=>__islandWorld.traffic.cars.find(c=>c.id==='main-mint').wheels.map(w=>({front:w.front,angle:w.pivot.rotation.y})));
+   assert(steering.every(w=>w.front?Math.abs(w.angle)>.05:w.angle===0),'the real driving input steers front wheels only');
    if(mobile)await touchEvent('touchMove',[steeringPoint,reversePoint]);
    else await page.keyboard.up('KeyA');
    try{
@@ -111,6 +114,7 @@ module.exports=async function checkCarCurb(page,{mobile=false,check}){
    assert(crossed.y>=fixture.car.y+.2,'authoritative car should finish above the curb');
    assert(crossed.x<174&&crossed.z<116.2,'authoritative car should reach the park-path side');
    assert.equal(crossed.surface,'8_PARK_PATIKA_UST','car must finish on the actual pink path');
+   await verifyFeedback();
    console.log('PASS authoritative car curb',JSON.stringify({mobile,rise,before:fixture.car,after:crossed}));
   }finally{
    if(touch){await touchEvent('touchEnd',[]).catch(()=>{});await touch.detach().catch(()=>{});touch=null;}
@@ -126,6 +130,7 @@ module.exports=async function checkCarCurb(page,{mobile=false,check}){
       else await page.keyboard.press('KeyE').catch(()=>{});
      }else await page.keyboard.press('KeyE').catch(()=>{});
      await page.waitForFunction(()=>__candy.state().mounted!=='car',null,{timeout:5000}).catch(async()=>console.error('CAR_CURB_CLEANUP_EXIT_TIMEOUT',JSON.stringify(await carState())));
+     await page.waitForFunction(()=>!document.querySelector('#vehicle-horn-button'),null,{timeout:2500});
     }
    }
    // The isolated test server owns the exercised car.  Restore the avatar so

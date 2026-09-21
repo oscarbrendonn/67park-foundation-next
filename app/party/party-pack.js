@@ -12,8 +12,9 @@ import {installSkateRailFinish} from './skate-rail-finish.js?v=1';
 import * as THREE from 'three';
 import {playerSettings as settings,savePlayerSettings as saveSettings} from '../player-settings.js';
 import {installPlayerSettings} from './settings-panel.js?v=recovery-graphics-1';
-import { createPartyAudio } from './party-audio.js?v=skate-corner-recovery-1';
+import { createPartyAudio } from './party-audio.js?v=vehicle-feedback-1';
 import {createFeatureBoundary} from '../feature-boundary.js';
+import {createVehicleHorn} from './vehicle-horn.js?v=vehicle-feedback-1';
 
 const BASE = new URL('../../', import.meta.url).pathname.replace(/\/$/, '');
 const CFG = Object.assign({runtime: '', carry: ''}, (typeof window !== 'undefined' && window.__partyConfig) || {});
@@ -47,6 +48,18 @@ window.__parkHousing = housing;
 const world = () => window.__islandWorld || null;
 const scene = () => window.__eggyScene || null;
 const net = () => window.__eggyNet || null;
+// This release adds local driver feedback only. Replicating a horn would need
+// a server-approved vehicle event: mounted position packets are deliberately
+// ignored by the authoritative server, so never smuggle it through chat/emotes.
+const horn = createVehicleHorn({
+  driver:()=>{
+    const n=net();
+    return player.map==='city'&&!!n?.connected&&!!n.id&&
+      !!world()?.traffic?.cars?.some(car=>car.ownerAt?.(0)===n.id);
+  },
+  blocked:()=>!!document.querySelector('.wardrobe,dialog[open],#party-settings:not([hidden]),.park-chat input:focus,.park-chat textarea:focus'),
+  play:()=>sfx.play('horn')
+});
 let stateApi = null, carryApi = null; // the game's own modules (same instances as main.js: exact same URLs)
 const state = () => { try { return stateApi ? stateApi() : null; } catch { return null; } };
 const pets = createParkPets({world,net,heading:()=>player.visual?.rotation.y??state()?.heading??0,reducedMotion});
@@ -77,6 +90,7 @@ window.__partyStep = guard((body, input, dt, map) => {
   features.run('pets-step',()=>pets.step(body,dt,map));
   dt = clamp(finite(dt) ? dt : 0, 0, 0.05);
   features.run('network',()=>netHook.step());
+  features.run('vehicle-horn',()=>horn.step());
   features.run('knockback',()=>knockStep(dt));
   features.run('footsteps',()=>footsteps(state(), dt));
   const held = heldId();
@@ -461,6 +475,6 @@ function installSettings(){return installPlayerSettings({sfx,isTouch})}
 
 try { settingsUI=installSettings(); installControls(); log('ready', VERSION, 'base', BASE, 'touch', isTouch); }
 catch (e) { disabled = true; log('install failed', e); }
-window.__party = {version: VERSION, settings, sfx, hits, netHook, botFlights, botsInFront, toys, audio: () => sfx.state(),
+window.__party = {version: VERSION, settings, sfx, hits, netHook, botFlights, botsInFront, toys, horn, audio: () => sfx.state(),
   status: () => ({disabled, faults:features.snapshot(),runtime: !!stateApi, carry: !!carryApi, spring: spring.v, map: player.map, ...items.count()}),
   debug: () => { const t = player.body?.translation?.(); const st = state(); return {...items.debug(), player: t ? {x: t.x, y: t.y, z: t.z} : null, state: st ? {grounded: st.grounded, speed: st.speed, vy: st.verticalVelocity, punchT: st.punchT, shake: st.shake, enabled: st.enabled} : null, id: net()?.id || null, remotes: net()?.remotes?.size ?? null}; }};

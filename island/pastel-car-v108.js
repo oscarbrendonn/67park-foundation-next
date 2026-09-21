@@ -8,7 +8,7 @@ import {restoreBasePose} from './six-seven-movement-v28.js';
 export const CAR108=CAR110;
 export const createPastelCar108=opts=>{const car=createCandyVehicle110(opts);return car.kind==='car'?useReferenceCarBody(car):styleParkBus(car);};
 import {styleParkBus} from '../app/vehicle-branding.js?v=fleet-38';
-import {useReferenceCarBody} from '../app/reference-car-body.js?v=release-40';
+import {useReferenceCarBody} from '../app/reference-car-body.js?v=vehicle-feedback-1';
 const clamp=T.MathUtils.clamp,approach=(a,b,d)=>a<b?Math.min(b,a+d):Math.max(b,a-d);
 const up=new T.Vector3(0,1,0);
 

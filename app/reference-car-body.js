@@ -263,6 +263,19 @@ function geometryLibrary(){
   const [r,y]=hubProfile[Math.round(v*4)],s=Math.sin(u*TAU),c=Math.cos(u*TAU);
   return [r*(Math.abs(s)<1e-12?0:s),y,r*(Math.abs(c)<1e-12?0:c)];
  },{closed:true}),[side*.158,0,0],null,[0,0,-side*Math.PI/2]);
+ // Three inset-looking radial vents make the existing distance-driven roll
+ // visible. They follow the domed hub, share its roll transform, and merge
+ // into the existing tyre batch: no decal, texture or additional draw call.
+ for(const side of [-1,1])for(let spoke=0;spoke<3;spoke++){
+  const g=new T.ShapeGeometry(roundedRect(-.022,.12,.044,.09,.022),4),p=g.attributes.position;
+  const a=spoke*TAU/3,c=Math.cos(a),s=Math.sin(a);
+  for(let i=0;i<p.count;i++){
+   const u=p.getX(i),v=p.getY(i),r=Math.hypot(u,v);
+   const depth=r<=.235?.052-r*.008/.235:.044-(r-.235)*.038/.073;
+   p.setXYZ(i,side*(.158+depth+.002),u*c-v*s,u*s+v*c);
+  }
+  if(side<0)flipWinding(g);g.computeVertexNormals();add('wheelRubber',g);
+ }
  const geometries=new Map();let triangles=0;
  for(const [key,list] of buckets){
   const g=mergeGeometries(list,false);list.forEach(p=>p.dispose());if(!g)throw Error('Reference car geometry merge: '+key);
@@ -307,12 +320,13 @@ export function useReferenceCarBody(car){
  car.model.add(exterior);leases++;
  const oldDispose=car.dispose;let angle=0,disposed=false;
  car.animate=(distance,turn)=>{
-  angle+=distance/(WHEEL_R*car.spec.scale);
+  if(Number.isFinite(distance))angle=(angle+distance/(WHEEL_R*car.spec.scale))%TAU;
+  turn=Number.isFinite(turn)?turn:0;
   for(const wheel of wheels){wheel.pivot.rotation.y=wheel.front?turn:0;wheel.roll.rotation.x=angle;}
   car.steering.rotation.z=-turn*2.2;
  };
  car.style=STYLE;car.referenceExterior=exterior;car.wheels=wheels;car.roofUnderside=2.245*car.spec.scale;
- car.referenceBody={revision:5,shape:'rounded-retro-compact',geometryTriangles:library.triangles,wheelRadius:WHEEL_R*car.spec.scale,roofUnderside:car.roofUnderside,sharedGeometry:true,doorSeams:false,frontMark:'67',frontBrand:'67PARK',rearBrand:'67PARK',flushPillars:true,closedUnderbody:true,crownedRoof:true,insetRearWindow:true,externalBumperBars:false};
+ car.referenceBody={revision:6,shape:'rounded-retro-compact',geometryTriangles:library.triangles,wheelRadius:WHEEL_R*car.spec.scale,wheelVents:3,wheelFeedbackDraws:0,roofUnderside:car.roofUnderside,sharedGeometry:true,doorSeams:false,frontMark:'67',frontBrand:'67PARK',rearBrand:'67PARK',flushPillars:true,closedUnderbody:true,crownedRoof:true,insetRearWindow:true,externalBumperBars:false};
  car.stats={draws:0,triangles:0};car.group.traverseVisible(o=>{if(o.isMesh){car.stats.draws++;car.stats.triangles+=(o.geometry.index?.count??o.geometry.attributes.position.count)/3;}});
  car.dispose=()=>{
   if(disposed)return;disposed=true;exterior.removeFromParent();oldDispose.call(car);

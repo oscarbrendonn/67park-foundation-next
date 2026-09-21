@@ -69,6 +69,26 @@ backend/tunnel are unchanged by this fix.
 
 ## Release requirements
 
+### Jump-fixture observation after CI 35605413843
+
+This run failed and did not publish. Its ordinary and delayed cabin-carry
+checks passed. The trace records a real Space event followed by `jumped:1`,
+positive vertical velocity and an upward body displacement. However, a rising
+floor re-contacted the avatar before the slow rendered-frame observer sampled
+the required clearance. A second local fixture at the left-most extremum did
+produce clearance, but not the independently required horizontal cabin travel.
+
+The browser-only fixture therefore selects and observes a descending diagonal
+phase before sending the real keyboard/touch jump. It keeps the existing
+grounded settling requirement, clearance/height/velocity bounds, horizontal
+separation measurement, time limits and walk-off check. Event-time state is
+recorded so the jump-height proof does not compare against an earlier cabin
+position. This is not a production physics change or removal of an assertion.
+Focused hardware browser acceptance now passes both desktop and mobile viewport
+(`.qa-results/park-entry-ride-contacts-final.log`): grounded carry, delayed carry,
+accepted jump clearance and walking off, coaster gap/columns, and real skateboard
+camera/jump. No JS/WebGL errors. Complete hosted release acceptance is still required.
+
 The targeted browser cases run in both profiles of the complete foundation
 gate; no reduction of recovery/chat/home tests or 900,000 ms hosted
 mobile soak is permitted. After Pages deploy, compare published module bytes,
