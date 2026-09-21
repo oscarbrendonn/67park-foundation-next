@@ -65,9 +65,9 @@ export async function loadLunapark77({scene,renderer,sample,sea,variant,terrainR
   }
   records.push({...p,y,support:hit?.object.name??'sea',bounds:[bounds.min.toArray(),bounds.max.toArray()],skateRoute});
  }
- function obstacle(x,z){let top=null;for(const {b,height}of solids)if(x>=b.min.x&&x<=b.max.x&&z>=b.min.z&&z<=b.max.z)top=Math.max(top??-Infinity,height);
-  for(const ride of rides){const h=ride.ground(x,z);if(h!=null)top=Math.max(top??-Infinity,h);}
-  if(x>=walkBounds.min.x&&x<=walkBounds.max.x&&z>=walkBounds.min.z&&z<=walkBounds.max.z){walkRay.set(new T.Vector3(x,80,z),new T.Vector3(0,-1,0));const hit=walkRay.intersectObjects(walkMeshes,false)[0];if(hit)top=Math.max(top??-Infinity,hit.point.y);}return top;}
+ function obstacle(x,z,ignoreRideContacts=false){let top=null;for(const {b,height}of solids)if(x>=b.min.x&&x<=b.max.x&&z>=b.min.z&&z<=b.max.z)top=Math.max(top??-Infinity,height);
+  for(const ride of rides){if(ignoreRideContacts&&ride.asset==='ferris')continue;const h=ride.ground(x,z);if(h!=null)top=Math.max(top??-Infinity,h);}
+  if(!ignoreRideContacts&&x>=walkBounds.min.x&&x<=walkBounds.max.x&&z>=walkBounds.min.z&&z<=walkBounds.max.z){walkRay.set(new T.Vector3(x,80,z),new T.Vector3(0,-1,0));const hit=walkRay.intersectObjects(walkMeshes,false)[0];if(hit)top=Math.max(top??-Infinity,hit.point.y);}return top;}
  function update(dt=0,options={}){exposure.value=(variant==='kimi'?.88:1.27)/Math.max(.05,renderer.toneMappingExposure);for(const ride of rides)ride.advance(dt,{reduced:!!reduced?.matches,...options});}
  update();scene.add(group);group.updateMatrixWorld(true);
  let draws=0;group.traverse(o=>{if(o.isMesh)draws++;});

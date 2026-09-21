@@ -36,7 +36,7 @@ export function createParkSocialToys({world,scene,state,net,settings,sfx,send,bl
  const sawSide=p=>{const s=sawSite();if(!s||Math.abs(p.z-s.z)>.8)return 0;const x=p.x-s.x;return Math.abs(x)>1.3&&Math.abs(x)<2.8?Math.sign(x):0;};
  const sawHeight=(x,z)=>{const s=sawSite();if(!s||Math.abs(x-s.x)>2.7||Math.abs(z-s.z)>.54)return null;return s.y+.40+Math.sin(angle)*(x-s.x)+.08+(Math.abs(x-s.x)>1.5?.16:0);};
  const noteAt=p=>{const s=musicSite();if(!s||Math.abs(p.z-s.z)>.63)return -1;const i=Math.round((p.x-s.x)/1.44+2.5);return i>=0&&i<6&&Math.abs(p.x-(s.x+(i-2.5)*1.44))<.62?i:-1;};
- function floor(x,z,ignoreCar=false){let g=originalGround(x,z,ignoreCar),sy=sawHeight(x,z);if(finite(sy))g=Math.max(g??-1e4,sy);const m=musicSite();if(m&&noteAt({x,z})>=0)g=Math.max(g??-1e4,m.y+.135);return g;}
+ function floor(x,z,ignoreCar=false,ignoreRideContacts=false){let g=originalGround(x,z,ignoreCar,ignoreRideContacts),sy=sawHeight(x,z);if(finite(sy))g=Math.max(g??-1e4,sy);const m=musicSite();if(m&&noteAt({x,z})>=0)g=Math.max(g??-1e4,m.y+.135);return g;}
  function groundNear(p){return current?.ground?.(p.x,p.z);}
  function showHint(text){if(text===hintText)return;hintText=text;if(!hint&&text){hint=document.createElement('div');hint.id='park-toy-hint';hint.setAttribute('role','status');hint.style.cssText='position:fixed;left:50%;top:calc(220px + env(safe-area-inset-top));transform:translateX(-50%);max-width:min(300px,75vw);padding:9px 15px;border:1px solid #fff;border-radius:18px;background:#fff8e9ed;color:#44544e;font:600 12px/1.35 system-ui;text-align:center;pointer-events:none;z-index:35;box-shadow:0 3px 12px #55443312';document.body.append(hint);}if(hint){hint.textContent=text;hint.hidden=!text;}}
  function emit(action,value){send(`pk1t:${action}:${++seq%100000}:${value}`,280);}
@@ -75,7 +75,7 @@ export function createParkSocialToys({world,scene,state,net,settings,sfx,send,bl
   body=nextBody;input=nextInput;const w=world(),s=scene();if(w!==current){dispose();current=w;}
   enabled=!!active;dt=clamp(finite(dt)?dt:0,0,.05);clock+=dt;
   if(!w?.ready||!s)return;
-  if(!group){models=createToyModels();sites=chooseToySites(w);group=new Group();group.name='PARK_SOCIAL_TOYS';s.add(group);for(const site of sites){const o=site.kind==='seesaw'?saw=models.seesaw(site.x,site.y,site.z):site.kind==='music'?music=models.music(site.x,site.y,site.z):station=models.station(site.x,site.y,site.z);group.add(o.group);}originalGround=w.ground;groundWrapper=(x,z,ignoreCar=false)=>floor(x,z,ignoreCar);w.ground=groundWrapper;cooldown=0;}
+  if(!group){models=createToyModels();sites=chooseToySites(w);group=new Group();group.name='PARK_SOCIAL_TOYS';s.add(group);for(const site of sites){const o=site.kind==='seesaw'?saw=models.seesaw(site.x,site.y,site.z):site.kind==='music'?music=models.music(site.x,site.y,site.z):station=models.station(site.x,site.y,site.z);group.add(o.group);}originalGround=w.ground;groundWrapper=(x,z,ignoreCar=false,ignoreRideContacts=false)=>floor(x,z,ignoreCar,ignoreRideContacts);w.ground=groundWrapper;cooldown=0;}
   group.visible=enabled;if(!enabled){cancel();return;}
   cooldown=Math.max(0,cooldown-dt);sawCooldown=Math.max(0,sawCooldown-dt);impactAge+=dt;
   if(impactAge>.48)targetAngle=0;angular+=((targetAngle-angle)*100-angular*10)*dt;angle=clamp(angle+angular*dt,-.14,.14);if(Math.abs(angle)+Math.abs(angular)<.00001)angle=angular=0;if(saw)saw.pivot.rotation.z=angle;

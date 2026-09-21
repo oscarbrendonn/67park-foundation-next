@@ -4,6 +4,7 @@ import fs from 'node:fs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 const revision='skate-corner-recovery-1';
 const geometryRevision='curb-touch-finish-1';
+const runtimeRevision='ride-contacts-1';
 const recoveryRevision='recovery-visibility-2';
 test('camera preparation completes before the world is returned, with one shared module instance',()=>{
  for(const file of ['island/runtime.js','island/runtime.bundle.js']){
@@ -15,14 +16,14 @@ test('camera preparation completes before the world is returned, with one shared
  assert(read('app/claude-gorilla-runtime.js').includes('./feel-camera-meshes.js?v='+revision));
  const main=read('app/main.js');
  for(const name of ['claude-gorilla-runtime.js','wardrobe-gpu-handoff.js'])assert(main.includes(name+'?v='+revision),name);
- assert(main.includes('runtime.bundle.js?v='+geometryRevision));
+ assert(main.includes('runtime.bundle.js?v='+runtimeRevision));
  assert(read('qa/plaza-climb.browser.cjs').includes('claude-gorilla-runtime.js?v='+revision),'plaza controller observer must import the same runtime singleton as main');
  assert(read('app/party/party-pack.js').includes('./party-audio.js?v='+revision));
- assert(read('index.html').includes('app/main.js?v='+geometryRevision));
+ assert(read('index.html').includes('app/main.js?v='+runtimeRevision));
  assert(read('index.html').includes('app/party/party-pack.js?v='+revision));
  assert(read('index.html').includes('__partyConfig={runtime:"'+revision+'"'));
- assert(read('explore/index.html').includes('explore.js?v='+geometryRevision));
- assert(read('explore/explore.js').includes('runtime.bundle.js?v='+geometryRevision));
+ assert(read('explore/index.html').includes('explore.js?v='+runtimeRevision));
+ assert(read('explore/explore.js').includes('runtime.bundle.js?v='+runtimeRevision));
  const imports=JSON.parse(read('index.html').match(/<script type="importmap">([\s\S]*?)<\/script>/)[1]).imports;
  for(const key of ['chunk-G7D6MVRW.js','chunk-G7D6MVRW.js?v=online-next-1'])assert.equal(imports['/67park-foundation-next/app/'+key],'/67park-foundation-next/app/chunk-G7D6MVRW.js?v='+revision);
  for(const file of ['index.html','play/index.html','balloon/index.html','race/index.html','rockets/index.html','sports/index.html','lane-rush/index.html','skybound-soft/index.html','explore/index.html','overview/index.html','style-studio/index.html']){

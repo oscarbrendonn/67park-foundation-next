@@ -105,6 +105,7 @@ async function run(mobile){
   await require('./car-curb.browser.cjs')(page,{mobile,check});
   await require('./carousel-deck.browser.cjs')(page,{mobile,check});
   await require('./carousel-low-fps.browser.cjs')(page,{mobile,check});
+  await require('./ride-contacts.browser.cjs')(page,{mobile,check});
   await require('./grass-boundary.live.cjs')(page,{mobile,check});
   await require('./map-edge-finish.live.cjs')(page,{mobile,check});
   await require('./sidewalk-materials.live.cjs')(page,{mobile,check});

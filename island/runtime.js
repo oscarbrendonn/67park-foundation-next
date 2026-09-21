@@ -1,3 +1,4 @@
+import {installRideContacts} from './ride-contacts.js?v=ride-contacts-1';
 import {installSkateRailFinish} from '../app/party/skate-rail-finish.js?v=1';
 import {prepareCameraMeshes} from '../app/feel-camera-meshes.js?v=skate-corner-recovery-1';
 import {applySidewalkMaterials} from '../app/sidewalk-materials.js?v=sidewalk-materials-1';
@@ -287,10 +288,10 @@ let eggyGoril=null,eggyGorilYuzuyor=false,eggyGorilTabanOfset=0;
 let eggyController=null,mobileRun=false,lunaRideControls84=null,lunaQA87=null,carControls108=null,pastelTraffic108=null;
 let smallIslandProps=null,smallIslandStatTriangles=-1,smallIslandBaseTriangles=0,smallIslandMapLabel='';
 let parkProps57=null,cityProps60=null,centralBuildings68=null,lunapark77=null,seasideTimber79=null,lowerPlaza83=null,northwestSports97=null,stadiumCoast99=null,westCourtyard102=null,bottomHomes103=null,northPool104=null,northHomes=null,northwest93=null,northApartments=null,livingEffects107=null;
-const smallIslandGround=(x,z,ignoreCar=false)=>{
+const smallIslandGround=(x,z,ignoreCar=false,ignoreRideContacts=false)=>{
   if(northPool104?.inBasin(x,z))return northPool104.obstacle(x,z);
   const land=zeminY(x,z),prop=smallIslandProps?.obstacle(x,z),park=parkProps57?.obstacle(x,z),city=cityProps60?.obstacle(x,z);
-  const values=[land,prop,park,city,northwest93?.obstacle(x,z),northApartments?.obstacle(x,z),northHomes?.obstacle(x,z),centralBuildings68?.obstacle(x,z),lunapark77?.obstacle(x,z),seasideTimber79?.height(x,z),lowerPlaza83?.obstacle(x,z),northwestSports97?.obstacle(x,z),stadiumCoast99?.obstacle(x,z),westCourtyard102?.obstacle(x,z),bottomHomes103?.obstacle(x,z),northPool104?.obstacle(x,z),ignoreCar?null:pastelTraffic108?.obstacle(x,z)].filter(v=>v!=null);return values.length?Math.max(...values):null;
+  const values=[land,prop,park,city,northwest93?.obstacle(x,z),northApartments?.obstacle(x,z),northHomes?.obstacle(x,z),centralBuildings68?.obstacle(x,z),lunapark77?.obstacle(x,z,ignoreRideContacts),seasideTimber79?.height(x,z),lowerPlaza83?.obstacle(x,z),northwestSports97?.obstacle(x,z),stadiumCoast99?.obstacle(x,z),westCourtyard102?.obstacle(x,z),bottomHomes103?.obstacle(x,z),northPool104?.obstacle(x,z),ignoreCar?null:pastelTraffic108?.obstacle(x,z)].filter(v=>v!=null);return values.length?Math.max(...values):null;
 };
 const parkEnvironment=()=>({ground:smallIslandGround,water:(x,z)=>northPool104?.contains(x,z)?northPool104.isWater(x,z):(northwest93?.ground(x,z)!=null||northHomes?.ground(x,z)!=null||bottomHomes103?.ground(x,z)!=null||westCourtyard102?.ground(x,z)!=null||stadiumCoast99?.ground(x,z)!=null||lowerPlaza83?.ground(x,z)!=null||seasideTimber79?.height(x,z)!=null||cityProps60?.obstacle(x,z)!=null||parkProps57?.obstacle(x,z)!=null)?false:sudaMi(x,z),sea:()=>northPool104?.waterLevelAt(eggyController?.sim.position.x,eggyController?.sim.position.z)??kimiSu.position.y,
   footOffset:()=>eggyGorilTabanOfset,cameraBlockers:()=>[...zeminler,...(northwest93?.cameraBlockers??[]),...(northApartments?.cameraBlockers??[]),...(northHomes?.cameraBlockers??[]),...(cityProps60?.cameraBlockers??[]),...(centralBuildings68?.cameraBlockers??[]),...(lunapark77?.cameraBlockers??[]),...(seasideTimber79?.cameraBlockers??[]),...(lowerPlaza83?.cameraBlockers??[]),...(northwestSports97?.cameraBlockers??[]),...(stadiumCoast99?.cameraBlockers??[]),...(westCourtyard102?.cameraBlockers??[]),...(bottomHomes103?.cameraBlockers??[]),...(northPool104?.cameraBlockers??[])],
@@ -1623,6 +1624,7 @@ const world={
  sea:(x,z)=>northPool104?.waterLevelAt(x,z)??pondWater.height(x,z)??kimiSu.position.y,
  pond:pondWater,
  traffic:pastelTraffic108,rides:lunapark77?.rides??[],
+ lunapark:lunapark77,rideGround:(x,z)=>smallIslandGround(x,z,false,true),
  effects:livingEffects107,
  pool:northPool104,blockers:parkEnvironment().cameraBlockers(),
  ready:true,spawn:[163,smallIslandGround(163,121)+.56,121],
@@ -1662,7 +1664,7 @@ const failures=Object.entries(renderer.domElement.dataset).filter(([k,v])=>/^err
 if(failures.length)throw Error('Island layers missing: '+JSON.stringify(failures));
 installParcelCornerQA(world);
 installParcelGapQA(world);
-const completedWorld=installLobbyCourts(installHouseRoofSupports(installIslandSwimBoundary(world)));
+const completedWorld=installLobbyCourts(installRideContacts(installHouseRoofSupports(installIslandSwimBoundary(world))));
 if(!completedWorld.blockers?.length)throw Error("Camera preparation needs the loaded island");
 installSkateRailFinish(completedWorld);
 const cameraPreparation=await prepareCameraMeshes(completedWorld);
