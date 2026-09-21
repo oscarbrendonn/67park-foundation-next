@@ -7,6 +7,10 @@ const fs=require('node:fs');
 const base=process.env.PARK_RIDE_URL||'http://127.0.0.1:8496/67park-foundation-next/?qa=ride-contacts';
 const jumpDelay=Number(process.env.PARK_RIDE_JUMP_DELAY_MS||0);
 assert(Number.isFinite(jumpDelay)&&jumpDelay>=0&&jumpDelay<=1200,'bounded jump delay');
+// Test automation latency, separate from a blocked game frame. This reproduces
+// the old 2.19s locator delay without changing the game, input or assertions.
+const dispatchDelay=Number(process.env.PARK_RIDE_DISPATCH_DELAY_MS||0);
+assert(Number.isFinite(dispatchDelay)&&dispatchDelay>=0&&dispatchDelay<=2500,'bounded jump dispatch delay');
 (async()=>{
  const browser=await chromium.launch(browserLaunchOptions());
  try{
@@ -17,7 +21,7 @@ assert(Number.isFinite(jumpDelay)&&jumpDelay>=0&&jumpDelay<=1200,'bounded jump d
     localStorage.setItem('67park-feel-lab.character.v3',JSON.stringify({base:'goril'}));
     localStorage.setItem('67park-feel-lab.player-profile.v1',JSON.stringify({version:1,base:'goril'}));
     localStorage.setItem('67park-feel-lab-muted','1');
-    window.__rideRun={lost:0,gap:0,last:0,injected:0};document.addEventListener('webglcontextlost',()=>__rideRun.lost++,true);
+    window.__rideRun={lost:0,gap:0,last:0,injected:0,dispatchDelayed:0};document.addEventListener('webglcontextlost',()=>__rideRun.lost++,true);
     const delayJump=e=>{
      const jump=e.type==='keydown'?e.code==='Space':e.target?.closest?.('button')?.getAttribute('aria-label')==='Jump';
      if(!jump||!jumpDelay||!window.__qaRideJumpArmed||__rideRun.injected)return;
@@ -26,6 +30,15 @@ assert(Number.isFinite(jumpDelay)&&jumpDelay>=0&&jumpDelay<=1200,'bounded jump d
     addEventListener('keydown',delayJump,true);addEventListener('pointerdown',delayJump,true);
     const frame=now=>{const s=__rideRun;if(s.last)s.gap=Math.max(s.gap,now-s.last);s.last=now;requestAnimationFrame(frame);};requestAnimationFrame(frame);
    },{jumpDelay});
+   if(dispatchDelay){
+    const delayOnce=async()=>{
+     const armed=await page.evaluate(()=>{if(!window.__qaRideJumpArmed||__rideRun.dispatchDelayed)return false;__rideRun.dispatchDelayed++;return true;});
+     if(armed)await page.waitForTimeout(dispatchDelay);
+    };
+    const tap=page.touchscreen.tap.bind(page.touchscreen),press=page.keyboard.press.bind(page.keyboard);
+    page.touchscreen.tap=async(...args)=>{await delayOnce();return tap(...args);};
+    page.keyboard.press=async(...args)=>{if(args[0]==='Space')await delayOnce();return press(...args);};
+   }
    page.on('pageerror',error=>errors.push(String(error)));
    page.on('console',message=>{if(message.type()==='error')console.log('BROWSER_ERROR',message.text());});
    await page.goto(base,{waitUntil:'domcontentloaded',timeout:120000});
@@ -42,6 +55,7 @@ assert(Number.isFinite(jumpDelay)&&jumpDelay>=0&&jumpDelay<=1200,'bounded jump d
    try{
     await require('./ride-contacts.browser.cjs')(page,{mobile,check});
     if(jumpDelay)assert.equal(await page.evaluate(()=>__rideRun.injected),1,'delayed exactly one real Ferris jump input');
+    if(dispatchDelay)assert.equal(await page.evaluate(()=>__rideRun.dispatchDelayed),1,'delayed exactly one trusted Ferris input dispatch');
     await require('./skate-camera.browser.cjs')(page,{mobile,check});
     console.log('RIDE_CONTACT_BROWSER_PASS',JSON.stringify({mobile,errors,stats:await page.evaluate(()=>__islandWorld.rideContacts.stats)}));
    }catch(error){fs.mkdirSync('.qa-results',{recursive:true});await page.screenshot({path:'.qa-results/ride-contacts-failed-'+(mobile?'mobile':'desktop')+'.png'});throw error;}

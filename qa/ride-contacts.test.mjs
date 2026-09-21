@@ -270,3 +270,25 @@ test('ground decorators forward ride filtering and entry maps preserve one movem
   assert.equal(map[social],social+'?v=ride-contacts-1');assert.equal(map[social+'?v=balloon-lift-2'],social+'?v=ride-contacts-1');
  }
 });
+
+test('Ferris free-jump fixture keeps real roof clearance after dispatch and game-event delays',()=>{
+ const rate=Math.PI*2/ferris.stats.period,head=1.45,skin=.012;
+ const state=angle=>{
+  ferris.setNetworkAngle(angle);const seat=ferris.seat(0),seats=Array.from({length:12},(_,n)=>ferris.seat(n*4));
+  const cx=seats.reduce((v,s)=>v+s.position.x,0)/12,cy=seats.reduce((v,s)=>v+s.position.y,0)/12;
+  return {p:{x:seat.position.x+1.53,y:seat.floor+foot,z:seat.position.z+.975},floor:seat.floor,floorVelocity:(seat.position.x-cx)*rate,horizontalVelocity:-(seat.position.y-cy)*rate};
+ };
+ for(const angle of [3.876,3.92,3.96,4.005,4.065]){
+  const armed=state(angle);
+  assert(armed.floorVelocity>-.75&&armed.floorVelocity<-.6&&armed.horizontalVelocity>.3);
+  const input=state(angle+rate*2.2);
+  assert(input.floorVelocity<-.05&&Math.abs(input.horizontalVelocity)>.3,'unchanged real-event kinematics');
+  state(angle+rate*3);
+  const caps=[[0,0],[.35,0],[-.35,0],[0,.35],[0,-.35]].map(([dx,dz])=>{
+   const roof=contacts.sample(input.p.x+dx,input.p.z+dz).intervals.filter(s=>s.cabin===0&&s.min>=input.floor+head-skin);
+   assert(roof.length,'the real solid roof is still present over every body probe');
+   return Math.min(...roof.map(s=>s.min))-head+foot-skin;
+  });
+  assert(Math.min(...caps)>input.p.y+.12+.25,'at least .25m extra clearance beyond the unchanged upward-rise gate');
+ }
+});

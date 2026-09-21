@@ -1,4 +1,5 @@
 const assert=require('node:assert/strict');
+const {prepareJumpInput}=require('./jump-input.cjs');
 
 // This is deliberately a player-loop check, rather than a sampler-only probe:
 // the reported positions have passed through the same walk/skate contact sweep
@@ -12,7 +13,6 @@ module.exports=async function checkRideContacts(page,{mobile=false,check}){
   const b=__eggyInput.playerRef.body,i=__eggyInput.input;
   return {p:{...b.translation()},board:!!__candy.state().board,input:{x:i.x,z:i.z,run:i.run,jumpQueued:i.jumpQueued}};
  });
- const jump=()=>mobile?page.getByRole('button',{name:'Jump',exact:true}).tap():page.keyboard.press('Space');
  const board=async on=>{
   if(await page.evaluate(()=>!!__candy.state().board)!==on){
    await page.keyboard.press('KeyV');
@@ -195,6 +195,9 @@ module.exports=async function checkRideContacts(page,{mobile=false,check}){
 
   await check('ride contacts: jumping and walking off release an unmounted Ferris rider',async()=>{
    await board(false);
+   // Resolve and hit-test the fixed HUD before choosing the moving-cabin phase.
+   // Locator.tap() would otherwise wait extra rendered frames after arming.
+   const jump=await prepareJumpInput(page,{mobile});
    const placed=await freshFerrisPlacement({descending:true});
    const setup=await page.evaluate(async placed=>{
     const w=__islandWorld,b=__eggyInput.playerRef.body,i=__eggyInput.input,ride=w.rides.find(r=>r.asset==='ferris'),foot=.555,frame=()=>new Promise(requestAnimationFrame);
@@ -203,12 +206,23 @@ module.exports=async function checkRideContacts(page,{mobile=false,check}){
     if(support?.cabin!==placed.cabin||Math.abs(p.y-foot-point.floor)>.08)throw Error('Ferris jump fixture did not settle on the selected cabin: '+JSON.stringify({placed,point,p,support}));
     return {cabin:placed.cabin,before:point,settled:{p,support,offset:{x:p.x-point.x,z:p.z-point.z}}};
    },placed);
-   await page.evaluate(async cabin=>{
+   await page.evaluate(async setup=>{
     // Import the exact singleton used by main.js; a cache-busted copy would
     // observe another controller and make this jump diagnosis meaningless.
     const {claudeGorillaState}=await import('/67park-foundation-next/app/claude-gorilla-runtime.js?v=skate-corner-recovery-1');
     window.__qaRideGorillaState=()=>{const s=claudeGorillaState();return {grounded:!!s.grounded,jumped:s.jumped,jumpsLeft:s.jumpsLeft,frames:s.frames};};
-    window.__qaRideJumpTrace=[];window.__qaRideJumpEvents=[];window.__qaRideJumpStop=false;window.__qaRideJumpCabin=cabin;
+    window.__qaRideJumpTrace=[];window.__qaRideJumpEvents=[];window.__qaRideJumpStop=false;window.__qaRideJumpCabin=setup.cabin;
+    window.__qaRideJumpPhysics=[];
+    const contacts=__islandWorld.rideContacts,prepare=contacts.prepareBody;
+    window.__qaRideJumpPrepare=prepare;
+    contacts.prepareBody=function(body,options){
+     const capture=window.__qaRideJumpEvents.length>0&&window.__qaRideJumpPhysics.length<12;
+     let before;
+     if(capture){const p={...body.translation()};before={p,v:{...body.linvel()},jumpQueued:!!options?.jumpQueued,cabin:window.__qaRideJumpKinematics?.(),probes:[[0,0],[.35,0],[-.35,0],[0,.35],[0,-.35]].map(([dx,dz])=>({dx,dz,sample:contacts.sample(p.x+dx,p.z+dz)}))};}
+     const result=prepare.call(this,body,options);
+     if(capture)window.__qaRideJumpPhysics.push({t:Math.round(performance.now()),frame:__islandWorld.renderer.info.render.frame,before,after:{p:{...body.translation()},v:{...body.linvel()}},carried:result});
+     return result;
+    };
     window.__qaRideJumpKinematics=()=>{
      const ride=__islandWorld.rides.find(r=>r.asset==='ferris'),cabins=Array.from({length:12},(_,n)=>ride.seat(n*4)),seat=cabins[window.__qaRideJumpCabin],centerX=cabins.reduce((sum,next)=>sum+next.position.x,0)/cabins.length,centerY=cabins.reduce((sum,next)=>sum+next.position.y,0)/cabins.length,rate=Math.PI*2/ride.stats.period;
      return {floor:seat.floor,angle:ride.angle,phase:Math.atan2(seat.position.y-centerY,seat.position.x-centerX),xOffset:seat.position.x-centerX,yOffset:seat.position.y-centerY,floorVelocity:(seat.position.x-centerX)*rate,horizontalVelocity:-(seat.position.y-centerY)*rate};
@@ -219,32 +233,40 @@ module.exports=async function checkRideContacts(page,{mobile=false,check}){
      rows.push({source,frame,t:Math.round(performance.now()),p:{...p},v:{...b.linvel()},gorilla:s&&{...s},input:{x:i.x,z:i.z,run:i.run,jumpQueued:i.jumpQueued}});if(rows.length>160)rows.shift();
     };
     const active=()=>{const e=document.activeElement;return e?{tag:e.tagName,id:e.id,className:e.className,aria:e.getAttribute('aria-label'),text:e.textContent?.slice(0,80)}:null;};
-    window.__qaRideJumpKeyHandler=e=>{if(e.code==='Space'||e.key===' '){window.__qaRideJumpEvents.push({type:'keydown',code:e.code,key:e.key,t:Math.round(performance.now()),active:active(),cabin:window.__qaRideJumpKinematics?.()});window.__qaRideJumpRecord('keydown');}};
-    window.__qaRideJumpPointerHandler=e=>{if(e.target?.closest?.('button')){window.__qaRideJumpEvents.push({type:'pointerdown',t:Math.round(performance.now()),active:active(),cabin:window.__qaRideJumpKinematics?.()});window.__qaRideJumpRecord('pointerdown');}};
+    window.__qaRideJumpKeyHandler=e=>{if(e.code==='Space'||e.key===' '){window.__qaRideJumpEvents.push({type:'keydown',code:e.code,key:e.key,isTrusted:e.isTrusted,t:Math.round(performance.now()),active:active(),cabin:window.__qaRideJumpKinematics?.()});window.__qaRideJumpRecord('keydown');}};
+    window.__qaRideJumpPointerHandler=e=>{if(e.target?.closest?.('button')){window.__qaRideJumpEvents.push({type:'pointerdown',isTrusted:e.isTrusted,target:e.target.closest('button').getAttribute('aria-label'),t:Math.round(performance.now()),active:active(),cabin:window.__qaRideJumpKinematics?.()});window.__qaRideJumpRecord('pointerdown');}};
     addEventListener('keydown',window.__qaRideJumpKeyHandler,true);addEventListener('pointerdown',window.__qaRideJumpPointerHandler,true);
     const observe=()=>{if(window.__qaRideJumpStop)return;window.__qaRideJumpRecord('raf');window.__qaRideJumpObserver=requestAnimationFrame(observe);};window.__qaRideJumpObserver=requestAnimationFrame(observe);
-   },setup.cabin);
+    // Install the observer before arming so no setup round trip delays input.
+    const b=__eggyInput.playerRef.body,ride=__islandWorld.rides.find(r=>r.asset==='ferris'),foot=.555;
+    const point=()=>{const s=ride.seat(setup.cabin*4);return{x:s.position.x+1.53,y:s.floor+foot,z:s.position.z+.975,floor:s.floor};};
+    window.__qaRideAirRows=[];window.__qaRideAirStop=false;
+    const observeAir=()=>{if(window.__qaRideAirStop)return;const expected=point(),p={...b.translation()},gap=p.y-foot-expected.floor;
+     const dispatched=window.__qaRideJumpEvents.some(event=>event.isTrusted&&(event.type==='keydown'||event.target==='Jump'));
+     if(window.__qaRideJumpArmed&&dispatched&&gap>.07){const rows=window.__qaRideAirRows;rows.push({expected,p,gap,frame:__islandWorld.renderer.info.render.frame});if(rows.length>120)rows.shift();}
+     window.__qaRideAirObserver=requestAnimationFrame(observeAir);
+    };window.__qaRideAirObserver=requestAnimationFrame(observeAir);
+   },setup);
    let armed;
    try{
-    await page.waitForFunction(()=>{
+    const armedHandle=await page.waitForFunction(()=>{
      const w=__islandWorld,b=__eggyInput.playerRef.body,p=b.translation(),v=b.linvel(),s=window.__qaRideGorillaState?.(),i=__eggyInput.input;
-     const floor=w.characterGround(p.x,p.z,p.y-.555,.012),cabin=window.__qaRideJumpKinematics?.();return s?.grounded===true&&s?.jumpsLeft===1&&Math.abs(v.y)<.2&&Math.abs(p.y-.555-floor)<.08&&Math.hypot(i.x,i.z)<.01&&!i.run&&cabin?.floorVelocity<-.05&&Math.abs(cabin.horizontalVelocity)>.3;
+     // After settling from the upper-left placement, arm on the outgoing
+     // lower-left diagonal. Horizontal speed then grows during dispatch,
+     // instead of shrinking toward zero at the leftmost turning point.
+     // Avoid the fastest descent: after a blocked 800ms game event the real
+     // cabin roof can reach the rider before .12m of free upward travel. This
+     // is a free-jump fixture, not permission to pass through that solid roof.
+     const floor=w.characterGround(p.x,p.z,p.y-.555,.012),cabin=window.__qaRideJumpKinematics?.();
+     if(!(s?.grounded===true&&s?.jumpsLeft===1&&Math.abs(v.y)<.2&&Math.abs(p.y-.555-floor)<.08&&Math.hypot(i.x,i.z)<.01&&!i.run&&cabin?.floorVelocity>-.75&&cabin.floorVelocity<-.6&&cabin.horizontalVelocity>.3))return false;
+     // Capture readiness atomically; a second evaluate can see another phase
+     // on the slow CI renderer. The later real event is checked independently.
+     const e=document.activeElement;
+     const value={p:{...p},v:{...b.linvel()},gorilla:window.__qaRideGorillaState?.(),frame:__islandWorld.renderer.info.render.frame,t:Math.round(performance.now()),cabin,activeElement:e?{tag:e.tagName,id:e.id,className:e.className,aria:e.getAttribute('aria-label'),text:e.textContent?.slice(0,80)}:null};
+     window.__qaRideAirRows.length=0;window.__qaRideJumpArmed=value;window.__qaRideJumpRecord('armed');return value;
     },null,{timeout:45000});
-    armed=await page.evaluate(setup=>{
-     const b=__eggyInput.playerRef.body,p=b.translation(),e=document.activeElement,cabin=window.__qaRideJumpKinematics?.();
-     const value={p:{...p},v:{...b.linvel()},gorilla:window.__qaRideGorillaState?.(),frame:__islandWorld.renderer.info.render.frame,cabin,activeElement:e?{tag:e.tagName,id:e.id,className:e.className,aria:e.getAttribute('aria-label'),text:e.textContent?.slice(0,80)}:null};
-     window.__qaRideJumpArmed=value;window.__qaRideJumpRecord('armed');return value;
-    },setup);
-    assert(armed.cabin.floorVelocity<-.05&&Math.abs(armed.cabin.horizontalVelocity)>.3,JSON.stringify({setup,armed}));
-    await page.evaluate(setup=>{
-     const b=__eggyInput.playerRef.body,ride=__islandWorld.rides.find(r=>r.asset==='ferris'),foot=.555;
-     const point=()=>{const s=ride.seat(setup.cabin*4);return{x:s.position.x+1.53,y:s.floor+foot,z:s.position.z+.975,floor:s.floor};};
-     window.__qaRideAirRows=[];window.__qaRideAirStop=false;
-     const observe=()=>{if(window.__qaRideAirStop)return;const expected=point(),p={...b.translation()},gap=p.y-foot-expected.floor;
-      if(gap>.07){const rows=window.__qaRideAirRows;rows.push({expected,p,gap,frame:__islandWorld.renderer.info.render.frame});if(rows.length>120)rows.shift();}
-      window.__qaRideAirObserver=requestAnimationFrame(observe);
-     };window.__qaRideAirObserver=requestAnimationFrame(observe);
-    },setup);
+    try{armed=await armedHandle.jsonValue();}finally{await armedHandle.dispose();}
+    assert(armed.cabin.floorVelocity>-.75&&armed.cabin.floorVelocity<-.6&&armed.cabin.horizontalVelocity>.3,JSON.stringify({setup,armed}));
     await jump();
    }catch(error){
     const diagnostic=await page.evaluate(()=>{const b=__eggyInput.playerRef.body,e=document.activeElement;return {armed:window.__qaRideJumpArmed,events:window.__qaRideJumpEvents,trace:window.__qaRideJumpTrace,p:{...b.translation()},v:{...b.linvel()},gorilla:window.__qaRideGorillaState?.(),input:{...__eggyInput.input},activeElement:e?{tag:e.tagName,id:e.id,className:e.className,aria:e.getAttribute('aria-label'),text:e.textContent?.slice(0,80)}:null};});
@@ -262,7 +284,7 @@ module.exports=async function checkRideContacts(page,{mobile=false,check}){
     const first=rows[0],last=rows.at(-1);
     const armed=window.__qaRideJumpArmed,trace=window.__qaRideJumpTrace||[],events=window.__qaRideJumpEvents||[],inputEvent=events.find(event=>event.type==='keydown'||event.type==='pointerdown'),inputRow=trace.find(row=>row.source==='keydown'||row.source==='pointerdown');
     const accepted=!!inputRow&&trace.some(row=>row.gorilla?.frames>inputRow.gorilla?.frames&&row.gorilla?.grounded===false&&row.gorilla?.jumpsLeft===1&&row.p.y>inputRow.p.y+.12&&row.v.y>3);
-    return {rows,maxGap:Math.max(...rows.map(r=>r.gap)),cabinTravel:Math.abs(last.expected.x-first.expected.x),bodyTravel:Math.hypot(last.p.x-first.p.x,last.p.z-first.p.z),mounted:__candy.state().mounted,armed,inputRow,inputKinematics:inputEvent?.cabin,accepted,events,trace};
+    return {rows,maxGap:Math.max(...rows.map(r=>r.gap)),cabinTravel:Math.abs(last.expected.x-first.expected.x),bodyTravel:Math.hypot(last.p.x-first.p.x,last.p.z-first.p.z),mounted:__candy.state().mounted,armed,inputRow,inputKinematics:inputEvent?.cabin,dispatchDelayMs:inputRow?.t-armed.t,accepted,events,trace,physics:window.__qaRideJumpPhysics};
    },setup);
    }catch(error){
     const diagnostic=await page.evaluate(()=>{const b=__eggyInput.playerRef.body;return {armed:window.__qaRideJumpArmed,events:window.__qaRideJumpEvents,trace:window.__qaRideJumpTrace,p:{...b.translation()},v:{...b.linvel()},gorilla:window.__qaRideGorillaState?.(),input:{...__eggyInput.input}};});
@@ -270,6 +292,10 @@ module.exports=async function checkRideContacts(page,{mobile=false,check}){
     throw new Error(error.message+' '+JSON.stringify(diagnostic));
    }
    assert.equal(airborne.mounted,null,JSON.stringify(airborne));
+   assert.equal(airborne.events.length,1,'exactly one real jump input, without retries');
+   assert.equal(airborne.events[0].isTrusted,true,'jump must come from real keyboard/touch input');
+   assert.equal(airborne.events[0].type,mobile?'pointerdown':'keydown');
+   if(mobile)assert.equal(airborne.events[0].target,'Jump','trusted touch must hit the visible Jump button');
    assert(airborne.accepted&&airborne.rows.length>=3&&airborne.maxGap>.07&&airborne.cabinTravel>.025&&airborne.bodyTravel<.1&&airborne.inputKinematics?.floorVelocity<-.05&&Math.abs(airborne.inputKinematics.horizontalVelocity)>.3,JSON.stringify(airborne));
 
    const walkPlacement=await freshFerrisPlacement();let walked;
@@ -355,7 +381,7 @@ module.exports=async function checkRideContacts(page,{mobile=false,check}){
    }finally{await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await touch.detach();}
   });
  }finally{
-  await page.evaluate(()=>{window.__qaRideJumpStop=true;window.__qaRideAirStop=true;cancelAnimationFrame(window.__qaRideJumpObserver);cancelAnimationFrame(window.__qaRideAirObserver);removeEventListener('keydown',window.__qaRideJumpKeyHandler,true);removeEventListener('pointerdown',window.__qaRideJumpPointerHandler,true);delete window.__qaRideJumpRecord;delete window.__qaRideJumpKinematics;delete window.__qaRideJumpCabin;delete window.__qaRideGorillaState;});
+  await page.evaluate(()=>{window.__qaRideJumpStop=true;window.__qaRideAirStop=true;cancelAnimationFrame(window.__qaRideJumpObserver);cancelAnimationFrame(window.__qaRideAirObserver);removeEventListener('keydown',window.__qaRideJumpKeyHandler,true);removeEventListener('pointerdown',window.__qaRideJumpPointerHandler,true);if(window.__qaRideJumpPrepare)__islandWorld.rideContacts.prepareBody=window.__qaRideJumpPrepare;delete window.__qaRideJumpPrepare;delete window.__qaRideJumpRecord;delete window.__qaRideJumpKinematics;delete window.__qaRideJumpCabin;delete window.__qaRideGorillaState;delete window.__qaRideJumpArmed;});
   if(await page.evaluate(()=>!!__candy.state().board)!==original.board)await page.keyboard.press('KeyV');
   await page.evaluate(saved=>{const b=__eggyInput.playerRef.body,i=__eggyInput.input;Object.assign(i,saved.input);b.setLinvel({x:0,y:0,z:0},true);__tp([saved.p.x,saved.p.y,saved.p.z]);},original);
  }
