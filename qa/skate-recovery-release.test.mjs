@@ -22,6 +22,12 @@ test('camera preparation completes before the world is returned, with one shared
  assert(read('explore/explore.js').includes('runtime.bundle.js?v='+revision));
  const imports=JSON.parse(read('index.html').match(/<script type="importmap">([\s\S]*?)<\/script>/)[1]).imports;
  for(const key of ['chunk-G7D6MVRW.js','chunk-G7D6MVRW.js?v=online-next-1'])assert.equal(imports['/67park-foundation-next/app/'+key],'/67park-foundation-next/app/chunk-G7D6MVRW.js?v='+revision);
+ for(const file of ['index.html','play/index.html','balloon/index.html','race/index.html','rockets/index.html','sports/index.html','lane-rush/index.html','skybound-soft/index.html','explore/index.html','overview/index.html','style-studio/index.html']){
+  const html=read(file),match=html.match(/<script type="importmap">([\s\S]*?)<\/script>/);if(!match)continue;
+  const map=JSON.parse(match[1]).imports,path='/67park-foundation-next/app/connection-recovery.js';
+  for(const key of [path,path+'?v=recovery-graphics-1'])assert.equal(map[key],path+'?v='+revision,file+' recovery import');
+  assert(!html.includes('src="'+path+'?v=recovery-graphics-1"'),file+' standalone recovery script');
+ }
 });
 
 test('shipped world export awaits camera preparation after all island layers, not the central-building loader',async()=>{

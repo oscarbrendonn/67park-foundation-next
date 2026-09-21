@@ -113,7 +113,7 @@ wardrobe, including any loading/retry text.
   instances, transforms, visibility and open spaces. Root review rejected the
   initial 196.5 MB minimum retained duplicate-vertex cache as unsuitable for a
   phone regression fix. The final cold local run indexes 498 unique geometries,
-  2,585,796 triangles, retaining 10,343,184 bytes of Uint32 source references
+  2,589,276 triangles, retaining 10,357,104 bytes of Uint32 source references
   instead of duplicate vertex arrays. This is a minimum payload, NOT total
   additional RAM: node objects, arrays and engine overhead are not included.
   No bounding-box-only wall approximation is used.
@@ -190,7 +190,34 @@ failed the plaza observer. Its QA-only import still loaded the old movement quer
 key, creating a second unstepped controller singleton (`frames:0`) rather than
 observing the live avatar. The test import must match the production module key;
 the route, jump-height assertions and physical collision rules remain unchanged.
-The full rerun and hosted 15-minute mobile soak are still required before release.
+The fresh full local rerun passed both desktop and mobile-viewport cases with
+zero JS/world-WebGL errors and the peer still connected, including chat spam,
+100 home transitions, real-input roof/plaza routes, carousel carry and board
+movement. Evidence: `.qa-results/skate-full-hardware-final-2.log`. No local long
+soak was repeated here; the hosted 15-minute mobile soak remains mandatory.
+On this final rail-prepared version, both prewarm maximum chunks were 7.8 ms;
+the board route drew 53 frames, travelled 8.43/8.45 m and had at most 16.8 ms
+frame gaps. No geometry was reindexed during the ride.
+
+The first hosted candidate a7ef2a8, workflow 35560967398, failed the independent
+minigame download recovery scenario before reaching foundation/soak. Its failed
+entry did not show Retry until the 45-second fallback, after the server's
+20-second disconnect grace had expired. The resumed guest had no match room.
+The late-listener race is fixed by reading the already-recorded inline entry
+failure on recovery UI installation (match pages only), with the same predicate
+as future error events. The browser fixture holds the independent recovery
+module until after the real entry import rejects, then requires Retry within
+15 seconds rather than the 45-second fallback. It reaches Retry with the room
+still loading and completes a real recovered match, reconnect and both return
+routes. Evidence: `.qa-results/recovery-browser-late-entry.log`. Server grace,
+load deadlines and all existing recovery timeouts/assertions remain unchanged.
+All entry pages map bare and legacy-query recovery imports to the same new
+version, avoiding duplicate instances and stale cached recovery code.
+Final pre-push unit run: 176 total, 174 pass, two existing optional-fixture
+skips, zero failures (`.qa-results/skate-recovery-unit-publish.log`). The explicit
+actual-map fixture additionally passes all eight tests with no skips
+(`.qa-results/skate-recovery-geometry-publish.log`). Publication remains gated
+by the next hosted regression, 15-minute soak, Pages deployment and live checks.
 
 ## Release distinction
 

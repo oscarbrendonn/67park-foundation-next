@@ -52,6 +52,18 @@ edit('index.html',s=>s.replace(/(<script type="importmap">)([\s\S]*?)(<\/script>
  for(const key of Object.keys(map.imports))if(/^\/67park-foundation-next\/app\/chunk-G7D6MVRW\.js(?:\?v=[a-zA-Z0-9_-]+)?$/.test(key))map.imports[key]='/67park-foundation-next/app/chunk-G7D6MVRW.js?v='+revision;
  return start+JSON.stringify(map)+end;
 }));
+// Early entry failures must reach the same recovery instance on every page.
+// Keep the old query as an alias, including callers cached from an older entry.
+for(const file of ['index.html','play/index.html','balloon/index.html','race/index.html','rockets/index.html','sports/index.html','lane-rush/index.html','skybound-soft/index.html','explore/index.html','overview/index.html','style-studio/index.html'])edit(file,s=>{
+ const path='/67park-foundation-next/app/connection-recovery.js',target=path+'?v='+revision;
+ let next=s.replace(/(<script type="importmap">)([\s\S]*?)(<\/script>)/,(_m,start,json,end)=>{
+  const map=JSON.parse(json);
+  for(const key of Object.keys(map.imports))if(map.imports[key].split('?')[0]===path)map.imports[key]=target;
+  map.imports[path]=target;map.imports[path+'?v=recovery-graphics-1']=target;
+  return start+JSON.stringify(map)+end;
+ });
+ return next.replace(/(<script type="module" src="\/67park-foundation-next\/app\/connection-recovery\.js)\?v=[a-zA-Z0-9_-]+/g,'$1?v='+revision);
+});
 edit('qa/map-edge-finish.live.cjs',s=>s.replace(/repairs\/map-edge-finish-1\.json(?:\?v=[a-zA-Z0-9_-]+)?/g,'repairs/map-edge-finish-1.json?v='+revision));
 edit('qa/plaza-climb.browser.cjs',s=>s.replace(/claude-gorilla-runtime\.js\?v=[a-zA-Z0-9_-]+/g,'claude-gorilla-runtime.js?v='+revision));
 edit('package.json',s=>{

@@ -6,6 +6,15 @@ state.readyRooms??=new Set();
 const RETURN_KEY='67park.feel-lab.return-intent.v1';
 const tabStorage=()=>{try{return globalThis.sessionStorage}catch{return null}};
 export const connectionRecoverySnapshot=()=>({error:state.error,blocked:state.blocked,retryAt:state.retryAt,changedAt:state.changedAt});
+// Match entry can reject before this independent module is evaluated. The
+// page's inline listener records that first error in __candyErrors, so retain
+// the same load-failure predicate for the late listener and the initial read.
+export function recordedEntryLoadFailure(errors){
+ return Array.isArray(errors)&&errors.some(error=>{
+  const message=typeof error==='object'&&error!==null?(error.message||error.reason?.message||error.reason||''):error;
+  return /loading|fetch|import|module|load/i.test(String(message));
+ });
+}
 export function currentParkSocket(channel){const ws=state.channels.get(channel);return ws&&ws.readyState<2?ws:null;}
 export function connectionProblem(message,{blocked=false,retryAt=0}={}){
  if(message!==state.error||blocked!==state.blocked)state.changedAt=Date.now();
@@ -91,7 +100,7 @@ export function installConnectionRecoveryUI(win=window,doc=document){
  for(const b of [retry,back]){b.type='button';b.style.cssText='min-height:44px;padding:8px 12px;margin:3px;border:1px solid #d9cbb5;border-radius:12px;background:#fffdf7;color:inherit;font:inherit';}
  retry.textContent='Retry connection';back.textContent='Return to park';panel.append(label,retry,back);doc.body.append(panel);
  const match=new URLSearchParams(win.location.search).get('match');
- const started=Date.now();let disconnectedAt=started,lastSignature='',entryError=false,loadingFailed=false,leaving=false;
+ const started=Date.now();let disconnectedAt=started,lastSignature='',entryError=!!match&&recordedEntryLoadFailure(win.__candyErrors),loadingFailed=false,leaving=false;
  const release=()=>win.dispatchEvent(new Event('park:release-controls'));
  const reload=()=>{release();const url=new URL(win.location.href);url.searchParams.set('v',CLIENT_BUILD);win.location.replace(url.href)};
  retry.onclick=()=>{
@@ -143,7 +152,7 @@ export function installConnectionRecoveryUI(win=window,doc=document){
   back.hidden=!match;
   panel.dataset.state=state.blocked?'incompatible':failed?'loading-error':abandoned?'match-ended':'reconnecting';
  };
- const onError=e=>{if(match&&(/loading|fetch|import|module|load/i.test(String(e.message||e.reason?.message||''))||e.target?.tagName==='SCRIPT')){entryError=true;check();}};
+ const onError=e=>{if(match&&(recordedEntryLoadFailure([e])||e.target?.tagName==='SCRIPT')){entryError=true;check();}};
  const timer=setInterval(check,1000);
  win.addEventListener('error',onError,true);win.addEventListener('unhandledrejection',onError);
  win.addEventListener('park:connection-change',check);check();

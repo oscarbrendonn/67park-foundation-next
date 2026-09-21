@@ -16,7 +16,7 @@ async function main(){
   localStorage.setItem('67park-feel-lab.character.v3',JSON.stringify({base:'goril'}));localStorage.setItem('67park-feel-lab.player-profile.v1',JSON.stringify({version:1,base:'goril'}));localStorage.setItem('67park-feel-lab-muted','1');
   localStorage.setItem('67park.feel-lab.player-settings.v1',JSON.stringify({graphics:'low'}));
  });
- const page=await context.newPage(),errors=[];let friend;
+ const page=await context.newPage(),errors=[];let friend,releaseLateRecovery;
  page.on('pageerror',e=>errors.push(String(e)));
  const roomEvents=[];
  page.on('framenavigated',frame=>{if(frame===page.mainFrame()){roomEvents.push({at:Date.now(),direction:'navigation',path:new URL(frame.url()).pathname});if(roomEvents.length>50)roomEvents.shift();}});
@@ -73,7 +73,14 @@ async function main(){
   await page.evaluate(()=>__candyOnline.send({t:'room.create',capacity:2,mode:'balloon'}));
   await page.waitForFunction(()=>__candyOnline.data.room?.code);const code=await page.evaluate(()=>__candyOnline.data.room.code);
   friend.send({t:'room.join',code});await page.waitForFunction(()=>__candyOnline.data.room?.members.length===2);
+  // The entry import may reject before the independent recovery module is
+  // evaluated. Hold that module until the page's inline error ledger has the
+  // failure, then prove late installation exposes Retry immediately.
+  let heldRecovery=false,entryFailureAt=0;
+  const lateRecovery=new Promise(resolve=>{releaseLateRecovery=resolve});
+  await page.route('**/app/connection-recovery.js*',async route=>{if(!heldRecovery){heldRecovery=true;await lateRecovery;}return route.continue();});
   await page.route('**/online-match-3GT2AEG7.js*',route=>route.fulfill({status:503,body:'Isolated minigame download failure'}));
+  const entryFailure=page.waitForEvent('pageerror',{predicate:error=>/Failed to fetch dynamically imported module/.test(String(error))}).then(()=>{entryFailureAt=Date.now();releaseLateRecovery();});
   // Navigation is distinct from loading: this scenario deliberately breaks
   // the entry download. Arm the commit listener BEFORE starting the room so
   // a fast navigation cannot race the acknowledgement of page.evaluate().
@@ -81,11 +88,15 @@ async function main(){
    page.waitForURL('**/balloon/**',{waitUntil:'commit',timeout:20000}),
    page.evaluate(()=>__candyOnline.send({t:'room.start'})),
   ]);
+  await entryFailure;
   await page.locator('#park-connection-recovery[data-state=loading-error]').waitFor({timeout:60000});
+  assert(heldRecovery,'fixture must delay the real independent recovery module');
+  assert(entryFailureAt>0);assert(Date.now()-entryFailureAt<15000,'late recovery must use the pre-recorded entry failure, not wait for the slow-load fallback');
   assert(friend.sockets.every(ws=>ws.readyState===1));
   await page.screenshot({path:'.qa-results/minigame-download-retry-mobile.png'});
   console.log('RECOVERY_ENTRY_RETRY',JSON.stringify({room:friend.data.room?.status,events:roomEvents}));
   await page.unroute('**/online-match-3GT2AEG7.js*');
+  await page.unroute('**/app/connection-recovery.js*');
   await page.getByRole('button',{name:'Retry loading',exact:true}).click();
   await page.waitForFunction(()=>window.__onlineMatch?.loaded&&window.__candyOnline?.data.connected,null,{timeout:90000});
   friend.send({t:'match.ready',code});await waitUntil(()=>friend.latest('match.snapshot')?.status==='playing','recovered game begins');
@@ -123,6 +134,6 @@ async function main(){
   assert.deepEqual(errors.filter(error=>!(/Failed to fetch dynamically imported module/.test(error)&&error.includes('online-match-3GT2AEG7.js'))),[],'Unexpected runtime error during recovery');
   assert.equal((await(await fetch(origin+'/health')).json()).faults,0);
  }catch(error){await page.screenshot({path:'.qa-results/recovery-failure.png'}).catch(()=>{});console.error('RECOVERY_STATE',await page.evaluate(()=>({path:location.pathname,text:document.body.innerText.slice(-1800),ready:window.__islandWorld?.ready,online:window.__candyOnline?.data,match:!!window.__onlineMatch})).catch(()=>({})),errors,roomEvents);throw error}
- finally{friend?.close();await context.close();}
+ finally{releaseLateRecovery?.();friend?.close();await context.close();}
 }
 main().catch(e=>{console.error(e);process.exitCode=1}).finally(async()=>{await browser?.close();server?.kill('SIGTERM')});
