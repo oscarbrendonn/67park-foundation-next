@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {qualityPixelRatio,installGraphicsQuality} from '../app/graphics-quality.js';
 import {compatibleProtocol,requestedProtocol,SERVER_PROTOCOL} from '../app/protocol-version.js';
-import {rememberReturn,readReturnIntent,returningFromMatch,watchParkSocket,connectionProblem,connectionRecoverySnapshot,recordedEntryLoadFailure} from '../app/connection-recovery.js';
+import {rememberReturn,readReturnIntent,returningFromMatch,watchParkSocket,connectionProblem,connectionRecoverySnapshot,recordedEntryLoadFailure,recoveryCoveredByWardrobe} from '../app/connection-recovery.js';
 import {createCameraBoom,createVerticalCameraTarget,FEEL_CAMERA} from '../app/feel-camera.js';
 
 test('protocol compatibility rejects malformed and incompatible contracts, not visual builds',()=>{
@@ -18,6 +18,13 @@ test('a match recovery mounted after a rejected entry import preserves the inlin
  assert(recordedEntryLoadFailure([{reason:'NetworkError: failed to fetch module'}]));
  assert.equal(recordedEntryLoadFailure([]),false);
  assert.equal(recordedEntryLoadFailure(['ordinary chat update',null]),false);
+});
+test('root recovery yields only to an open wardrobe, never a match warning',()=>{
+ const open={querySelector:selector=>selector==='.wardrobe'?{}:null},closed={querySelector:()=>null};
+ assert(recoveryCoveredByWardrobe(null,open));
+ assert.equal(recoveryCoveredByWardrobe('ROOM-A',open),false);
+ assert.equal(recoveryCoveredByWardrobe(null,closed),false);
+ assert.equal(recoveryCoveredByWardrobe(null,{}),false,'minimal document stubs need no querySelector');
 });
 test('return from a failed match leaves that room once; stale intent cannot leave a new match',()=>{
  const values=new Map(),storage={getItem:k=>values.get(k),setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)};

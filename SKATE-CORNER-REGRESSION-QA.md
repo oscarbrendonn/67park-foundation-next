@@ -241,6 +241,62 @@ ride drew 53 frames over 8.440 m with p95 16.7 ms / maximum 16.8 ms and no new
 camera index trees. Evidence: `.qa-results/studio-stress-current.log`. This is
 hardware Chromium with a mobile viewport, not a physical iPhone or Android.
 
+Additional checks after 2ee3dd9:
+
+- Twelve fixed rays against the loaded 546-blocker world match the immediate
+  pre-BVH implementation (`a7ef2a8^`) exactly, including eight wall hits and
+  four clear gaps; authored material references/versions stay unchanged.
+  Evidence: `.qa-results/camera-cast-parity-final.log` and
+  `.qa-results/camera-cast-parity.json`. The abandoned first supplemental probe
+  had not selected a character, so its readiness timeout was not evidence of a
+  stalled legacy ray scan. The final probe explicitly enters with a character.
+- Desktop WebKit 26.6 on Apple GPU passed preview resume, deliberate preview
+  context-loss Retry, disposal and the same two-jump board route: 63 draws,
+  8.484 m, p95 16 ms, maximum 33 ms, zero JS errors, still connected. Evidence:
+  `.qa-results/webkit-regression-current.log`. This is not physical iOS.
+- Fresh gorilla and Friendsie contexts changed outfits, entered the world,
+  reloaded the page, then reopened the studio. All nine saved fields and the
+  committed gameplay-avatar key matched; both previews had nonempty pixels,
+  with zero JS errors. Evidence: `.qa-results/wardrobe-persistence-clean-pass.log`.
+  The test seeds its profile only once; it must not overwrite the outfit on
+  reload or require the nonexistent `playerRef.model` field.
+
+These extra checks also exposed a real narrow-screen UI overlap: a disconnected
+park's bottom retry panel could cover Style Studio's Enter button. Root park
+recovery now yields to the local wardrobe and returns as soon as it closes if
+still disconnected. Match-page recovery, warnings, state, retry timers and
+network deadlines are unchanged. The browser gate now deliberately disconnects
+while the studio is open, clicks the unobstructed Enter control, requires the
+warning to reappear outside, restores networking and requires the warning to
+clear. Existing preview resume/loss/Retry checks remain mandatory afterwards.
+The updated unit run passes 175 of 177 tests, with the same two optional-fixture
+skips and zero failures (`.qa-results/wardrobe-offline-unit-final.log`).
+
+The long-lived local QA service on 8499 eventually refused new test guests with
+HTTP 503 `Preview is full` at its 128 retained-guest admission limit. The public
+Mac mini accepted a fresh session (HTTP 200). Supplemental checks therefore use
+a temporary loopback-only QA service on 8496, without restarting either the
+existing 8499 service or the public backend, changing limits, or buying hosting.
+Workflow 35562470865 (2ee3dd9) reached mobile soak after the functional scenarios
+passed, but was cancelled before finishing so the newly discovered wardrobe
+overlap fix can be included. It is not a completed regression/soak pass or a
+published release. The updated candidate must pass the entire hosted gate again.
+
+The final offline-wardrobe helper now refuses only new game WebSockets during
+the bounded interruption, because Chromium's HTTP offline emulation by itself
+did not reliably keep reconnecting sockets offline. After the fault, new
+sockets forward unmodified traffic to the real QA server. No client connection
+flags, click hit-testing, network deadlines or recovery assertions are bypassed.
+Both hardware Chromium 153 and desktop WebKit 26.6 pass the resulting sequence:
+offline studio controls, warning outside the studio, real reconnection,
+nonempty resume capture, preview context-loss Retry, disposal, two board jumps
+and the U08 ride. Chromium drew 53 frames over 8.435 m (p95/max 16.8 ms);
+WebKit drew 64 over 8.475 m (p95 16 ms, max 18 ms). Each finished with one
+world canvas, zero preview clients, muted audio, both channels connected and
+zero JS/world-WebGL errors. Evidence: `.qa-results/chromium-offline-wardrobe-final.log`
+and `.qa-results/webkit-offline-wardrobe-final.log`. Neither is a physical-phone
+test. The focused recovery unit suite also remains 8/8 passed.
+
 ## Release distinction
 
 The ab6028d material-only workflow 35552864028 is now successful. That gate

@@ -8,6 +8,40 @@ module.exports=async function wardrobeRecovery(page,{mobile=false,check=async(_n
    const canvas=document.querySelector('canvas.wardrobe-avatar');
    return canvas?.dataset.characterBase&&!document.querySelector('.wardrobe-model-status');
   },null,{timeout:30000});
+  // The wardrobe is local. A network interruption must not put a fixed retry
+  // panel over its Enter button. Exercise the actual mobile hit target, and
+  // require the panel to return once the wardrobe closes while still offline.
+  // Chromium's HTTP offline emulation alone need not interrupt reconnecting
+  // WebSockets. Refuse only new game sockets during this bounded fault; after
+  // it ends, connectToServer preserves real server messages and authentication.
+  let interruptSockets=true;
+  await page.routeWebSocket(url=>/^\/kimi\/(?:ws|online)$/.test(url.pathname),async socket=>{
+   if(interruptSockets)await socket.close({code:1012,reason:'QA connection interruption'});
+   else socket.connectToServer();
+  });
+  try{
+   await page.context().setOffline(true);
+   await page.evaluate(()=>{__eggyNet.ws?.close();__candyOnline.ws?.close();});
+   await page.waitForFunction(()=>!__eggyNet.connected&&!__candyOnline.data.connected);
+   await page.waitForTimeout(9200);
+   assert.equal(await page.locator('#park-connection-recovery').isVisible(),false,'network panel must not cover local wardrobe controls');
+   await page.getByRole('button',{name:'Enter the park',exact:true}).click();
+   await page.locator('.wardrobe').waitFor({state:'hidden',timeout:30000});
+   await page.locator('#park-connection-recovery').waitFor({state:'visible',timeout:5000});
+  }catch(error){
+   console.error('WARDROBE_OFFLINE_DIAGNOSTIC',JSON.stringify(await page.evaluate(()=>({
+    online:navigator.onLine,lobbyConnected:__eggyNet.connected,roomConnected:__candyOnline.data.connected,
+    lobbySocket:__eggyNet.ws?.readyState,roomSocket:__candyOnline.ws?.readyState,
+    panel:document.getElementById('park-connection-recovery')?.textContent
+   }))));
+   throw error;
+  }finally{interruptSockets=false;await page.context().setOffline(false);}
+  await page.waitForFunction(()=>__eggyNet.connected&&__candyOnline.data.connected,null,{timeout:30000});
+  await page.locator('#park-connection-recovery').waitFor({state:'hidden',timeout:5000});
+  console.log('WARDROBE_OFFLINE_CONTROLS_PASS',JSON.stringify({mobile}));
+  await page.getByRole('button',{name:'Profile studio',exact:true}).click();
+  await page.getByRole('dialog',{name:'Style Studio',exact:true}).waitFor();
+  await page.waitForFunction(()=>document.querySelector('canvas.wardrobe-avatar')?.dataset.characterBase&&!document.querySelector('.wardrobe-model-status'),null,{timeout:30000});
   const resumed=await page.evaluate(async()=>{
    const canvas=document.querySelector('canvas.wardrobe-avatar'),gl=canvas.getContext('webgl2');
    const native=canvas.toDataURL.bind(canvas),snapshots=[];

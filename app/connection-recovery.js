@@ -15,6 +15,10 @@ export function recordedEntryLoadFailure(errors){
   return /loading|fetch|import|module|load/i.test(String(message));
  });
 }
+// The root park already keeps a connection banner above the scene. Give its
+// local Style Studio the foreground while it is open; match recovery remains
+// actionable because a match URL never takes this branch.
+export const recoveryCoveredByWardrobe=(match,doc)=>!match&&!!doc?.querySelector?.('.wardrobe');
 export function currentParkSocket(channel){const ws=state.channels.get(channel);return ws&&ws.readyState<2?ws:null;}
 export function connectionProblem(message,{blocked=false,retryAt=0}={}){
  if(message!==state.error||blocked!==state.blocked)state.changedAt=Date.now();
@@ -144,7 +148,10 @@ export function installConnectionRecoveryUI(win=window,doc=document){
   const visible=state.blocked||failed||abandoned||stopped||disconnected;
   const text=state.blocked?state.error:abandoned?'This match is no longer available. Return to the park and choose another.':failed?'This game could not finish loading. Retry, or return to the park. Your saved character is safe.':stopped&&s.room.status==='waiting'?'The match is back in its waiting room. Return to the park to start again.':disconnected?(state.error||'Connection interrupted. Trying to reconnect; your saved character is safe.') :'';
   // Results already have their own rematch UI. Do not cover it.
-  panel.hidden=!visible||(!text&&!state.blocked);
+  // This assignment deliberately precedes the signature return below: closing
+  // the wardrobe must restore an already-active recovery panel on the next
+  // check without changing its connection state or retry schedule.
+  panel.hidden=recoveryCoveredByWardrobe(match,doc)||!visible||(!text&&!state.blocked);
   const signature=[text,failed,state.blocked,match,Date.now()<state.retryAt].join('|');
   if(signature===lastSignature)return;lastSignature=signature;
   label.textContent=text;retry.textContent=state.blocked?'Reload latest version':failed?'Retry loading':'Retry connection';
