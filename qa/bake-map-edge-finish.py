@@ -132,6 +132,99 @@ for part in polys(shapes['8_CIM_STUB_DOLGU']):
 assert len(stub_entries) == 2
 clip_out(row_for('6_BORDUR'),union_all(stub_windows))
 for window in stub_windows: solid(row_for('6_BORDUR'),window,9.38008564)
+stub_trimmed_triangles = len(row_for('6_BORDUR')['remove'])
+
+# The closed-window city block has a rolled curb whose old corner triangles
+# abruptly return to full height at the outside edge. Rebuild this one complete
+# perimeter from its authored footprint, so all corners share the same 6 cm
+# rounded profile. Keep the road, inner paving, building meshes and outline.
+city_curb = next(p for p in polys(shapes['6_BORDUR']) if p.distance(Point(-15.10,114.245)) < .02)
+assert np.allclose(city_curb.bounds,[-99.64092,23.72720,-15.09900,116.34467],atol=.00002)
+assert len(city_curb.interiors) == 1 and 350 < city_curb.area < 353
+# The close-angle perimeter sweep also exposed the same profile breaks on
+# the adjacent west waterfront curb. Both remain separate authored solids;
+# rebuilding their profiles must not bridge the intervening road or water.
+waterfront_curb = next(p for p in polys(shapes['6_BORDUR']) if np.allclose(p.bounds,[-123.94439,52.26971,-48.67709,115.87984],atol=.002))
+assert 278 < waterfront_curb.area < 281
+city_curbs = union_all([city_curb,waterfront_curb])
+# Survey footprints include tiny triangle cracks as interior rings. These are
+# not planted courtyards: preserve the two large openings, close only rings
+# below 1,000 square millimetres, then remove sub-centimetre contour jogs.
+city_closed_cracks = [Polygon(p.exterior,[h for h in p.interiors if Polygon(h).area>=.001]) for p in [city_curb,waterfront_curb]]
+city_precision_parts = [set_precision(p,.0001) for p in city_closed_cracks]
+city_precision_area = sum(a.symmetric_difference(b).area for a,b in zip(city_closed_cracks,city_precision_parts))
+assert city_precision_area < .04  # collapse zero-width backtracking spikes
+city_clean_parts = [p.simplify(.01,preserve_topology=True) for p in city_precision_parts]
+city_outline_deviation = max(a.boundary.hausdorff_distance(b.boundary) for a,b in zip(city_precision_parts,city_clean_parts))
+assert city_outline_deviation < .0101
+assert all(len(p.interiors)==1 for p in city_clean_parts)
+city_curb_clean = union_all(city_clean_parts)
+assert city_curbs.symmetric_difference(city_curb_clean).area < 1.2
+city_row = row_for('6_BORDUR')
+city_removed_before = len(city_row['remove'])
+clip_out(city_row,city_curbs.buffer(.0002,quad_segs=2))
+city_removed = len(city_row['remove'])-city_removed_before
+assert city_removed > 200
+city_base,city_radius = 9.32008564,.06
+city_boundary = city_curb_clean.boundary
+city_boundary_segments=[]
+for poly in polys(city_curb_clean):
+    poly=orient(poly,sign=1)
+    for ring in [poly.exterior,*poly.interiors]:
+        for a,b in zip(ring.coords,list(ring.coords)[1:]):
+            edge=np.subtract(b,a); length=np.linalg.norm(edge)
+            if length>1e-10: city_boundary_segments.append((np.array(a),edge,length,np.array([edge[1],-edge[0]])/length))
+def city_outward_at(x,z):
+    point=np.array([x,z]); nearest=[]; best=float('inf')
+    for origin,edge,length,normal in city_boundary_segments:
+        t=np.clip(np.dot(point-origin,edge)/(length*length),0,1)
+        distance=np.linalg.norm(point-(origin+t*edge))
+        if distance<best-1e-7: best=distance;nearest=[normal]
+        elif abs(distance-best)<1e-7: nearest.append(normal)
+    normal=np.sum(nearest,axis=0); length=np.linalg.norm(normal)
+    assert length>1e-10
+    return normal/length
+city_levels = [0,.06*(1-np.cos(np.pi/6)),.03,.06]
+city_offsets = [city_curb_clean.buffer(-d,quad_segs=12) for d in city_levels]
+def city_surface_triangle(verts):
+    start=len(city_row['n'])
+    triangle(city_row,verts)
+    if len(city_row['n']) == start: return
+    # Continuous vertex normals join the three bevel bands without pale
+    # triangular lighting seams. Topology itself is a closed, ordinary solid.
+    from shapely.ops import nearest_points
+    normals=[]
+    for x,y,z in verts:
+        point=Point(x,z); distance=min(city_radius,city_boundary.distance(point))
+        edge=nearest_points(city_boundary,point)[0]
+        dx,dz=edge.x-x,edge.y-z; length=np.hypot(dx,dz)
+        horizontal=max(0,(city_radius-distance)/city_radius)
+        vertical=np.sqrt(max(0,1-horizontal*horizontal))
+        normals.extend([dx/length*horizontal if length>1e-9 else 0,vertical,dz/length*horizontal if length>1e-9 else 0])
+    # At exact outside vertices the nearest point is itself; use the face's
+    # outward horizontal normal, not a zero vector.
+    for i in range(3):
+        if np.linalg.norm(normals[i*3:i*3+3]) < 1e-8:
+            outward=city_outward_at(verts[i][0],verts[i][2])
+            normals[i*3:i*3+3]=[outward[0],0,outward[1]]
+    city_row['n'][start:]=normals
+for outside,inside in zip(city_offsets,city_offsets[1:]):
+    for poly in polys(outside.difference(inside)):
+        for f in constrained_delaunay_triangles(poly).geoms:
+            verts=[]
+            for x,z in list(f.exterior.coords)[:3]:
+                d=min(city_radius,city_boundary.distance(Point(x,z)))
+                verts.append([x,city_base+np.sqrt(max(0,city_radius**2-(city_radius-d)**2)),z])
+            if np.cross(np.subtract(verts[1],verts[0]),np.subtract(verts[2],verts[0]))[1]<0: verts.reverse()
+            city_surface_triangle(verts)
+flat(city_row,city_offsets[-1],city_base+city_radius)
+flat(city_row,city_curb_clean,8.79,False)
+for poly in polys(city_curb_clean):
+    poly=orient(poly,sign=1)
+    for ring in [poly.exterior,*poly.interiors]:
+        for (x,z),(a,b) in zip(ring.coords,list(ring.coords)[1:]):
+            triangle(city_row,[[x,city_base,z],[a,city_base,b],[a,8.79,b]])
+            triangle(city_row,[[x,city_base,z],[a,8.79,b],[x,8.79,z]])
 
 # Match the two filled grass entrances to their adjacent authored straight
 # grass front. The earlier filler stopped 9.7 cm behind that line, leaving
@@ -274,6 +367,7 @@ divider = {'name': m['name'], 'expected': expected(m), 'vertices': selected.toli
 
 discarded_count, discarded_area = 0, 0.0
 for row in rows.values():
+    assert np.isfinite(row['p']).all() and np.isfinite(row['n']).all(), 'Nonfinite baked curb geometry'
     # Fixed-grid polygon booleans can leave subpixel slivers that collapse
     # when WebGL stores positions as Float32. Discard only <0.05 mm² faces,
     # including the actual world->local quantization used by the runtime.
@@ -303,7 +397,8 @@ metrics = {'grassCarrierArea': carrier.area, 'grassCarrierParts': len(polys(carr
            'dividerVertices': len(selected), 'addedMeshes': 0, 'addedMaterials': 0, 'perFrameWork': 0}
 metrics.update(discardedMicroscopicFaces=discarded_count,discardedMicroscopicArea=discarded_area)
 metrics.update(stubEntryClosures=len(stub_entries),stubEntryOverlap=.002)
-metrics.update(stubTrimmedTriangles=len(rows['6_BORDUR']['remove']),stubApronArea=sum(p.area for p in stub_aprons))
+metrics.update(stubTrimmedTriangles=stub_trimmed_triangles,stubApronArea=sum(p.area for p in stub_aprons))
+metrics.update(cityCurbProfile={"bounds":list(city_curb.bounds),"area":city_curb_clean.area,"components":2,"waterfrontBounds":list(waterfront_curb.bounds),"removedTriangles":city_removed,"bevelRadius":city_radius,"top":city_base+city_radius,"outlineChangedArea":city_curbs.symmetric_difference(city_curb_clean).area,"maxOutlineDeviation":city_outline_deviation,"closedMicroscopicCracks":sum(len(p.interiors)-1 for p in [city_curb,waterfront_curb])})
 metrics.update(grassSeamWindows=[list(w.bounds) for w in grass_seam_windows],grassSeamArea=seam_scope.intersection(shapes['3_CIMEN']).area)
 metrics.update(grassFrontFillArea=sum(p.area for p in grass_front_fills),grassFrontZ=128.58658)
 patch = {'version': 1, 'metrics': metrics, 'meshes': list(rows.values()), 'divider': divider,

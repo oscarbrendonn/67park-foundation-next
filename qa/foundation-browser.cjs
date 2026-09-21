@@ -29,7 +29,7 @@ async function run(mobile){
  page.on('response',r=>{if(r.url().includes('/kimi/')&&r.status()>=400)console.log('NETWORK_FAIL',r.status(),new URL(r.url()).pathname);});
  await page.addInitScript(()=>{
   localStorage.setItem('67park-feel-lab.character.v3',JSON.stringify({base:'goril'}));localStorage.setItem('67park-feel-lab.player-profile.v1',JSON.stringify({version:1,base:'goril'}));localStorage.setItem('67park-feel-lab-muted','1');
-  window.__gate={frames:0,last:0,maxGap:0,losses:0};const tick=t=>{if(__gate.last)__gate.maxGap=Math.max(__gate.maxGap,t-__gate.last);__gate.last=t;__gate.frames++;requestAnimationFrame(tick)};requestAnimationFrame(tick);document.addEventListener('webglcontextlost',()=>__gate.losses++,true);
+  window.__gate={frames:0,last:0,maxGap:0,losses:0,expectPreviewLoss:false,expectedPreviewLosses:0};const tick=t=>{if(__gate.last)__gate.maxGap=Math.max(__gate.maxGap,t-__gate.last);__gate.last=t;__gate.frames++;requestAnimationFrame(tick)};requestAnimationFrame(tick);document.addEventListener('webglcontextlost',event=>{if(__gate.expectPreviewLoss&&event.target?.matches?.('canvas.wardrobe-avatar'))__gate.expectedPreviewLosses++;else __gate.losses++;},true);
  });
  if(softwareRender)await page.addInitScript(()=>{
   // The hosted runner has no GPU. Keep the real scene, materials, animation,
@@ -93,7 +93,9 @@ async function run(mobile){
    assert.equal(after.party.disabled,false);assert.equal(after.home.failed,false);assert.deepEqual(errors,[]);
    console.log('PASS',mobile,name,JSON.stringify({frames:after.frame-before.frame,maxGap:Math.round(after.gap),programs:after.programs}));
   }
+  await require('./skate-camera.browser.cjs')(page,{mobile,check});
   await require('./recovery-graphics.browser.cjs')(page,{mobile,check});
+  await require('./wardrobe-recovery.browser.cjs')(page,{mobile,check});
   if(softwareRender){
    await page.waitForFunction(()=>__islandWorld.renderer.getPixelRatio()===.25);
    console.log('CPU_RASTER_CAP',await page.evaluate(()=>{const r=__islandWorld.renderer;return {ratio:r.getPixelRatio(),width:r.domElement.width,height:r.domElement.height}}));

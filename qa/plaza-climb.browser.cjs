@@ -52,7 +52,7 @@ module.exports=async function checkPlazaClimb(page,{mobile=false,check}){
   const before=await page.evaluate(async()=>{
    // Import the exact runtime singleton already used by main.js. A cache-busted
    // copy would observe a different controller and make the jump proof bogus.
-   const {claudeGorillaState}=await import('/67park-foundation-next/app/claude-gorilla-runtime.js?v=foundation-next-movement-1');
+   const {claudeGorillaState}=await import('/67park-foundation-next/app/claude-gorilla-runtime.js?v=skate-corner-recovery-1');
    window.__qaPlazaGorillaState=()=>{const s=claudeGorillaState();return {grounded:!!s.grounded,jumped:s.jumped,jumpsLeft:s.jumpsLeft,frames:s.frames};};
    window.__qaPlazaTrace=[];window.__qaPlazaJumpProof=[];window.__qaPlazaJumpLatches=[];window.__qaPlazaStopGorillaObserver=false;
    // `jumped` is intentionally reset by the controller on later frames. Sample

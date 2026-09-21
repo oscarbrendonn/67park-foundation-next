@@ -171,6 +171,37 @@ test('published map-edge patch has its eight exact targets and four mirrored sla
  for(const other of outlines.slice(1))assert(sameOutline(other,outlines[0]),'mirrored slabs must share one outer outline');
 });
 
+test('city curb keeps one rounded profile through the reported U08 corner tail',()=>{
+ const patch=JSON.parse(fs.readFileSync(PATCH_URL)),profile=patch.metrics.cityCurbProfile;
+ assert(profile,'missing authored city-curb repair');
+ assert.deepEqual(profile.bounds,[-99.64092,23.7272,-15.099,116.34467]);
+ assert.equal(profile.components,2);assert.deepEqual(profile.waterfrontBounds,[-123.94377,52.26979,-48.67662,115.88031]);
+ assert(profile.outlineChangedArea<1.2&&profile.maxOutlineDeviation<.0101,'repair exceeded its sub-centimetre outline cleanup');
+ assert.equal(profile.closedMicroscopicCracks,23);
+ assert.equal(profile.bevelRadius,.06);close(profile.top,9.38008564);
+ const row=patch.meshes.find(row=>row.name==='6_BORDUR'),g=new T.BufferGeometry();
+ g.setAttribute('position',new T.Float32BufferAttribute(row.p,3));g.setIndex(row.ix);
+ const curb=new T.Mesh(g,new T.MeshBasicMaterial());curb.updateMatrixWorld(true);
+ // The old last 1.9 m went straight to the cap, instead of retaining this
+ // 6 cm bevel. Probe both sides of that exact transition, not just its top.
+ for(const y of [9.335,9.35,9.37]){
+  const insets=[];
+  for(const z of [113.8,114.20,114.30,114.8,115.5,116.0]){
+   const hit=new T.Raycaster(new T.Vector3(-14,y,z),new T.Vector3(-1,0,0),0,2).intersectObject(curb,false)[0];
+   const base=new T.Raycaster(new T.Vector3(-14,9.30,z),new T.Vector3(-1,0,0),0,2).intersectObject(curb,false)[0];
+   assert(hit&&base,`missing city bevel at ${y},${z}`);
+   const inset=base.point.x-hit.point.x;insets.push(inset);
+   assert(inset>.001&&inset<.06,`unrounded city tail at ${y},${z}`);
+  }
+  // Compare the inset relative to the finished outer edge, so minor outline
+  // cleanup cannot hide a return to the old full-height, unrounded tail.
+  assert(Math.max(...insets)-Math.min(...insets)<.0002,`bevel changes at the old join: ${insets}`);
+ }
+ const ray=new T.Raycaster(new T.Vector3(-15.18,20,115.5),new T.Vector3(0,-1,0));
+ close(ray.intersectObject(curb,false)[0]?.point.y,9.38008564,'city cap height');
+ g.dispose();curb.material.dispose();
+});
+
 test('maintained runtimes remove the divider highlight and finish edges before final ground sampling',()=>{
  for(const [file,sampler] of [['../island/runtime.js','terrainSampler=wrapParkEntryCapsSampler57'],['../island/runtime.bundle.js','B9=z8(']]){
   const runtime=fs.readFileSync(new URL(file,import.meta.url),'utf8'),finish=runtime.indexOf('dataset.mapEdgeFinish1='),ground=runtime.indexOf(sampler,finish);

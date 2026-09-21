@@ -130,7 +130,12 @@ export function createPartyAudio({settings, saveSettings, gameMuted, host = wind
     const p = event.detail;
     if (p && [p.x, p.y, p.z].every(Number.isFinite)) play('skate-land', p.hard === true);
   });
-  const gesture = () => { ensure(); quiet(); };
+  // Muted gameplay must not pay a first-input AudioContext initialization.
+  // A later audible gesture still unlocks the graph normally.
+  const gesture = () => {
+    if (!host.document.hidden && !blocked && !gameMuted() && settings.sfx > 0) ensure();
+    quiet();
+  };
   for (const event of ['pointerdown','pointerup','touchend','keydown']) host.addEventListener(event, gesture, {passive:true,capture:true});
   host.document.addEventListener('visibilitychange', quiet);
   host.addEventListener('pagehide', () => { blocked = true; quiet(); });

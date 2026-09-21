@@ -1,5 +1,5 @@
 import{boundedSimulationStep}from"./simulation-step.js";
-import {cameraMeshCast} from "./feel-camera-meshes.js";
+import {cameraMeshCast} from "./feel-camera-meshes.js?v=skate-corner-recovery-1";
 import {createCameraBoom,createTravelSampler,feelCameraPose,FEEL_CAMERA,approachVelocity} from './feel-camera.js';
 const feelBoom=createCameraBoom(),feelTravel=createTravelSampler();
 import{isTextEntry}from"./text-input-guard.js?v=mobile-29";

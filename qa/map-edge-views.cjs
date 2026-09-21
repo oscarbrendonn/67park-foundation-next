@@ -52,6 +52,14 @@ function views(){
   ...regional,
   ...closeRegions,
   ...dividerComponents().flatMap(dividerView),
+  // Ground-level, overlapping city-edge views include both sides of each
+  // corner. An aerial footprint cannot reveal a broken bevel profile.
+  ...[
+   ['se',-15.3,116.1],['sw',-99.4,116.1],
+   ['ne',-15.3,23.95],['nw',-99.4,23.95],
+   ['east-join',-15.1,114.245],['west-mid',-99.64,70],
+   ['south-mid',-57,116.34],['north-mid',-57,23.73]
+  ].flatMap(([name,x,z])=>[-1,1].map(side=>({name:`city-curb-${name}-${side<0?'left':'right'}`,p:[x+side*5,12.3,z+(z>70?7:-7)],t:[x,9.35,z]}))),
   {name:'west-coast',p:[-167,22,25],t:[-145,9.4,25]},
   {name:'south-coast',p:[30,24,168],t:[30,9.4,140]},
   {name:'center-white-sw',p:[8,18,-88],t:[21,9.4,-56]},

@@ -3,10 +3,23 @@ const assert=require('node:assert/strict');
 const TARGETS=['7_KALDIRIM_TABANI','6_BORDUR','3_CIMEN','CENTER_WHITE71_-1_-1','CENTER_WHITE71_-1_1','CENTER_WHITE71_1_-1','CENTER_WHITE71_1_1','5_YOL'];
 
 module.exports=async(page,{mobile,check})=>{
+ await check('reported city curb keeps its bevel across the old corner break',async()=>{
+  const result=await page.evaluate(async()=>{
+   const T=await import('three'),curb=__islandWorld.terrain.getObjectByName('6_BORDUR'),rows=[];
+   for(const y of [9.335,9.35,9.37])for(const z of [114.20,114.30,115.5,116.0]){
+    const cast=level=>new T.Raycaster(new T.Vector3(-14,level,z),new T.Vector3(-1,0,0),0,2).intersectObject(curb,false)[0];
+    const top=cast(y),base=cast(9.30);rows.push({y,z,inset:top&&base?base.point.x-top.point.x:null});
+   }
+   return rows;
+  });
+  assert.equal(result.length,12);assert(result.every(r=>r.inset>.001&&r.inset<.06),JSON.stringify(result));
+  for(const y of [9.335,9.35,9.37]){const insets=result.filter(r=>r.y===y).map(r=>r.inset);assert(Math.max(...insets)-Math.min(...insets)<.0002,JSON.stringify(result));}
+  console.log('PASS city curb corner profile',JSON.stringify({mobile,samples:result.length}));
+ });
  await check('map-edge finish keeps patched ground continuous and its exterior walls front-facing',async()=>{
   const result=await page.evaluate(async targets=>{
    const T=await import('three'),w=__islandWorld,root=w.terrain,live=JSON.parse(w.renderer.domElement.dataset.mapEdgeFinish1||'null');
-   const repair=await fetch('/67park-foundation-next/repairs/map-edge-finish-1.json').then(r=>{if(!r.ok)throw Error('Map-edge repair unavailable');return r.json();});
+   const repair=await fetch('/67park-foundation-next/repairs/map-edge-finish-1.json?v=skate-corner-recovery-1').then(r=>{if(!r.ok)throw Error('Map-edge repair unavailable');return r.json();});
    const byName=name=>root.getObjectByName(name),ray=new T.Raycaster(),down=new T.Vector3(0,-1,0);
    const yieldFrame=()=>new Promise(resolve=>requestAnimationFrame(resolve));
    const meshAudit=targets.map(name=>{const mesh=byName(name),g=mesh?.geometry;return {name,isMesh:!!mesh?.isMesh,indexed:!!g?.index,attributes:Object.keys(g?.attributes||{}).sort(),materials:Array.isArray(mesh?.material)?mesh.material.length:Number(!!mesh?.material)};});

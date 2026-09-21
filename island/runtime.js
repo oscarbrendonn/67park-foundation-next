@@ -1,3 +1,5 @@
+import {installSkateRailFinish} from '../app/party/skate-rail-finish.js?v=1';
+import {prepareCameraMeshes} from '../app/feel-camera-meshes.js?v=skate-corner-recovery-1';
 import {applySidewalkMaterials} from '../app/sidewalk-materials.js?v=sidewalk-materials-1';
 import {applyMapEdgeFinish} from '../app/map-edge-finish.js?v=map-edge-finish-1';
 import {applyGrassBoundary} from '../app/grass-boundary.js?v=grass-boundary-1';
@@ -1574,7 +1576,7 @@ await entryStage(13,'Finishing the northern neighbourhood');
   renderer.domElement.dataset.parkEdges=JSON.stringify(applyParkEdges(kok,parkEdgePatch));
   const curbJoinPatch=await islandFetch('/67park-foundation-next/repairs/curb-joins-v3.json').then(r=>{if(!r.ok)throw Error('Curb join repair missing');return r.json();});
   renderer.domElement.dataset.curbJoins=JSON.stringify(applyCurbJoins(kok,curbJoinPatch));
-  renderer.domElement.dataset.parcelPaving=JSON.stringify(applyParcelPaving(kok));shortenKimiRightTip(kok);repairEastRoadEnd(kok);cleanLowerPark(kok);applyKimiCoast20(kok);applyMapContinuity(kok,await fetch('/67park-foundation-next/repairs/map-continuity-59.json').then(r=>{if(!r.ok)throw Error('Map continuity missing');return r.json()}));applyTerrainBoundaries(kok,await islandFetch('/67park-foundation-next/repairs/terrain-boundaries-2.json?v=ground-2').then(r=>{if(!r.ok)throw Error('Terrain boundaries missing');return r.json()}));renderer.domElement.dataset.grassBoundary1=JSON.stringify(applyGrassBoundary(kok,await islandFetch('/67park-foundation-next/repairs/grass-boundary-1.json').then(r=>{if(!r.ok)throw Error('Grass boundary repair missing');return r.json()})));renderer.domElement.dataset.mapEdgeFinish1=JSON.stringify(applyMapEdgeFinish(kok,await islandFetch('/67park-foundation-next/repairs/map-edge-finish-1.json').then(r=>{if(!r.ok)throw Error('Map edge repair missing');return r.json()})));renderer.domElement.dataset.sidewalkMaterials1=JSON.stringify(applySidewalkMaterials(sahne,kok));
+  renderer.domElement.dataset.parcelPaving=JSON.stringify(applyParcelPaving(kok));shortenKimiRightTip(kok);repairEastRoadEnd(kok);cleanLowerPark(kok);applyKimiCoast20(kok);applyMapContinuity(kok,await fetch('/67park-foundation-next/repairs/map-continuity-59.json').then(r=>{if(!r.ok)throw Error('Map continuity missing');return r.json()}));applyTerrainBoundaries(kok,await islandFetch('/67park-foundation-next/repairs/terrain-boundaries-2.json?v=ground-2').then(r=>{if(!r.ok)throw Error('Terrain boundaries missing');return r.json()}));renderer.domElement.dataset.grassBoundary1=JSON.stringify(applyGrassBoundary(kok,await islandFetch('/67park-foundation-next/repairs/grass-boundary-1.json').then(r=>{if(!r.ok)throw Error('Grass boundary repair missing');return r.json()})));renderer.domElement.dataset.mapEdgeFinish1=JSON.stringify(applyMapEdgeFinish(kok,await islandFetch('/67park-foundation-next/repairs/map-edge-finish-1.json?v=skate-corner-recovery-1').then(r=>{if(!r.ok)throw Error('Map edge repair missing');return r.json()})));renderer.domElement.dataset.sidewalkMaterials1=JSON.stringify(applySidewalkMaterials(sahne,kok));
   const stairGeometry=repairIslandStairs(kok);
   renderer.domElement.dataset.stairGeometry=JSON.stringify(stairGeometry.stats);
   zeminler=zeminler.filter(m=>!stairGeometry.nonWalkableNames.includes(m.name));
@@ -1660,7 +1662,13 @@ const failures=Object.entries(renderer.domElement.dataset).filter(([k,v])=>/^err
 if(failures.length)throw Error('Island layers missing: '+JSON.stringify(failures));
 installParcelCornerQA(world);
 installParcelGapQA(world);
-return installLobbyCourts(installHouseRoofSupports(installIslandSwimBoundary(world)));
+const completedWorld=installLobbyCourts(installHouseRoofSupports(installIslandSwimBoundary(world)));
+if(!completedWorld.blockers?.length)throw Error("Camera preparation needs the loaded island");
+installSkateRailFinish(completedWorld);
+const cameraPreparation=await prepareCameraMeshes(completedWorld);
+renderer.domElement.dataset.cameraMeshPreparation=JSON.stringify(cameraPreparation);
+renderer.domElement.dataset.cameraMeshesReady="skate-corner-recovery-1";
+return completedWorld;
 
 } finally {islandStartupAssets.close();renderer.domElement.dataset.islandStartupAssets=JSON.stringify(islandStartupAssets.stats);}
 }
