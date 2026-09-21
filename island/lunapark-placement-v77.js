@@ -4,6 +4,7 @@ import {mergeGeometries} from './utils/BufferGeometryUtils.js';
 import {finishCityMaterial60} from './city-props-v60.js';
 import {createRideAsset84} from './lunapark-rides-v84.js?v=carousel-time-1.1';
 import {seasideScale89,prepareSeasideAsset89} from './seaside-scale-v89.js?v=91';
+import {finishCoasterRails} from '../app/coaster-rail-finish.js?v=coaster-rail-finish-1';
 export const layout77=[
  ['ferris',173,-173.7,0],['carousel',192.7,-161.5,0],['carouselSmall',188.845,-135.693,0],
  ['coaster',181,-103.5,0],['kiosk',168,-143,Math.PI/2],['van',196.7,-119,Math.PI/2],
@@ -30,6 +31,7 @@ export async function loadLunapark77({scene,renderer,sample,sea,variant,terrainR
   const assetVersion=p.asset.startsWith('carousel')?'88':articulated?'87.1':'78';
   if(!assets.has(p.asset))assets.set(p.asset,(await loader.loadAsync('/67park-foundation-next/island/lunapark-v1/'+p.asset+'.glb?v='+assetVersion)).scene);
   const source=prepareSeasideAsset89(assets.get(p.asset),p.asset);
+  if(p.asset==='coaster')renderer.domElement.dataset.coasterRailFinish1=JSON.stringify(finishCoasterRails(source));
   let hit=p.water?null:sample(p.x,p.z);
   // The walking sampler omits decorative timber; anchor umbrellas to its
   // visible top rather than the road underneath the promenade.

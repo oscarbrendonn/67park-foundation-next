@@ -4,6 +4,10 @@ const assert=require('node:assert/strict');
 // the reported positions have passed through the same walk/skate contact sweep
 // that players use in the shipped park.
 module.exports=async function checkRideContacts(page,{mobile=false,check}){
+ await check('coaster red rails have four rounded closed ends without extra draws',async()=>{
+  const finish=await page.evaluate(()=>JSON.parse(__islandWorld.renderer.domElement.dataset.coasterRailFinish1));
+  assert.deepEqual(finish,{version:1,rails:2,caps:4,addedTriangles:528,addedDraws:0,deckChanged:false});
+ });
  const original=await page.evaluate(()=>{
   const b=__eggyInput.playerRef.body,i=__eggyInput.input;
   return {p:{...b.translation()},board:!!__candy.state().board,input:{x:i.x,z:i.z,run:i.run,jumpQueued:i.jumpQueued}};

@@ -97,4 +97,34 @@ new release link. Local browser/touch emulation is not a physical iPhone test.
 This change covers the character walking/skating controller, not a new car
 collision system. Existing vehicle behavior and tests are retained.
 
+### Production first-jump regression after CI 35632582544
+
+Candidate `cdee66c` failed; Pages deployment was skipped. In the hosted trace,
+the first real Space event arrived while grounded with one air jump remaining.
+The next slow frame observed a descended cabin floor and incorrectly accepted
+the request as `jumped:2`, consuming the air jump. This was a production
+contact-ordering bug, not a reason to relax the existing browser assertion.
+
+The contact adapter now issues a single-use grounded-jump token only when a
+queued jump follows verified continuous previous cabin contact, bounded own
+horizontal drift, non-upward velocity, and the existing valid wheel clock.
+No carry is applied during the jump. Walk-off, teleport, stale time, upward and
+noncontact cases reject the token. The normal walking ground predicate consumes
+it only after its current contact is lost. Source and shipped movement/module
+cache keys advance together to `ride-jump-contact-1`.
+
+Real-asset unit tests cover the valid descending case and each rejection,
+single use and shipped predicate wiring. The targeted ride suite has 13 tests,
+all passing. Normal desktop and mobile-viewport ride/camera cases passed in
+`.qa-results/coaster-jump-browser.log`. An additional 800 ms delay on the real
+jump event passed on desktop but first exposed a remaining near-floor gap on
+touch: the old `!near` token guard excluded 0.08–0.12 m floor separation even
+though the controller no longer considered it grounded. That guard was removed
+without changing any browser threshold; verified prior contact is the authority.
+The same delayed touch flow now passes in
+`.qa-results/coaster-delayed-jump-mobile-v2.log`, retaining its air jump. Disposed
+contacts cannot return a token. The full hosted gate still must pass.
+Delayed board-on Ferris first-jump behavior is not certified by
+the walking regression; its separate raw-ground branch has not been changed.
+
 Publication of these changes is not yet verified in this document.

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 const revision='skate-corner-recovery-1';
 const geometryRevision='curb-touch-finish-1';
-const runtimeRevision='park-entry-finish-1';
+const runtimeRevision='coaster-rail-finish-1';
 const recoveryRevision='recovery-visibility-2';
 test('camera preparation completes before the world is returned, with one shared module instance',()=>{
  for(const file of ['island/runtime.js','island/runtime.bundle.js']){

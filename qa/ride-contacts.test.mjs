@@ -159,6 +159,56 @@ test('real Ferris carry admits rate-proven long frames and rejects clock discont
  ferris.setNetworkAngle(0);
 });
 
+test('only a continuous lost Ferris contact grants the queued first-jump token',()=>{
+ const rate=Math.PI*2/ferris.stats.period,delay=.8;
+ let cabin=0,start;
+ ferris.setNetworkAngle(0);
+ for(let i=0;i<12;i++){
+  const candidate=ferris.seat(i*4);ferris.setNetworkAngle(rate*delay);
+  const after=ferris.seat(i*4);ferris.setNetworkAngle(0);
+  if(after.floor<candidate.floor-.12){cabin=i;start={x:candidate.position.x+1.53,y:candidate.floor+foot,z:candidate.position.z+.975,floor:candidate.floor};break;}
+ }
+ assert(start,'fixture needs a continuously descending Ferris cabin');
+ let nearGapDelay=0;
+ for(let seconds=.01;seconds<=delay;seconds+=.01){
+  ferris.setNetworkAngle(rate*seconds);const gap=start.floor-ferris.seat(cabin*4).floor;ferris.setNetworkAngle(0);
+  if(gap>.08&&gap<.12){nearGapDelay=seconds;break;}
+ }
+ assert(nearGapDelay,'fixture needs a descending floor gap inside the current near probe');
+ const make=()=>{
+  let now=0,p={x:start.x,y:start.y,z:start.z},v={x:0,y:0,z:0};
+  const timed=createRideContacts(lunapark,{now:()=>now});
+  const body={translation:()=>({...p}),linvel:()=>({...v}),setTranslation:q=>p={...q},setLinvel:q=>v={...q}};
+  const begin=()=>{ferris.setNetworkAngle(0);timed.prepareBody(body);};
+  const release=(seconds=delay)=>{now+=seconds*1e3;ferris.setNetworkAngle(rate*seconds);timed.prepareBody(body,{jumpQueued:true});};
+  return {timed,body,begin,release,get p(){return p;},set p(next){p=next;},set v(next){v=next;},dispose:()=>timed.dispose()};
+ };
+ try{
+  {const run=make();try{
+   run.begin();run.release();assert(ferris.seat(cabin*4).floor<start.floor-.12);
+   assert.equal(run.timed.consumeJumpGrounded(run.body,0),true);
+   assert.equal(run.timed.consumeJumpGrounded(run.body,0),false,'token is single-use');
+  }finally{run.dispose();}}
+  {const run=make();try{
+   run.begin();run.release(nearGapDelay);const gap=start.floor-ferris.seat(cabin*4).floor;
+   assert(gap>.08&&gap<.12,`expected current floor gap in near probe, got ${gap}`);
+   assert.equal(run.timed.consumeJumpGrounded(run.body,0),true,'queued first jump retains prior contact while current floor remains near');
+  }finally{run.dispose();}}
+  {const run=make();try{run.begin();run.p={...run.p,x:run.p.x+.13};run.release();assert.equal(run.timed.consumeJumpGrounded(run.body,0),false,'walk-off cannot inherit support');}finally{run.dispose();}}
+  {const run=make();try{run.begin();run.p={...run.p,x:run.p.x+9};run.release();assert.equal(run.timed.consumeJumpGrounded(run.body,0),false,'teleport clears support');}finally{run.dispose();}}
+  {const run=make();try{run.begin();run.release(5.01);assert.equal(run.timed.consumeJumpGrounded(run.body,0),false,'stale clock cannot grant support');}finally{run.dispose();}}
+  {const run=make();try{run.begin();run.v={x:0,y:.3,z:0};run.release();assert.equal(run.timed.consumeJumpGrounded(run.body,0),false,'upward body cannot grant support');}finally{run.dispose();}}
+  {const run=make();try{
+   run.p={x:start.x,y:start.y+2,z:start.z};run.v={x:0,y:0,z:0};ferris.setNetworkAngle(0);run.timed.prepareBody(run.body);
+   run.release();assert.equal(run.timed.consumeJumpGrounded(run.body,0),false,'noncontact cannot grant support');
+  }finally{run.dispose();}}
+  {const run=make();
+   run.begin();run.release();run.timed.dispose();
+   assert.equal(run.timed.consumeJumpGrounded(run.body,0),false,'disposed contacts cannot grant a queued jump');
+  }
+ }finally{ferris.setNetworkAngle(0);}
+});
+
 test('cabin transport advances the player sweep anchor instead of colliding with its moved floor',()=>{
  let now=0,p,v={x:0,y:0,z:0};
  const timed=createRideContacts(lunapark,{now:()=>now});
@@ -176,6 +226,7 @@ test('cabin transport advances the player sweep anchor instead of colliding with
   assert(!result.blocked,JSON.stringify(result));assert(result.grounded);
   close(result.position.x,p.x);close(result.position.y,p.y);
   assert(movement.includes('if(rideCarry&&p)p={x:p.x+rideCarry.x,y:p.y+rideCarry.y,z:p.z+rideCarry.z}'),'shipped controller must translate its sweep anchor with the carrier');
+  assert(movement.includes('consumeJumpGrounded?.(Ve,a)'),'shipped controller must consume the narrow Ferris jump token');
  }finally{timed.dispose();ferris.setNetworkAngle(0);}
 });
 
@@ -186,7 +237,7 @@ test('outside ride bounds and replacement home floors retain their original quer
  installRideContacts(world);assert.equal(world.characterGround(0,0,0),42);assert.equal(world.characterObstacle(0,0,0),43);
  // The captured callbacks in the real roof installer read world.ground.
  world.ground=()=>70;assert.equal(world.characterGround(500,500,70),70);assert.equal(world.characterObstacle(500,500,70),71);
- assert.equal(world.rideContacts.stats.addedDrawCalls,0);assert.equal(world.rideContacts.stats.newAssetDownloads,0);
+ assert.equal(world.rideContacts.stats.addedDrawCalls,0);assert.equal(world.rideContacts.stats.newAssetDownloads,0);assert.equal(world.rideContacts.stats.groundedJumpVersion,1);
  assert(world.rideContacts.stats.estimatedNumericBytes<6000000,JSON.stringify(world.rideContacts.stats));
  world.dispose();assert(world.rideContacts.stats.disposed);
 });
@@ -209,11 +260,13 @@ test('ground decorators forward ride filtering and entry maps preserve one movem
  assert(source.includes('floor(x,z,ignoreCar,ignoreRideContacts)'));
  for(const file of ['island/runtime.js','island/runtime.bundle.js']){
   const code=await fs.readFile(new URL('../'+file,import.meta.url),'utf8');
-  assert(code.includes("./ride-contacts.js?v=ride-contacts-1"));assert(code.includes('rideGround:'));
+  assert(code.includes("./ride-contacts.js?v=ride-jump-contact-1"));assert(code.includes('rideGround:'));
  }
- for(const file of ['index.html','play/index.html','explore/index.html']){
+ for(const file of ['balloon/index.html','explore/index.html','index.html','lane-rush/index.html','play/index.html','race/index.html','rockets/index.html','skybound-soft/index.html','sports/index.html','style-studio/index.html']){
   const html=await fs.readFile(new URL('../'+file,import.meta.url),'utf8');
   const map=JSON.parse(html.match(/<script type="importmap">([\s\S]*?)<\/script>/)[1]).imports;
-  for(const path of ['/67park-foundation-next/app/chunk-OZ77422N.js','/67park-foundation-next/app/party/park-social-toys.js'])assert.equal(map[path],path+'?v=ride-contacts-1');
+  const movement='/67park-foundation-next/app/chunk-OZ77422N.js',social='/67park-foundation-next/app/party/park-social-toys.js';
+  assert.equal(map[movement],movement+'?v=ride-jump-contact-1');assert.equal(map[movement+'?v=online-next-1'],movement+'?v=ride-jump-contact-1');
+  assert.equal(map[social],social+'?v=ride-contacts-1');assert.equal(map[social+'?v=balloon-lift-2'],social+'?v=ride-contacts-1');
  }
 });

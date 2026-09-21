@@ -32,8 +32,8 @@ export function createRideContacts({group,rides},{now=monotonicNow}={}){
  // The static AABB is only a broad phase, never a filled-in solid.
  const matrices=Array.from({length:12},()=>({matrix:new T.Matrix4(),inverse:new T.Matrix4(),box:new T.Box3(),origin:new T.Vector3()}));
  const point=new T.Vector3();let version=-1,disposed=false;
- const cache=new Map(),bodyStates=new WeakMap();
- const stats={revision:'ride-contacts-1',staticTriangles:statics.stats.triangles,cabinTriangles:cabin.stats.triangles,
+ const cache=new Map(),bodyStates=new WeakMap(),jumpGrounded=new WeakMap();
+ const stats={revision:'ride-contacts-1',groundedJumpVersion:1,staticTriangles:statics.stats.triangles,cabinTriangles:cabin.stats.triangles,
   cabinInstances:12,estimatedNumericBytes:statics.stats.bytes+cabin.stats.bytes,addedDrawCalls:0,newAssetDownloads:0,queries:0};
  function sync(){
   if(version===cabins[0].instanceMatrix.version)return;
@@ -81,9 +81,10 @@ export function createRideContacts({group,rides},{now=monotonicNow}={}){
   return y;
  }
  function prepareBody(body,{skip=false,jumpQueued=false}={}){
-  if(disposed||skip){bodyStates.delete(body);return;}
+  if(disposed||skip){bodyStates.delete(body);jumpGrounded.delete(body);return;}
   let p={...body.translation()},v=body.linvel(),before=bodyStates.get(body),carried=null;
-  if(!finite(p)||!finite(v)||!contains(p.x,p.z)){bodyStates.delete(body);return;}
+  if(!finite(p)||!finite(v)||!contains(p.x,p.z)){bodyStates.delete(body);jumpGrounded.delete(body);return;}
+  jumpGrounded.delete(body);
   sync();
   if(before&&Math.hypot(p.x-before.position.x,p.y-before.position.y,p.z-before.position.z)>8)before=null;
   const time=now(),angle=ferris.angle,maxCredit=angularSpeed*MAX_ELAPSED+ANGLE_JITTER;
@@ -114,13 +115,25 @@ export function createRideContacts({group,rides},{now=monotonicNow}={}){
   // never attach a jumping avatar or somebody walking underneath a cabin.
   const near=hit&&hit.cabin!==null&&Math.abs(p.y-FOOT-hit.y)<.12?hit:
    sample(p.x,p.z).surfaces.find(s=>s.cabin!==null&&Math.abs(p.y-FOOT-s.y)<.095);
+  // A delayed, descending cabin can leave a player more than the support
+  // probe distance above it during the exact frame a first jump is queued.
+  // Preserve only that verified prior contact for one grounded query: it is
+  // not a carry, and cannot survive a walk-off, teleport, stale clock, or
+  // an already-upward body.
+  const releasedJump=!!(jumpQueued&&continuous&&before?.contact&&v.y<=.2&&
+   Math.abs(p.y-FOOT-before.contact.y)<.22&&Math.hypot(p.x-before.position.x,p.z-before.position.z)<=.12);
+  if(releasedJump)jumpGrounded.set(body,true);
   const contact=v.y<=.2&&!jumpQueued?near:null;
   bodyStates.set(body,{position:p,contact,origin:contact?matrices[contact.cabin].origin.clone():null,time,angle,angleCredit});
   // The caller moves its previous sweep anchor by the same carrier delta.
   // Only the player's own relative motion is swept against cabin walls.
   return carried;
  }
- return {contains,sample,support,ground,obstacle,prepareBody,stats,dispose(){disposed=true;statics.dispose();cabin.dispose();cache.clear();localMeshes.length=0;stats.disposed=true;}};
+ function consumeJumpGrounded(body,vertical=0){
+  const token=jumpGrounded.get(body);jumpGrounded.delete(body);
+  return !disposed&&token===true&&Number.isFinite(vertical)&&vertical<=.2;
+ }
+ return {contains,sample,support,ground,obstacle,prepareBody,consumeJumpGrounded,stats,dispose(){disposed=true;statics.dispose();cabin.dispose();cache.clear();localMeshes.length=0;stats.disposed=true;}};
 }
 
 export function installRideContacts(world){
