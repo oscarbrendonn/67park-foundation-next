@@ -1,3 +1,4 @@
+import {applyMapEdgeFinish} from '../app/map-edge-finish.js?v=map-edge-finish-1';
 import {applyGrassBoundary} from '../app/grass-boundary.js?v=grass-boundary-1';
 import {applyTerrainBoundaries} from '../app/terrain-boundaries.js?v=ground-2';
 import {applyMapContinuity} from '../app/map-continuity.js?v=seams-1';
@@ -423,7 +424,7 @@ if(k2Uv67.x>0.0&&k2Uv67.x<1.0&&k2Uv67.y>0.0&&k2Uv67.y<1.0){
   diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(0.55,0.58,0.60),k2C67*0.28);
   vec4 k2H67=texture2D(uKab2Doku,clamp(k2Uv67-vec2(0.794,-0.608)*0.9/uKab2Boy,0.0,1.0));
   float k2A67=clamp((k2H67.a-k2T67.b)/0.30,0.0,1.0);
-  diffuseColor.rgb*=1.0+k2A67*0.03;
+  // No painted divider highlight: use the physical edge.
 `;
 const KABARTMA2_CUBUK_GLSL=`
 vec2 k2Uv67=(vKab2Dunya.xz-uKab2Min)/uKab2Boy;
@@ -1572,11 +1573,11 @@ await entryStage(13,'Finishing the northern neighbourhood');
   renderer.domElement.dataset.parkEdges=JSON.stringify(applyParkEdges(kok,parkEdgePatch));
   const curbJoinPatch=await islandFetch('/67park-foundation-next/repairs/curb-joins-v3.json').then(r=>{if(!r.ok)throw Error('Curb join repair missing');return r.json();});
   renderer.domElement.dataset.curbJoins=JSON.stringify(applyCurbJoins(kok,curbJoinPatch));
-  renderer.domElement.dataset.parcelPaving=JSON.stringify(applyParcelPaving(kok));shortenKimiRightTip(kok);repairEastRoadEnd(kok);cleanLowerPark(kok);applyKimiCoast20(kok);applyMapContinuity(kok,await fetch('/67park-foundation-next/repairs/map-continuity-59.json').then(r=>{if(!r.ok)throw Error('Map continuity missing');return r.json()}));applyTerrainBoundaries(kok,await islandFetch('/67park-foundation-next/repairs/terrain-boundaries-2.json?v=ground-2').then(r=>{if(!r.ok)throw Error('Terrain boundaries missing');return r.json()}));renderer.domElement.dataset.grassBoundary1=JSON.stringify(applyGrassBoundary(kok,await islandFetch('/67park-foundation-next/repairs/grass-boundary-1.json').then(r=>{if(!r.ok)throw Error('Grass boundary repair missing');return r.json()})));
+  renderer.domElement.dataset.parcelPaving=JSON.stringify(applyParcelPaving(kok));shortenKimiRightTip(kok);repairEastRoadEnd(kok);cleanLowerPark(kok);applyKimiCoast20(kok);applyMapContinuity(kok,await fetch('/67park-foundation-next/repairs/map-continuity-59.json').then(r=>{if(!r.ok)throw Error('Map continuity missing');return r.json()}));applyTerrainBoundaries(kok,await islandFetch('/67park-foundation-next/repairs/terrain-boundaries-2.json?v=ground-2').then(r=>{if(!r.ok)throw Error('Terrain boundaries missing');return r.json()}));renderer.domElement.dataset.grassBoundary1=JSON.stringify(applyGrassBoundary(kok,await islandFetch('/67park-foundation-next/repairs/grass-boundary-1.json').then(r=>{if(!r.ok)throw Error('Grass boundary repair missing');return r.json()})));renderer.domElement.dataset.mapEdgeFinish1=JSON.stringify(applyMapEdgeFinish(kok,await islandFetch('/67park-foundation-next/repairs/map-edge-finish-1.json').then(r=>{if(!r.ok)throw Error('Map edge repair missing');return r.json()})));
   const stairGeometry=repairIslandStairs(kok);
   renderer.domElement.dataset.stairGeometry=JSON.stringify(stairGeometry.stats);
   zeminler=zeminler.filter(m=>!stairGeometry.nonWalkableNames.includes(m.name));
-  for(const name of ['3_CIMEN','8_PARK_PATIKA_UST','6_BORDUR','5_YOL']){
+  for(const name of ['3_CIMEN','8_PARK_PATIKA_UST','6_BORDUR','5_YOL','7_KALDIRIM_TABANI']){
     if(!DIK_YAN_GOLGE_KAYNAGI.test(name))continue;
     const source=kok.getObjectByName(name),helper=source?.getObjectByName('67D_DIK_YAN_GOLGE_'+name),geometry=dikYanGolgeGeometrisi(source.geometry);
     if(helper&&geometry){helper.geometry.dispose();helper.geometry=geometry;}
