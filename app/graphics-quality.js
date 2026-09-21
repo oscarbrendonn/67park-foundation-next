@@ -18,7 +18,24 @@ export function installGraphicsQuality(renderer,{settings=playerSettings,host=gl
  if(renderer[slot])return renderer;
  const render=renderer.render,dispose=renderer.dispose,setRatio=renderer.setPixelRatio;
  let requested=renderer.getPixelRatio(),level=null,scene=null,dirty=true,dead=false,degraded=false,originalShadows;
- const lights=new Map(),sceneScans=new WeakMap();
+ const lights=new Map(),sceneScans=new WeakMap(),materialEpochs=new WeakMap();
+ let shadowEpoch=0;
+ const setShadows=enabled=>{
+  if(renderer.shadowMap&&renderer.shadowMap.enabled!==enabled){
+   renderer.shadowMap.enabled=enabled;renderer.shadowMap.needsUpdate=true;shadowEpoch++;
+  }
+ };
+ const syncMaterials=nextScene=>{
+  if(!nextScene||materialEpochs.get(nextScene)===shadowEpoch)return;
+  // Three must revisit shadow shader variants when the renderer flag changes.
+  // Deduplicate shared materials and do this once per scene/transition, not per frame.
+  if(shadowEpoch>0){
+   const materials=new Set();
+   nextScene.traverse?.(o=>{for(const m of Array.isArray(o.material)?o.material:[o.material])if(m)materials.add(m);});
+   for(const material of materials)material.needsUpdate=true;
+  }
+  materialEpochs.set(nextScene,shadowEpoch);
+ };
  const resetMap=shadow=>{shadow.map?.dispose();shadow.mapPass?.dispose();shadow.map=null;shadow.mapPass=null;shadow.needsUpdate=true;};
  const apply=nextScene=>{
   if(dead)return;
@@ -28,8 +45,9 @@ export function installGraphicsQuality(renderer,{settings=playerSettings,host=gl
   if(originalShadows===undefined)originalShadows=!!renderer.shadowMap?.enabled;
   if(renderer.shadowMap){
    const enabled=originalShadows&&profile.shadows;
-   if(renderer.shadowMap.enabled!==enabled){renderer.shadowMap.enabled=enabled;renderer.shadowMap.needsUpdate=true;}
+   setShadows(enabled);
   }
+  syncMaterials(nextScene);
   scene=nextScene;
   if(scene&&(!sceneScans.has(scene)||now()-sceneScans.get(scene)>2000)){
    sceneScans.set(scene,now());
@@ -51,7 +69,8 @@ export function installGraphicsQuality(renderer,{settings=playerSettings,host=gl
    // Optional quality management must not stop the actual game renderer.
    // One bounded fallback, not an exception on every frame or a retry queue.
    degraded=true;
-   if(renderer.shadowMap)renderer.shadowMap.enabled=false;
+   setShadows(false);
+   try{syncMaterials(nextScene)}catch{}
    try{setRatio.call(renderer,.8)}catch{}
    if(renderer.domElement?.dataset)renderer.domElement.dataset.parkGraphics=JSON.stringify({level:'fallback',dpr:renderer.getPixelRatio(),shadows:false});
    host.dispatchEvent?.(new Event('park:graphics-fault'));

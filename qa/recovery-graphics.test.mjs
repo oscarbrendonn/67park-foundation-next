@@ -1,9 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {qualityPixelRatio,installGraphicsQuality} from '../app/graphics-quality.js';
 import {compatibleProtocol,requestedProtocol,SERVER_PROTOCOL} from '../app/protocol-version.js';
 import {rememberReturn,readReturnIntent,returningFromMatch,watchParkSocket,connectionProblem,connectionRecoverySnapshot,recordedEntryLoadFailure,recoveryCoveredByWardrobe} from '../app/connection-recovery.js';
 import {createCameraBoom,createVerticalCameraTarget,FEEL_CAMERA} from '../app/feel-camera.js';
+
+test('every game entry loads the shadow material synchronization revision',()=>{
+ for(const file of ['index.html','play/index.html','explore/index.html','balloon/index.html','race/index.html','rockets/index.html','sports/index.html','lane-rush/index.html','skybound-soft/index.html','style-studio/index.html']){
+  const html=readFileSync(new URL('../'+file,import.meta.url),'utf8');
+  const imports=JSON.parse(html.match(/<script type="importmap">([\s\S]*?)<\/script>/)[1]).imports;
+  assert.equal(imports['/67park-foundation-next/app/graphics-quality.js'],'/67park-foundation-next/app/graphics-quality.js?v=graphics-material-sync-1',file);
+ }
+});
 
 test('protocol compatibility rejects malformed and incompatible contracts, not visual builds',()=>{
  assert(compatibleProtocol(SERVER_PROTOCOL,1));assert(compatibleProtocol({...SERVER_PROTOCOL,build:'another-visual-release'},1));
@@ -68,6 +77,31 @@ test('graphics levels change the real renderer and shadow allocation, keep drawi
  for(let i=0;i<100;i++)f.set(['low','medium','high'][i%3]);
  assert.equal(f.counts().draws,105);f.renderer.dispose();assert.equal(f.counts().destroyed,2);
  assert.equal(qualityPixelRatio('high',2,1),1);assert.equal(qualityPixelRatio('low',2,3),.8);
+});
+test('shadow changes refresh each scene material once, including shared arrays and revisited scenes',()=>{
+ const f=rendererFixture();let refreshes=0;
+ const material={set needsUpdate(value){assert.equal(value,true);refreshes++;}};
+ const light=[];f.scene.traverse(o=>light.push(o));
+ f.scene.traverse=fn=>{light.forEach(fn);fn({material});fn({material:[material,material]});};
+ f.renderer.render(f.scene,{});assert.equal(refreshes,0,'unchanged initial shadow variant');
+ f.set('low');assert.equal(refreshes,1,'shared material is refreshed once');
+ for(let i=0;i<100;i++)f.renderer.render(f.scene,{});
+ f.set('low');assert.equal(refreshes,1,'same setting never refreshes stable programs');
+ f.set('medium');assert.equal(refreshes,2);
+ f.set('high');assert.equal(refreshes,2,'DPR/shadow resolution alone do not change shader defines');
+ let otherRefreshes=0;const other={traverse:fn=>fn({material:{set needsUpdate(_){otherRefreshes++;}}})};
+ f.renderer.render(other,{});assert.equal(otherRefreshes,1);
+ f.set('low');assert.equal(otherRefreshes,2);
+ f.renderer.render(f.scene,{});assert.equal(refreshes,3,'revisited scene receives the current shadow variant');
+ f.renderer.render(other,{});assert.equal(otherRefreshes,2);
+ f.renderer.dispose();
+});
+test('cold Low refreshes already-created materials before their first render',()=>{
+ const f=rendererFixture();let refreshes=0;
+ f.scene.traverse=fn=>fn({material:{set needsUpdate(_){refreshes++;}}});
+ f.settings.graphics='low';f.renderer.render(f.scene,{});
+ assert.equal(refreshes,1);assert.equal(f.renderer.shadowMap.enabled,false);
+ f.renderer.render(f.scene,{});assert.equal(refreshes,1);f.renderer.dispose();
 });
 test('vertical camera follows smoothly at 30/60/120 FPS without horizontal or look-input lag',()=>{
  for(const fps of [30,60,120]){
