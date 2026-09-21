@@ -158,6 +158,24 @@ city_clean_parts = [p.simplify(.01,preserve_topology=True) for p in city_precisi
 city_outline_deviation = max(a.boundary.hausdorff_distance(b.boundary) for a,b in zip(city_precision_parts,city_clean_parts))
 assert city_outline_deviation < .0101
 assert all(len(p.interiors)==1 for p in city_clean_parts)
+# The NW inner return contains a 7.14 cm backtracking pair on Z=27. The
+# inherited footprint kept that tooth even after the sub-centimetre cleanup.
+# Join its two neighboring arc vertices; do not round/simplify other edges.
+city_notch = box(-98.07,26.57,-97.77,27.24)
+city_before_notch = city_clean_parts[0]
+notch_vertices = {(-97.8898,27.0),(-97.8184,27.0)}
+removed_notch_vertices = 0
+def without_city_notch(ring):
+    global removed_notch_vertices
+    points=[]
+    for point in ring.coords:
+        if tuple(point) in notch_vertices: removed_notch_vertices+=1
+        else: points.append(point)
+    return points
+city_clean_parts[0] = Polygon(without_city_notch(city_before_notch.exterior),[without_city_notch(r) for r in city_before_notch.interiors])
+city_notch_delta = city_before_notch.symmetric_difference(city_clean_parts[0])
+assert removed_notch_vertices==2 and city_clean_parts[0].is_valid
+assert city_notch_delta.area<.03 and city_notch_delta.difference(city_notch).area<1e-10
 city_curb_clean = union_all(city_clean_parts)
 assert city_curbs.symmetric_difference(city_curb_clean).area < 1.2
 city_row = row_for('6_BORDUR')
@@ -299,17 +317,24 @@ piece_before_cleanup = piece
 piece = set_precision(piece, .0001).simplify(.00005, preserve_topology=True)
 assert piece.symmetric_difference(piece_before_cleanup).area < .001
 row = row_for('7_KALDIRIM_TABANI'); clip_out(row, collar)
-inner = finish_outline.buffer(-.06, quad_segs=12)
-flat(row, piece.intersection(inner), 9.38008564)
-def curb_height(x,z): return 9.32008564 + min(.06, finish_outline.boundary.distance(Point(x,z)))
+# Keep the authored lower bevel where this patch rejoins the original curb,
+# but ease it up to the adjoining flat-capped stub. Both top and wall use the
+# same sampled boundary; there is no floating filler or material overlay.
+piece=piece.segmentize(.025)
+inner=finish_outline.buffer(-.06,quad_segs=12)
+flat(row,piece.intersection(inner),9.38008564)
+def curb_height(x,z):
+    point=Point(x,z);distance=min(.06,finish_outline.boundary.distance(point))
+    blend=min(1,stub.distance(point)/.16);blend=blend*blend*(3-2*blend)
+    return 9.38008564-(.06-distance)*blend
 for poly in polys(piece.difference(inner)):
-    for f in constrained_delaunay_triangles(poly).geoms:
-        v = [[x,curb_height(x,z),z] for x,z in list(f.exterior.coords)[:3]]
-        if np.cross(np.subtract(v[1],v[0]),np.subtract(v[2],v[0]))[1]<0: v.reverse()
-        triangle(row,v)
+    for face in constrained_delaunay_triangles(poly).geoms:
+        vertices=[[x,curb_height(x,z),z] for x,z in list(face.exterior.coords)[:3]]
+        if np.cross(np.subtract(vertices[1],vertices[0]),np.subtract(vertices[2],vertices[0]))[1]<0: vertices.reverse()
+        triangle(row,vertices)
 flat(row,piece,8.79,False)
 for poly in polys(piece):
-    poly = orient(poly,sign=1)
+    poly=orient(poly,sign=1)
     for ring in [poly.exterior,*poly.interiors]:
         for (x,z),(a,b) in zip(ring.coords,list(ring.coords)[1:]):
             triangle(row,[[x,curb_height(x,z),z],[a,curb_height(a,b),b],[a,8.79,b]])
@@ -399,6 +424,7 @@ metrics.update(discardedMicroscopicFaces=discarded_count,discardedMicroscopicAre
 metrics.update(stubEntryClosures=len(stub_entries),stubEntryOverlap=.002)
 metrics.update(stubTrimmedTriangles=stub_trimmed_triangles,stubApronArea=sum(p.area for p in stub_aprons))
 metrics.update(cityCurbProfile={"bounds":list(city_curb.bounds),"area":city_curb_clean.area,"components":2,"waterfrontBounds":list(waterfront_curb.bounds),"removedTriangles":city_removed,"bevelRadius":city_radius,"top":city_base+city_radius,"outlineChangedArea":city_curbs.symmetric_difference(city_curb_clean).area,"maxOutlineDeviation":city_outline_deviation,"closedMicroscopicCracks":sum(len(p.interiors)-1 for p in [city_curb,waterfront_curb])})
+metrics.update(cityNotchRepair={"removedVertices":removed_notch_vertices,"changedArea":city_notch_delta.area,"scope":list(city_notch.bounds)},coastalJoinBlend=.16)
 metrics.update(grassSeamWindows=[list(w.bounds) for w in grass_seam_windows],grassSeamArea=seam_scope.intersection(shapes['3_CIMEN']).area)
 metrics.update(grassFrontFillArea=sum(p.area for p in grass_front_fills),grassFrontZ=128.58658)
 patch = {'version': 1, 'metrics': metrics, 'meshes': list(rows.values()), 'divider': divider,

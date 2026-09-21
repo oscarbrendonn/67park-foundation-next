@@ -202,6 +202,41 @@ test('city curb keeps one rounded profile through the reported U08 corner tail',
  g.dispose();curb.material.dispose();
 });
 
+test('NW city inner return removes only the surveyed backtracking tooth',()=>{
+ const patch=JSON.parse(fs.readFileSync(PATCH_URL)),repair=patch.metrics.cityNotchRepair;
+ assert.deepEqual(repair.scope,[-98.07,26.57,-97.77,27.24]);
+ assert.equal(repair.removedVertices,2);
+ assert(repair.changedArea>0&&repair.changedArea<.03,'city notch repair widened beyond its bounded corner');
+ const row=patch.meshes.find(row=>row.name==='6_BORDUR');
+ for(const x of [-97.8898,-97.8184]){
+  let matches=0;
+  for(let i=0;i<row.p.length;i+=3)if(Math.abs(row.p[i]-x)<1e-6&&Math.abs(row.p[i+2]-27)<1e-6)matches++;
+  assert.equal(matches,0,'backtracking tooth remains in authored curb');
+ }
+});
+
+test('coastal fillet meets the flat stub without dropping abruptly into its bevel',()=>{
+ const patch=JSON.parse(fs.readFileSync(PATCH_URL)),row=patch.meshes.find(row=>row.name==='7_KALDIRIM_TABANI');
+ close(patch.metrics.coastalJoinBlend,.16);
+ const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(row.p,3));g.setIndex(row.ix);
+ const mesh=new T.Mesh(g,new T.MeshBasicMaterial());mesh.updateMatrixWorld(true);
+ const height=(x,z)=>{
+  const hit=new T.Raycaster(new T.Vector3(x,20,z),new T.Vector3(0,-1,0)).intersectObject(mesh,false)[0];
+  assert(hit,`missing fillet cap at ${x},${z}`);
+  assert(hit.face.normal.y>0);return hit.point.y;
+ };
+ // The first point was the pale wedge in the pixel probe: the old separate
+ // bevel was 9.3289 here. The opposite end still meets the existing lower lip.
+ assert(height(-14.63458,141.88696)>9.333,'unblended drop remains beside the flat stub');
+ assert(height(-14.411325,142.08808)<9.33,'the existing lower curb was replaced with a raised step');
+ let previous=height(-14.64,141.78);close(previous,9.38008564,'flat stub join');
+ for(let step=1;step<=20;step++){
+  const current=height(-14.64,141.78+step*.005);
+  assert(Math.abs(current-previous)<.007,`discontinuous cap at sample ${step}`);previous=current;
+ }
+ g.dispose();mesh.material.dispose();
+});
+
 test('maintained runtimes remove the divider highlight and finish edges before final ground sampling',()=>{
  for(const [file,sampler] of [['../island/runtime.js','terrainSampler=wrapParkEntryCapsSampler57'],['../island/runtime.bundle.js','B9=z8(']]){
   const runtime=fs.readFileSync(new URL(file,import.meta.url),'utf8'),finish=runtime.indexOf('dataset.mapEdgeFinish1='),ground=runtime.indexOf(sampler,finish);

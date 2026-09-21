@@ -19,7 +19,7 @@ module.exports=async(page,{mobile,check})=>{
  await check('map-edge finish keeps patched ground continuous and its exterior walls front-facing',async()=>{
   const result=await page.evaluate(async targets=>{
    const T=await import('three'),w=__islandWorld,root=w.terrain,live=JSON.parse(w.renderer.domElement.dataset.mapEdgeFinish1||'null');
-   const repair=await fetch('/67park-foundation-next/repairs/map-edge-finish-1.json?v=skate-corner-recovery-1').then(r=>{if(!r.ok)throw Error('Map-edge repair unavailable');return r.json();});
+   const repair=await fetch('/67park-foundation-next/repairs/map-edge-finish-1.json?v=curb-touch-finish-1').then(r=>{if(!r.ok)throw Error('Map-edge repair unavailable');return r.json();});
    const byName=name=>root.getObjectByName(name),ray=new T.Raycaster(),down=new T.Vector3(0,-1,0);
    const yieldFrame=()=>new Promise(resolve=>requestAnimationFrame(resolve));
    const meshAudit=targets.map(name=>{const mesh=byName(name),g=mesh?.geometry;return {name,isMesh:!!mesh?.isMesh,indexed:!!g?.index,attributes:Object.keys(g?.attributes||{}).sort(),materials:Array.isArray(mesh?.material)?mesh.material.length:Number(!!mesh?.material)};});

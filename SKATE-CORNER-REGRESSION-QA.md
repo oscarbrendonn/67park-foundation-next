@@ -1,6 +1,9 @@
 # Reported curb corner and skateboard regression — 2026-09-21
 
-Status: local fix candidate; full regression and publication acceptance pending.
+Historical diagnosis and candidate record below. Release `2a4711c` subsequently
+passed workflow 35564762016 and Pages publication. See
+`CURB-TOUCH-FOLLOWUP-QA.md` for the current close-angle/input follow-up and the
+separate public-backend availability issue; publication is not ongoing uptime.
 The user supplied iPhone screenshots/video, reports severe skateboard slowdown
 and a disappearing Style Studio character, and explicitly identified
 `https://oscarbrendonn.github.io/67park-feel-lab/` as the version that worked for

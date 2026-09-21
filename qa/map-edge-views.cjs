@@ -5,7 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {browserLaunchOptions,assertBrowserRenderer}=require('./browser-launch.cjs');
 
-const base='http://127.0.0.1:8499/67park-foundation-next/';
+const base=process.env.FEEL_URL||'http://127.0.0.1:8499/67park-foundation-next/';
 const output=process.env.QA_OUTPUT||'.qa-results/map-edge-multiview';
 const logFile=process.env.MAP_EDGE_LOG||'.qa-results/map-edge-all.log';
 const baseline=process.env.BASELINE==='1';
@@ -98,6 +98,12 @@ function views(){
   await assertBrowserRenderer(page);
   const start=await page.evaluate(()=>{
    const world=__islandWorld,before=world.scene.onBeforeRender;
+   // These are geometry shots, not player-follow/gameplay acceptance. Make
+   // that distinction visible in the evidence itself, not only in its log.
+   const label=document.createElement('div');label.textContent='Harita incelemesi · bağımsız kamera';
+   label.style.cssText='position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:9999;background:#fff8e9e8;color:#534b44;padding:5px 10px;border-radius:8px;font:12px system-ui;pointer-events:none';
+   document.body.append(label);
+   const style=document.createElement('style');style.textContent='.park-nameplate-layer{visibility:hidden!important}';document.head.append(style);
    window.__mapEdgeContextLosses=0;world.renderer.domElement.addEventListener('webglcontextlost',()=>window.__mapEdgeContextLosses++);
    world.scene.onBeforeRender=function(...args){
     before?.apply(this,args);const view=window.__mapEdgeView;
@@ -109,6 +115,13 @@ function views(){
   for(const view of views().filter(view=>!process.env.QA_VIEW_FILTER||new RegExp(process.env.QA_VIEW_FILTER).test(view.name))){
    await page.evaluate(view=>{window.__mapEdgeView=view;},view);
    await pause(350);
+   if(process.env.QA_PROBE_POINTS){
+    const hits=await page.evaluate(async points=>{
+     const T=await import('three'),w=__islandWorld,ray=new T.Raycaster();
+     return points.map(([x,y])=>{ray.setFromCamera(new T.Vector2(x/innerWidth*2-1,1-y/innerHeight*2),w.camera);return {pixel:[x,y],hits:ray.intersectObjects(w.scene.children,true).slice(0,4).map(hit=>({name:hit.object.name,point:hit.point.toArray(),distance:hit.distance,face:hit.faceIndex,normal:hit.face?.normal.toArray(),vertices:hit.face?[hit.face.a,hit.face.b,hit.face.c].map(i=>new T.Vector3().fromBufferAttribute(hit.object.geometry.attributes.position,i).applyMatrix4(hit.object.matrixWorld).toArray()):[]}))};});
+    },JSON.parse(process.env.QA_PROBE_POINTS));
+    console.log('MAP_PIXEL_PROBE',JSON.stringify({view:view.name,hits}));
+   }
    await page.screenshot({path:path.join(output,view.name+'.png')});
    captured.push({name:view.name,p:view.p,t:view.t,bounds:view.bounds});
   }
