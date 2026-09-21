@@ -11,25 +11,35 @@ assert(Number.isFinite(jumpDelay)&&jumpDelay>=0&&jumpDelay<=1200,'bounded jump d
 // the old 2.19s locator delay without changing the game, input or assertions.
 const dispatchDelay=Number(process.env.PARK_RIDE_DISPATCH_DELAY_MS||0);
 assert(Number.isFinite(dispatchDelay)&&dispatchDelay>=0&&dispatchDelay<=2500,'bounded jump dispatch delay');
+// Distinct from event/dispatch delay: the hosted renderer advances the real
+// cabin clock between slow game frames after accepting the jump as well.
+// Busy callbacks also delay network delivery, so this is a slow-frame stress
+// fixture, NOT an exact recreation of the hosted cabin clock. The retained
+// real-asset unit replays that exact three-clock collision independently.
+const frameDelay=Number(process.env.PARK_RIDE_FRAME_DELAY_MS||0);
+assert(Number.isFinite(frameDelay)&&frameDelay>=0&&frameDelay<=1000,'bounded post-arm frame delay');
 (async()=>{
  const browser=await chromium.launch(browserLaunchOptions());
  try{
   for(const mobile of process.env.PARK_VIEW==='desktop'?[false]:process.env.PARK_VIEW==='mobile'?[true]:[false,true]){
    const context=await browser.newContext({viewport:mobile?{width:390,height:844}:{width:1280,height:900},isMobile:mobile,hasTouch:mobile}),page=await context.newPage(),errors=[];
    page.setDefaultTimeout(45000);
-   await context.addInitScript(({jumpDelay})=>{
+   await context.addInitScript(({jumpDelay,frameDelay})=>{
     localStorage.setItem('67park-feel-lab.character.v3',JSON.stringify({base:'goril'}));
     localStorage.setItem('67park-feel-lab.player-profile.v1',JSON.stringify({version:1,base:'goril'}));
     localStorage.setItem('67park-feel-lab-muted','1');
-    window.__rideRun={lost:0,gap:0,last:0,injected:0,dispatchDelayed:0};document.addEventListener('webglcontextlost',()=>__rideRun.lost++,true);
+    window.__rideRun={lost:0,gap:0,last:0,injected:0,dispatchDelayed:0,blockedFrames:0};document.addEventListener('webglcontextlost',()=>__rideRun.lost++,true);
     const delayJump=e=>{
      const jump=e.type==='keydown'?e.code==='Space':e.target?.closest?.('button')?.getAttribute('aria-label')==='Jump';
      if(!jump||!jumpDelay||!window.__qaRideJumpArmed||__rideRun.injected)return;
      __rideRun.injected++;const start=performance.now();while(performance.now()-start<jumpDelay){}
     };
     addEventListener('keydown',delayJump,true);addEventListener('pointerdown',delayJump,true);
-    const frame=now=>{const s=__rideRun;if(s.last)s.gap=Math.max(s.gap,now-s.last);s.last=now;requestAnimationFrame(frame);};requestAnimationFrame(frame);
-   },{jumpDelay});
+    const frame=now=>{const s=__rideRun;if(s.last)s.gap=Math.max(s.gap,now-s.last);s.last=now;
+     if(frameDelay&&window.__qaRideJumpArmed&&s.blockedFrames<8){s.blockedFrames++;const until=performance.now()+frameDelay;while(performance.now()<until){}}
+     requestAnimationFrame(frame);
+    };requestAnimationFrame(frame);
+   },{jumpDelay,frameDelay});
    if(dispatchDelay){
     const delayOnce=async()=>{
      const armed=await page.evaluate(()=>{if(!window.__qaRideJumpArmed||__rideRun.dispatchDelayed)return false;__rideRun.dispatchDelayed++;return true;});
@@ -56,6 +66,11 @@ assert(Number.isFinite(dispatchDelay)&&dispatchDelay>=0&&dispatchDelay<=2500,'bo
     await require('./ride-contacts.browser.cjs')(page,{mobile,check});
     if(jumpDelay)assert.equal(await page.evaluate(()=>__rideRun.injected),1,'delayed exactly one real Ferris jump input');
     if(dispatchDelay)assert.equal(await page.evaluate(()=>__rideRun.dispatchDelayed),1,'delayed exactly one trusted Ferris input dispatch');
+    if(frameDelay){
+     const blockedFrames=await page.evaluate(()=>__rideRun.blockedFrames);
+     assert(blockedFrames>=3,'exercised consecutive slow game frames after arming');
+     console.log('PASS injected ride slow frames',JSON.stringify({mobile,frameDelay,blockedFrames}));
+    }
     await require('./skate-camera.browser.cjs')(page,{mobile,check});
     console.log('RIDE_CONTACT_BROWSER_PASS',JSON.stringify({mobile,errors,stats:await page.evaluate(()=>__islandWorld.rideContacts.stats)}));
    }catch(error){fs.mkdirSync('.qa-results',{recursive:true});await page.screenshot({path:'.qa-results/ride-contacts-failed-'+(mobile?'mobile':'desktop')+'.png'});throw error;}

@@ -252,13 +252,13 @@ module.exports=async function checkRideContacts(page,{mobile=false,check}){
     const armedHandle=await page.waitForFunction(()=>{
      const w=__islandWorld,b=__eggyInput.playerRef.body,p=b.translation(),v=b.linvel(),s=window.__qaRideGorillaState?.(),i=__eggyInput.input;
      // After settling from the upper-left placement, arm on the outgoing
-     // lower-left diagonal. Horizontal speed then grows during dispatch,
-     // instead of shrinking toward zero at the leftmost turning point.
-     // Avoid the fastest descent: after a blocked 800ms game event the real
-     // cabin roof can reach the rider before .12m of free upward travel. This
-     // is a free-jump fixture, not permission to pass through that solid roof.
+     // lower-left approach to the bottom. The real-asset fixture checks all
+     // three clocks: up to 3.1s dispatch and two .65s post-input game frames.
+     // Reserve the production-derived first displacement (.4m in the slow
+     // trace), not merely .12m. The actual cabin roof stays solid;
+     // the old hosted roof strike is retained as a separate regression.
      const floor=w.characterGround(p.x,p.z,p.y-.555,.012),cabin=window.__qaRideJumpKinematics?.();
-     if(!(s?.grounded===true&&s?.jumpsLeft===1&&Math.abs(v.y)<.2&&Math.abs(p.y-.555-floor)<.08&&Math.hypot(i.x,i.z)<.01&&!i.run&&cabin?.floorVelocity>-.75&&cabin.floorVelocity<-.6&&cabin.horizontalVelocity>.3))return false;
+     if(!(s?.grounded===true&&s?.jumpsLeft===1&&Math.abs(v.y)<.2&&Math.abs(p.y-.555-floor)<.08&&Math.hypot(i.x,i.z)<.01&&!i.run&&cabin?.floorVelocity>-.38&&cabin.floorVelocity<-.32&&cabin.horizontalVelocity>.9))return false;
      // Capture readiness atomically; a second evaluate can see another phase
      // on the slow CI renderer. The later real event is checked independently.
      const e=document.activeElement;
@@ -266,7 +266,7 @@ module.exports=async function checkRideContacts(page,{mobile=false,check}){
      window.__qaRideAirRows.length=0;window.__qaRideJumpArmed=value;window.__qaRideJumpRecord('armed');return value;
     },null,{timeout:45000});
     try{armed=await armedHandle.jsonValue();}finally{await armedHandle.dispose();}
-    assert(armed.cabin.floorVelocity>-.75&&armed.cabin.floorVelocity<-.6&&armed.cabin.horizontalVelocity>.3,JSON.stringify({setup,armed}));
+    assert(armed.cabin.floorVelocity>-.38&&armed.cabin.floorVelocity<-.32&&armed.cabin.horizontalVelocity>.9,JSON.stringify({setup,armed}));
     await jump();
    }catch(error){
     const diagnostic=await page.evaluate(()=>{const b=__eggyInput.playerRef.body,e=document.activeElement;return {armed:window.__qaRideJumpArmed,events:window.__qaRideJumpEvents,trace:window.__qaRideJumpTrace,p:{...b.translation()},v:{...b.linvel()},gorilla:window.__qaRideGorillaState?.(),input:{...__eggyInput.input},activeElement:e?{tag:e.tagName,id:e.id,className:e.className,aria:e.getAttribute('aria-label'),text:e.textContent?.slice(0,80)}:null};});

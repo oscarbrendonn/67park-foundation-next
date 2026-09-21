@@ -1,6 +1,87 @@
 # Ferris trusted-input scheduling
 
-## Hosted failure being corrected
+## Current correction: three distinct clocks
+
+Run `35647642059` / `2f6c94b` subsequently failed on the mobile free-jump
+assertion. Desktop completed, but this run did not deploy. The earlier local
+passes below are historical evidence, not approval of that failed candidate.
+
+The trusted touch was accepted. The actual recorded sequence was:
+
+- Input at 432401 ms, body y=13.988451958, angle=2.9446322475.
+- First prepare at 432889 ms, angle=2.9886843578: queued first jump accepted.
+- Next prepare at 433464 ms, angle=3.0388538472: the first bounded physics
+  displacement was 0.4 m, taking the body to y=14.388453484 with vy=8.
+- The real occupied cabin roof underside was then y=15.072471008. The original
+  ceiling formula limited body y to 14.165471077 and set vy=0. That legitimate
+  contact prevented the required simultaneous upward displacement and speed.
+
+`qa/ride-contacts.test.mjs` now replays those exact coordinates, angles and
+times through the unchanged production contact implementation. It requires
+both acceptance of the initial jump and the real roof clamp. Passing through
+the roof, rejecting the initial jump, or treating this as free flight fails
+that regression. Source log: `.qa-results/ci-35647642059-failure.log`.
+
+The former headroom unit checked only dispatch/event delay and clearance
+above the 0.12 m assertion threshold. It missed input-to-first-prepare and
+first-to-next-prepare latency, and the full 0.4 m first physics step. It was
+therefore insufficient despite passing; the replacement accounts for these
+three clocks separately using the real asset and body probes.
+
+The free-jump fixture retains the initial upper-left placement and 12 grounded
+settling frames, then arms at outgoing floor velocity (-0.38,-0.32) m/s and
+horizontal velocity above 0.9 m/s. Actual input still must be descending below
+-0.05 m/s with absolute horizontal speed above 0.3 m/s. Every original jump,
+air-jump budget, trusted-event, clearance, travel and separation assertion is
+unchanged. No assertion retry, production physics, geometry, network, cache,
+workflow or soak-duration change is included.
+
+The optional `PARK_RIDE_FRAME_DELAY_MS` runner fixture blocks up to eight
+post-arm callbacks. This also delays network delivery, so it is explicitly
+not equivalent to the recorded hosted cabin clock. The old phase passed a
+600 ms mobile busy-frame test because its cabin angle stayed unchanged during
+the first two preparations; that is not a reproduction or evidence that the
+hosted failure was harmless. The exact replay above covers the actual failure.
+Historical stress log: `.qa-results/ferris-slow-frames-before.log`.
+
+The replacement grid covers all 12 cabins, five body probes, interior phase
+samples and bisected near-boundary phases. Dispatch is sampled every 50 ms up
+to 3.1 s. Both later frame gaps include fast .016/.033/.05 s samples, slow
+.325/.65 s samples and the exact hosted .488/.575 s pair. Displacement is
+derived from the shipped jump/gravity constants and bounded simulation step,
+including mixed fast/slow frames; it is not assumed always to be 0.4 m.
+Every sample requires an additional 0.02 m beyond that displacement, plus
+the unchanged event-time cabin-velocity predicates.
+
+Local normal and 2,200 ms dispatch + 800 ms blocked-event browser checks
+passed desktop and 390x844 touch viewport with no JavaScript/WebGL errors.
+Each jump was a single trusted input with zero horizontal body drift. Normal
+capture delays were 5 / 36 ms; delayed captures were 3,008 / 3,059 ms. Logs:
+`.qa-results/ferris-three-clock-normal.log` and
+`.qa-results/ferris-three-clock-delayed.log`. These remain hardware-browser
+checks, not physical phone or hosted-renderer certification.
+
+The new phase also passed the separate 600 ms busy-frame stress on both
+desktop and mobile viewport: exactly eight blocked callbacks per profile,
+one accepted trusted input, zero body drift and no JavaScript/WebGL errors.
+Log: `.qa-results/ferris-three-clock-slow-frames.log`. As noted above, this
+does not replace the exact hosted-clock replay or the hosted renderer gate.
+
+Final `npm test`: 256 total, 254 passed, two existing optional fixture skips,
+zero failures (`.qa-results/ferris-three-clock-unit-final.log`). The grid's
+101 phase samples across 12 cabins retained at least 0.031325 m clearance
+beyond their production-derived first step; the required extra margin is
+0.02 m. Worst sampled schedule: a=0, b=.65, c=.65, first rise=.4 m,
+remaining velocity=6.8 m/s. The exact earlier hosted roof strike also passes
+as a deliberately separate roof-contact regression.
+
+A green unit result alone does not authorize publication. Full hosted
+regression, 900,000 ms mobile soak, Pages
+deployment, live files and real multi-browser interactions remain mandatory.
+The user will personally test the delivered version on iPhone; no physical
+phone pass is claimed or required from an unavailable local device.
+
+## Historical first attempt (superseded by the failure above)
 
 Run `35639648347`, commit `92e94ae`, failed at
 `qa/ride-contacts.browser.cjs`'s event-time jump assertion. Pages was skipped.

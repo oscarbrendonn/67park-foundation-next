@@ -8,6 +8,8 @@ import {prepareSeasideAsset89} from '../island/seaside-scale-v89.js';
 import {createRideAsset84} from '../island/lunapark-rides-v84.js';
 import {createRideContacts,installRideContacts} from '../island/ride-contacts.js';
 import {resolveCharacterContact,sweepRideContact} from '../app/character-contact.js';
+import {CHARACTER_CONTROL} from '../app/character-control-profile.js';
+import {boundedSimulationStep} from '../app/simulation-step.js';
 
 const base=9.212547645568847,foot=.555;
 const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
@@ -271,24 +273,111 @@ test('ground decorators forward ride filtering and entry maps preserve one movem
  }
 });
 
-test('Ferris free-jump fixture keeps real roof clearance after dispatch and game-event delays',()=>{
- const rate=Math.PI*2/ferris.stats.period,head=1.45,skin=.012;
- const state=angle=>{
-  ferris.setNetworkAngle(angle);const seat=ferris.seat(0),seats=Array.from({length:12},(_,n)=>ferris.seat(n*4));
+test('CI 35647642059 replays a real first jump followed by its descending cabin roof',()=>{
+ // Three distinct clocks from the retained hosted trace: trusted touch at
+ // 432401ms, queued input consumption at 432889ms, next contact at 433464ms.
+ // A dispatch-only headroom check missed the two later slow game frames.
+ let now=432401,p={x:165.37924194335938,y:13.988451957702637,z:-173.10000610351562},v={x:0,y:0,z:0};
+ const timed=createRideContacts(lunapark,{now:()=>now});
+ const body={translation:()=>({...p}),linvel:()=>({...v}),setTranslation:q=>p={...q},setLinvel:q=>v={...q}};
+ try{
+  ferris.setNetworkAngle(2.9446322474983537);timed.prepareBody(body);
+  now=432889;ferris.setNetworkAngle(2.988684357818692);
+  timed.prepareBody(body,{jumpQueued:true});
+  assert.equal(timed.consumeJumpGrounded(body,0),true,'the original queued first jump is valid');
+  v.y=8;p.y=14.388453483581543;
+  now=433464;ferris.setNetworkAngle(3.038853847167258);
+  const roof=timed.sample(p.x,p.z).intervals.find(s=>s.cabin===2&&s.min>14.5&&s.min<16);
+  assert(roof,'captured collision must belong to the real occupied cabin');
+  close(roof.min,15.07247100830078,.00001);
+  timed.prepareBody(body);
+  close(p.y,14.165471076965332,.00001);assert.equal(v.y,0);
+  assert(p.y>13.988451957702637+.12,'body rose before the legitimate roof contact');
+  assert(!(p.y>13.988451957702637+.12&&v.y>3),'this is not the free-flight observation required by the browser gate');
+ }finally{timed.dispose();ferris.setNetworkAngle(0);}
+});
+
+test('Ferris free-jump fixture proves all-cabin roof clearance across bounded input and physics clocks',t=>{
+ // The replay above deliberately keeps the real roof collision. This separate
+ // fixture chooses a free-flight phase and proves it cannot meet that roof
+ // before the next un-clamped, production-timed jump step has been observed.
+ const rate=Math.PI*2/ferris.stats.period,head=1.45,skin=.012,safety=.02;
+ const probes=[[0,0],[.35,0],[-.35,0],[0,.35],[0,-.35]];
+ // `a` is arm -> trusted input. `b` and `c` are the two subsequent prepare
+ // gaps. The exact hosted replay is b=.488/c=.575; endpoints cover <=.65s.
+ const armToInput=Array.from({length:63},(_,n)=>n*.05);
+ // Include fast bounded frames as well as the hosted .488/.575s slow frames.
+ const firstPrepare=[0,.016,.033,.05,.325,.488,.65],nextPrepare=[0,.016,.033,.05,.325,.575,.65];
+ const state=(cabin,angle)=>{
+  ferris.setNetworkAngle(angle);
+  const seat=ferris.seat(cabin*4),seats=Array.from({length:12},(_,n)=>ferris.seat(n*4));
   const cx=seats.reduce((v,s)=>v+s.position.x,0)/12,cy=seats.reduce((v,s)=>v+s.position.y,0)/12;
-  return {p:{x:seat.position.x+1.53,y:seat.floor+foot,z:seat.position.z+.975},floor:seat.floor,floorVelocity:(seat.position.x-cx)*rate,horizontalVelocity:-(seat.position.y-cy)*rate};
+  return {p:{x:seat.position.x+1.53,y:seat.floor+foot,z:seat.position.z+.975},floorVelocity:(seat.position.x-cx)*rate,horizontalVelocity:-(seat.position.y-cy)*rate};
  };
- for(const angle of [3.876,3.92,3.96,4.005,4.065]){
-  const armed=state(angle);
-  assert(armed.floorVelocity>-.75&&armed.floorVelocity<-.6&&armed.horizontalVelocity>.3);
-  const input=state(angle+rate*2.2);
-  assert(input.floorVelocity<-.05&&Math.abs(input.horizontalVelocity)>.3,'unchanged real-event kinematics');
-  state(angle+rate*3);
-  const caps=[[0,0],[.35,0],[-.35,0],[0,.35],[0,-.35]].map(([dx,dz])=>{
-   const roof=contacts.sample(input.p.x+dx,input.p.z+dz).intervals.filter(s=>s.cabin===0&&s.min>=input.floor+head-skin);
-   assert(roof.length,'the real solid roof is still present over every body probe');
-   return Math.min(...roof.map(s=>s.min))-head+foot-skin;
-  });
-  assert(Math.min(...caps)>input.p.y+.12+.25,'at least .25m extra clearance beyond the unchanged upward-rise gate');
- }
+ const cap=(cabin,angle,p,dx,dz)=>{
+  ferris.setNetworkAngle(angle);
+  const roof=contacts.sample(p.x+dx,p.z+dz).intervals.filter(s=>s.cabin===cabin&&s.min>p.y+.2);
+  assert(roof.length,'real cabin roof must cover every sampled free-jump probe');
+  return Math.min(...roof.map(s=>s.min))-head+foot-skin;
+ };
+ const phaseEdge=(cabin,target)=>{
+  let lo=null,previous=state(cabin,0);
+  for(let angle=.01;angle<=Math.PI*2+.0001;angle+=.01){
+   const next=state(cabin,angle);
+   if(previous.horizontalVelocity>.9&&next.horizontalVelocity>.9&&previous.floorVelocity<=target&&next.floorVelocity>=target){lo=angle-.01;break;}
+   previous=next;
+  }
+  assert.notEqual(lo,null,`cabin ${cabin} needs the ${target} near-bottom phase edge`);
+  let hi=lo+.01;
+  for(let n=0;n<32;n++){
+   const mid=(lo+hi)/2;
+   if(state(cabin,mid).floorVelocity<target)lo=mid;else hi=mid;
+  }
+  const angle=(lo+hi)/2,edge=state(cabin,angle);
+  assert(Math.abs(edge.floorVelocity-target)<1e-6,JSON.stringify({cabin,target,edge}));
+  return angle;
+ };
+ let phaseSamples=0,minMargin=Infinity,minimum=null;
+ try{
+  for(let cabin=0;cabin<12;cabin++){
+   const phases=[];
+   for(let angle=0;angle<Math.PI*2;angle+=.01){
+    const armed=state(cabin,angle);
+    if(armed.floorVelocity>-.38&&armed.floorVelocity<-.32&&armed.horizontalVelocity>.9)phases.push(angle);
+   }
+   // The sampled interior covers the usable catch window; bisection adds
+   // epsilon-inside full-band edges rather than relying on favorable .01rad bins.
+   phases.push(phaseEdge(cabin,-.38+1e-7),phaseEdge(cabin,-.32-1e-7));
+   assert(phases.length>=7,`cabin ${cabin} needs interior plus both phase edges`);
+   for(const angle of phases){
+    const armed=state(cabin,angle);phaseSamples++;
+    assert(armed.floorVelocity>-.38&&armed.floorVelocity<-.32&&armed.horizontalVelocity>.9,JSON.stringify({cabin,angle,armed}));
+    for(const a of armToInput){
+     const input=state(cabin,angle+rate*a);
+     assert(input.floorVelocity<-.05&&Math.abs(input.horizontalVelocity)>.3,'unchanged real-event kinematics across the full dispatch window');
+     for(const b of firstPrepare)for(const c of nextPrepare){
+      // Input arrives between frames, so the first physics dt is at least b.
+      // Using bounded b gives an upper bound on launch speed; then advance
+      // the next bounded c step. Include mixed fast/slow frame schedules.
+      const launchVelocity=Math.max(0,CHARACTER_CONTROL.jump-CHARACTER_CONTROL.gravity*boundedSimulationStep(b));
+      const flightStep=launchVelocity*boundedSimulationStep(c);
+      const flightVelocity=Math.max(0,launchVelocity-CHARACTER_CONTROL.gravity*boundedSimulationStep(c));
+      for(const [dx,dz] of probes){
+       const roofCap=cap(cabin,angle+rate*(a+b+c),input.p,dx,dz),margin=roofCap-input.p.y-flightStep;
+       if(margin<minMargin){minMargin=margin;minimum={cabin,angle,a,b,c,dx,dz,armed,input,roofCap,flightStep,flightVelocity};}
+      }
+     }
+    }
+   }
+  }
+  // At least one sampled schedule is a real free-flight browser observation:
+  // rise >.12 and remaining upward velocity >3. Zero-length c samples still
+  // participate in the roof-clearance budget but cannot themselves observe rise.
+  const referenceLaunch=Math.max(0,CHARACTER_CONTROL.jump-CHARACTER_CONTROL.gravity*boundedSimulationStep(.05));
+  const referenceStep=referenceLaunch*boundedSimulationStep(.05);
+  const referenceVelocity=Math.max(0,referenceLaunch-CHARACTER_CONTROL.gravity*boundedSimulationStep(.05));
+  assert(referenceStep>.12&&referenceVelocity>3,JSON.stringify({referenceStep,referenceVelocity}));
+  assert(minMargin>safety,JSON.stringify({minMargin,minimum,phaseSamples,safety}));
+  t.diagnostic(JSON.stringify({minMargin,phaseSamples,worstClock:minimum&&{a:minimum.a,b:minimum.b,c:minimum.c,dx:minimum.dx,dz:minimum.dz,cabin:minimum.cabin,angle:minimum.angle,flightStep:minimum.flightStep,flightVelocity:minimum.flightVelocity},bounds:{armFloorVelocity:'(-.38,-.32)',armHorizontalVelocity:'>.9',armToInput:'0..3.1/.05',prepareGaps:'[0,.016,.033,.05,.325,.488,.575,.65]',freeStep:'max(0,jump-gravity*boundedSimulationStep(b))*boundedSimulationStep(c)',jump:CHARACTER_CONTROL.jump,gravity:CHARACTER_CONTROL.gravity,safety}}));
+ }finally{ferris.setNetworkAngle(0);}
 });

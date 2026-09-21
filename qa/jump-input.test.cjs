@@ -51,7 +51,7 @@ test('Ferris prepares trusted HUD input and observation before arming a moving c
 
 test('Ferris arms away from the turning point but retains every event-time release bound',()=>{
  const code=fs.readFileSync(require.resolve('./ride-contacts.browser.cjs'),'utf8');
- assert(code.includes('cabin?.floorVelocity>-.75&&cabin.floorVelocity<-.6&&cabin.horizontalVelocity>.3'));
+ assert(code.includes('cabin?.floorVelocity>-.38&&cabin.floorVelocity<-.32&&cabin.horizontalVelocity>.9'));
  assert(code.includes('airborne.accepted&&airborne.rows.length>=3&&airborne.maxGap>.07&&airborne.cabinTravel>.025&&airborne.bodyTravel<.1&&airborne.inputKinematics?.floorVelocity<-.05&&Math.abs(airborne.inputKinematics.horizontalVelocity)>.3'));
  assert(code.includes('s?.jumpsLeft===1&&Math.abs(v.y)<.2&&Math.abs(p.y-.555-floor)<.08'));
  assert(code.includes('for(let f=0;f<12;f++)await frame()'),'retain grounded settling frames');
