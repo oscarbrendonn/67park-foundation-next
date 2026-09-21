@@ -1,8 +1,8 @@
 // Authored playing-line bounds; the stadium uses the existing west widening.
 const sx=80.3/40.3,stadiumX=x=>201.15+(x-201.15)*sx;
 export const LOBBY_COURTS=Object.freeze([
- {id:'basket',sport:'basketball',label:'Basketbol',mesh:'SPORT103_BASKETBALL',radius:.32,x:-54,z:-30.5,halfX:14,halfZ:7.5,spawn:[-51.2,-28.3],anchor:[-63.5,-32.5],lift:.31,entry:[-54,-18.9]},
- {id:'penalty',sport:'football',label:'Futbol',mesh:'SPORT103_FOOTBALL',radius:.34,x:stadiumX(181.2),z:-37,halfX:9.5*sx,halfZ:23.4,spawn:[stadiumX(183),-28.8],anchor:[181.2,-37],lift:.32,entry:[stadiumX(181.2),1.8]}
+ {id:'basket',sport:'basketball',label:'Basketball',mesh:'SPORT103_BASKETBALL',radius:.32,x:-54,z:-30.5,halfX:14,halfZ:7.5,spawn:[-51.2,-28.3],anchor:[-63.5,-32.5],lift:.31,entry:[-54,-18.9]},
+ {id:'penalty',sport:'football',label:'Football',mesh:'SPORT103_FOOTBALL',radius:.34,x:stadiumX(181.2),z:-37,halfX:9.5*sx,halfZ:23.4,spawn:[stadiumX(183),-28.8],anchor:[181.2,-37],lift:.32,entry:[stadiumX(181.2),1.8]}
 ]);
 export function courtContains(c,x,z,margin=0){return Number.isFinite(x)&&Number.isFinite(z)&&Math.abs(x-c.x)<=c.halfX+margin&&Math.abs(z-c.z)<=c.halfZ+margin;}
 export function constrainCourtBall(ball,c){

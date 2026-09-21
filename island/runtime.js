@@ -91,12 +91,12 @@ async()=>islandFetch('./park-pond-v65.json?v=pond-v65-P8-pastel-closure-r6').the
 async()=>islandFetch('./park-pond-v65.bin?v=pond-v65-P8-pastel-closure-r6').then(r=>{if(!r.ok)throw Error('park pond65 geometry');return r.arrayBuffer();}),
 async()=>islandFetch('./coastal-road-v56.json?v=1').then(r=>{if(!r.ok)throw Error('road56 metadata');return r.json();}),
 async()=>islandFetch('./coastal-road-v56.bin?v=1').then(r=>{if(!r.ok)throw Error('road56 geometry');return r.arrayBuffer();}),
-async()=>islandFetch('./side-continuity-v50.json?v=1').then(r=>{if(!r.ok)throw Error('Yüzey verisi yüklenemedi');return r.json();}),
-async()=>islandFetch('./side-continuity-v50.bin?v=1').then(r=>{if(!r.ok)throw Error('Yüzey normalleri yüklenemedi');return r.arrayBuffer();}),
+async()=>islandFetch('./side-continuity-v50.json?v=1').then(r=>{if(!r.ok)throw Error('Could not load surface data');return r.json();}),
+async()=>islandFetch('./side-continuity-v50.bin?v=1').then(r=>{if(!r.ok)throw Error('Could not load surface normals');return r.arrayBuffer();}),
 async()=>islandFetch('./coast-grade-v21.json?v=3').then(r=>{if(!r.ok)throw Error('Coast grade data unavailable');return r.json();}),
-async()=>islandFetch('./curb-polish-v49.json?v=curb6').then(r=>{if(!r.ok)throw Error('Kaldırım verisi yüklenemedi');return r.json();}),
-async()=>islandFetch('./curb-polish-v49.bin?v=curb6').then(r=>{if(!r.ok)throw Error('Kaldırım geometrisi yüklenemedi');return r.arrayBuffer();}),
-async()=>islandFetch('./small-island-walls-v48.json?v=walls3').then(r=>{if(!r.ok)throw Error('Küçük ada duvarları yüklenemedi');return r.json();}),
+async()=>islandFetch('./curb-polish-v49.json?v=curb6').then(r=>{if(!r.ok)throw Error('Could not load sidewalk data');return r.json();}),
+async()=>islandFetch('./curb-polish-v49.bin?v=curb6').then(r=>{if(!r.ok)throw Error('Could not load sidewalk geometry');return r.arrayBuffer();}),
+async()=>islandFetch('./small-island-walls-v48.json?v=walls3').then(r=>{if(!r.ok)throw Error('Could not load small-island walls');return r.json();}),
 async()=>islandFetch('./small-island-match-v55.json?v=1').then(r=>{if(!r.ok)throw Error('divider55 metadata');return r.json();}),
 async()=>islandFetch('./small-island-match-v55.bin?v=1').then(r=>{if(!r.ok)throw Error('divider55 geometry');return r.arrayBuffer();}),
 async()=>(await islandFetch('./road-join-v34.json')).json()
@@ -1493,7 +1493,7 @@ await entryStage(2,'Preparing land and paths');
       renderer.domElement.dataset.smallIslandEntry='north-up-showcase';
     }
     return props;
-  }).catch(e=>hata('Küçük ada modelleri: '+e.message));
+  }).catch(e=>hata('Small-island models: '+e.message));
   renderer.domElement.dataset.parkProps63='loading';
 await entryStage(3,'Preparing the park trees');
   parkProps57=await loadParkProps63({assetSession:islandStartupAssets,scene:sahne,renderer,sample:zeminVurusu,variant:'kimi'});

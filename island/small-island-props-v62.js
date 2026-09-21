@@ -18,7 +18,7 @@ function expose62(material,key,exposure){
 
 export function finishHouseMaterial62(source,exposure={value:1}){
  const material=source.clone(),glass=source.name==='room59_glass_sage';
- for(const key of HOUSE_FORBIDDEN_TEXTURE_KEYS)if(material[key])throw Error('V62 ev dokusu beklenmiyordu: '+source.name+' '+key);
+ for(const key of HOUSE_FORBIDDEN_TEXTURE_KEYS)if(material[key])throw Error('Unexpected V62 house texture: '+source.name+' '+key);
  material.name=source.name;material.side=THREE.FrontSide;material.metalness=0;
  if(glass){
   material.transparent=true;material.opacity=.18;material.depthWrite=false;material.depthTest=true;
@@ -41,10 +41,10 @@ async function loadSmallIslandPropsUncached({scene,renderer,sample,variant},foli
  const [houseGltf,foliageGltf,layout]=await Promise.all([
   new GLTFLoader().loadAsync('/67park-foundation-next/island/small-island-houses-v62.glb?v=roof1'),
   foliageShared,
-  islandFetch('./small-island-placements-v47.json?v=placement2').then(r=>{if(!r.ok)throw Error('Küçük ada yerleşimi yüklenemedi');return r.json();})
+  islandFetch('./small-island-placements-v47.json?v=placement2').then(r=>{if(!r.ok)throw Error('Could not load the small-island layout');return r.json();})
  ]);
  if(layout.version!==47||layout.variant!==variant||layout.houses.length!==8||layout.failed.length)
-  throw Error('Küçük ada yerleşim doğrulaması başarısız');
+  throw Error('Small-island layout validation failed');
  const data=renderer.domElement.dataset;
  const group=new THREE.Group();group.name='SMALL_ISLAND_PROPS_V62';
  const houseAssets=new Map(),foliageAssets=new Map(),batches=new Map(),exposure={value:1};
@@ -89,10 +89,10 @@ async function loadSmallIslandPropsUncached({scene,renderer,sample,variant},foli
    asset.parts.push({name:mesh.name,geometry,material:finished.material,glass:finished.glass,triangles});
    asset.triangles+=triangles;
   });
-  if(!asset.parts.length)throw Error('V62 ev parçaları bulunamadı: '+key);
+  if(!asset.parts.length)throw Error('Missing V62 house parts: '+key);
   houseAssets.set(key,asset);
  });
- for(const key of ['cottage-pink','cottage-taupe','cottage-annex'])if(!houseAssets.has(key))throw Error('V62 ev modeli eksik: '+key);
+ for(const key of ['cottage-pink','cottage-taupe','cottage-annex'])if(!houseAssets.has(key))throw Error('Missing V62 house model: '+key);
 
  foliageGltf.scene.updateMatrixWorld(true);
  foliageGltf.scene.traverse(mesh=>{
@@ -102,14 +102,14 @@ async function loadSmallIslandPropsUncached({scene,renderer,sample,variant},foli
   foliageAssets.set(mesh.name,{geometry,material:finishFoliageMaterial(mesh.material,geometry,mesh.name),
    triangles:(geometry.index?.count??geometry.attributes.position.count)/3});
  });
- for(const kind of ['tree','shrub'])for(const level of ['near','far'])if(!foliageAssets.has(kind+'-'+level))throw Error('V45 foliage modeli eksik');
+ for(const kind of ['tree','shrub'])for(const level of ['near','far'])if(!foliageAssets.has(kind+'-'+level))throw Error('Missing V45 foliage model');
 
  const transform=new THREE.Object3D();
  const rows=[...layout.houses,...layout.plants].map(p=>({...p}));
  for(const p of rows){
   const hit=sample(p.x,p.z);
-  if(!hit||hit.point.y<8.9)throw Error('Model kuru zemine oturmuyor: '+p.id);
-  if(Math.abs(p.y-(hit.point.y-.02))>.30)throw Error('Arazi yüksekliği değişti: '+p.id);
+  if(!hit||hit.point.y<8.9)throw Error('Model is not on dry ground: '+p.id);
+  if(Math.abs(p.y-(hit.point.y-.02))>.30)throw Error('Terrain height has changed: '+p.id);
  }
  function matrix(p){transform.position.set(p.x,p.y,p.z);transform.rotation.set(0,p.yaw,0);transform.scale.setScalar(p.scale);transform.updateMatrix();return transform.matrix;}
  function houseBatch(asset,part,list,partIndex){

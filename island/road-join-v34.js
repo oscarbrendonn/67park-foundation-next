@@ -5,17 +5,17 @@ import * as THREE from 'three';
 // No extra visible meshes, textures, render loops or geometry work per frame.
 export function applyRoadJoin(root,patch){
   if(root.userData.roadJoinVersion===34)return root.userData.roadJoinReport;
-  if(patch.version!==34)throw Error('Yol birlesimi veri surumu uyusmuyor');
+  if(patch.version!==34)throw Error('Road-join data version mismatch');
   const targets=[];
   for(const [name,data]of Object.entries(patch.meshes)){
     const mesh=root.getObjectByName(name),old=mesh?.geometry;
     if(!mesh?.isMesh||old.attributes.position.count!==data.expectedVertices||old.index?.count!==data.expectedIndices)
-      throw Error('Yol birlesimi kaynak geometri uyusmuyor: '+name);
+      throw Error('Road-join source geometry mismatch: '+name);
     const count=data.add.position.length/3;
-    if(!Number.isInteger(count)||count%3)throw Error('Eksik yol ucgeni: '+name);
+    if(!Number.isInteger(count)||count%3)throw Error('Missing road triangle: '+name);
     for(const [key,a]of Object.entries(old.attributes))
-      if(data.add[key]?.length!==count*a.itemSize||!data.add[key].every(Number.isFinite))throw Error('Yol yuzeyi verisi gecersiz: '+name+'/'+key);
-    if(data.removeFaces.some((v,i,a)=>!Number.isInteger(v)||v<0||v>=old.index.count/3||(i&&v<=a[i-1])))throw Error('Yol yuzeyi secimi gecersiz');
+      if(data.add[key]?.length!==count*a.itemSize||!data.add[key].every(Number.isFinite))throw Error('Invalid road-surface data: '+name+'/'+key);
+    if(data.removeFaces.some((v,i,a)=>!Number.isInteger(v)||v<0||v>=old.index.count/3||(i&&v<=a[i-1])))throw Error('Invalid road-surface selection');
     targets.push({mesh,old,data,count});
   }
   let delta=0;

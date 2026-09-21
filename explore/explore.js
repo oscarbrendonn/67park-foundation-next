@@ -171,7 +171,7 @@ function setAerial(value) {
   const zoom = $("map-zoom");
   if (zoom) zoom.hidden = !value;
   const hint = document.querySelector(".hint");
-  if (hint) hint.textContent = value ? "Kayd\u0131r \xB7 \u0130ki parmakla yak\u0131nla\u015Ft\u0131r" : "S\xFCr\xFCkle ve etraf\u0131na bak";
+  if (hint) hint.textContent = value ? "Pan · Pinch to zoom" : "Drag to look around";
 }
 var viewport = () => ({ width: canvas.clientWidth, height: canvas.clientHeight, fov: camera.fov });
 function updateMapLimits() {
@@ -337,7 +337,7 @@ function fail(error) {
   $("loading").hidden = false;
   $("controls").hidden = true;
   $("overview").disabled = $("street").disabled = true;
-  $("stage").textContent = "Harita a\xE7\u0131lamad\u0131. Ba\u011Flant\u0131n\u0131 kontrol edip yeniden deneyebilirsin.";
+  $("stage").textContent = "The map could not load. Check your connection and try again.";
   $("retry").hidden = false;
   window.__exploreErrors.push(String(error?.message ?? error));
 }
@@ -386,11 +386,11 @@ document.addEventListener("visibilitychange", () => {
   last = 0;
   if (!document.hidden && ready) frame = requestAnimationFrame(tick);
 });
-var stageLabels = ["Harita a\xE7\u0131l\u0131yor\u2026", "Ada indiriliyor\u2026", "Zemin ve yollar haz\u0131rlan\u0131yor\u2026", "Park a\u011Fa\xE7lar\u0131 haz\u0131rlan\u0131yor\u2026", "Mahalle haz\u0131rlan\u0131yor\u2026", "Merkez meydan haz\u0131rlan\u0131yor\u2026", "\u0130skeleler haz\u0131rlan\u0131yor\u2026", "Lunapark haz\u0131rlan\u0131yor\u2026", "Bah\xE7e haz\u0131rlan\u0131yor\u2026", "Spor alanlar\u0131 haz\u0131rlan\u0131yor\u2026", "Stadyum ve sahil haz\u0131rlan\u0131yor\u2026", "Evler haz\u0131rlan\u0131yor\u2026", "Havuz haz\u0131rlan\u0131yor\u2026", "Mahalle tamamlan\u0131yor\u2026", "G\xF6r\xFCnt\xFC haz\u0131rlan\u0131yor\u2026"];
+var stageLabels = ["Opening the map…","Downloading the island…","Preparing the ground and roads…","Preparing the park trees…","Preparing the neighbourhood…","Preparing the central plaza…","Preparing the docks…","Preparing the amusement park…","Preparing the garden…","Preparing the sports areas…","Preparing the stadium and coast…","Preparing the homes…","Preparing the pool…","Finishing the neighbourhood…","Preparing the scene…"];
 var unsubscribe = subscribeEntry(() => {
   const state = entrySnapshot();
   $("progress").value = state.progress || 0;
-  $("stage").textContent = stageLabels[state.step] ?? "Son haz\u0131rl\u0131klar\u2026";
+  $("stage").textContent = stageLabels[state.step] ?? "Finishing up…";
   if (state.status === "error") fail(new Error(state.error));
 });
 beginEntry({ restart: true });
@@ -400,9 +400,9 @@ try {
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   resize();
-  const { createIslandRuntime } = await import("/67park-foundation-next/island/runtime.bundle.js?v=coaster-rail-finish-1");
+  const { createIslandRuntime } = await import("/67park-foundation-next/island/runtime.bundle.js?v=english-ui-1");
   world = await createIslandRuntime({ renderer, sahne: scene, kam: camera });
-  if (failed || entrySnapshot().status === "error") throw Error(entrySnapshot().error || "Harita y\xFCklenemedi");
+  if (failed || entrySnapshot().status === "error") throw Error(entrySnapshot().error || "The map could not load");
   box = new THREE.Box3().setFromObject(world.terrain);
   bounds.minX = box.min.x - 35;
   bounds.maxX = box.max.x + 35;

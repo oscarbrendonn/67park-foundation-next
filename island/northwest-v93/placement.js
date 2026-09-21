@@ -8,7 +8,7 @@ import {createCityHeightSampler58} from '../city-height-sampler58.js';
 export async function loadNorthwest93({scene,renderer,sample,variant}){
  const group=new T.Group();group.name='NORTHWEST_MODEL_PREVIEW_V93';
  const exposure={value:1},materials=new Map(),opaque=[],placements=[],loader=new GLTFLoader();
- const ground=(x,z)=>{const h=sample(x,z);if(!h||!/CIMEN/.test(h.object.name))throw Error('NW93 model çim dışında: '+x+','+z+' '+h?.object.name);return h.point.y;};
+ const ground=(x,z)=>{const h=sample(x,z);if(!h||!/CIMEN/.test(h.object.name))throw Error('NW93 model is outside the grass: '+x+','+z+' '+h?.object.name);return h.point.y;};
  function finish(model){model.traverse(m=>{if(!m.isMesh)return;if(!materials.has(m.material))materials.set(m.material,finishHouseMaterial62(m.material,exposure));const f=materials.get(m.material);m.material=f.material;m.castShadow=!f.glass;m.receiveShadow=!f.glass;m.userData.safeShadowCaster=!f.glass;if(!f.glass)opaque.push(m);});}
  const road=(await loader.loadAsync('/67park-foundation-next/island/northwest-v93/track.glb?v=93.2')).scene;
  road.name='NW93 unbroken curved track';road.position.set(-132,0,-208);
