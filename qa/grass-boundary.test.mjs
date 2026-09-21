@@ -59,8 +59,8 @@ test('published loader runs the contour repair before the final terrain sampler'
   assert(s.indexOf('dataset.grassBoundary1=')>s.indexOf('applyTerrainBoundaries('));
  }
  const main=fs.readFileSync(new URL('../app/main.js',import.meta.url),'utf8');
- assert(main.includes('runtime.bundle.js?v=map-edge-finish-1'));
- assert(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('app/main.js?v=map-edge-finish-1'));
+ assert(main.includes('runtime.bundle.js?v=sidewalk-materials-1'));
+ assert(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('app/main.js?v=sidewalk-materials-1'));
 });
 
 test('live geometry: no sand opening, height discontinuity or material change', {skip:!process.env.GRASS_FIXTURE},async()=>{
