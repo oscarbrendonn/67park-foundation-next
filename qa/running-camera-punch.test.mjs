@@ -40,8 +40,14 @@ test('reduced motion keeps fixed shape and gentle fade; disabled feel suppresses
  enabled=false;burst.update(.01,camera);assert.equal(burst.mesh.visible,false);assert.equal(burst.trigger({x:0,y:0,z:0},0),false);burst.dispose();
  const geometry=punchBurstGeometry();assert(geometry.attributes.position.array.every(Number.isFinite));geometry.dispose();
 });
-test('non-running game input, car racing, balloon, rockets and sports are unchanged',()=>{
+test('non-running camera/input remain unchanged apart from character roster cache keys',()=>{
+ const normalizeEntry=source=>{
+  const match=source.match(/<script type="importmap">([\s\S]*?)<\/script>/);
+  if(match){const map=JSON.parse(match[1]);for(const key of Object.keys(map.imports))if(key.split('?')[0]==='/67park-foundation-next/balloon/chunk-U4P5F7P3.js')delete map.imports[key];source=source.replace(match[1],JSON.stringify(map));}
+  return source.replace(/(\.\/(?:race|rockets|sports)\.js\?v=)(?:online-next-1|gorilla-only-1)/g,'$1CHARACTER_REVISION');
+ };
  for(const file of ['app/minigame-input.js','balloon/player-input.js','race/rally-orbit.js','race/index.html','balloon/index.html','rockets/index.html','sports/index.html']){
-  assert.equal(fs.readFileSync(file,'utf8'),execFileSync('git',['show',`HEAD:${file}`],{encoding:'utf8'}),file);
+  const actual=fs.readFileSync(file,'utf8'),before=execFileSync('git',['show',`HEAD:${file}`],{encoding:'utf8'});
+  assert.equal(file.endsWith('.html')?normalizeEntry(actual):actual,file.endsWith('.html')?normalizeEntry(before):before,file);
  }
 });

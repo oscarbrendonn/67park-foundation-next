@@ -19,13 +19,13 @@ test('camera preparation completes before the world is returned, with one shared
  assert(main.includes('runtime.bundle.js?v='+runtimeRevision));
  assert(read('qa/plaza-climb.browser.cjs').includes('claude-gorilla-runtime.js?v='+revision),'plaza controller observer must import the same runtime singleton as main');
  assert(read('app/party/party-pack.js').includes('./party-audio.js?v=vehicle-feedback-1'));
- assert(read('index.html').includes('app/main.js?v=park-animals-solid-1'));
+ assert(read('index.html').includes('app/main.js?v=gorilla-only-1'));
  assert(read('index.html').includes('app/party/party-pack.js?v=vehicle-feedback-1'));
  assert(read('index.html').includes('__partyConfig={runtime:"'+revision+'"'));
  assert(read('explore/index.html').includes('explore.js?v='+runtimeRevision));
  assert(read('explore/explore.js').includes('runtime.bundle.js?v='+runtimeRevision));
  const imports=JSON.parse(read('index.html').match(/<script type="importmap">([\s\S]*?)<\/script>/)[1]).imports;
- for(const key of ['chunk-G7D6MVRW.js','chunk-G7D6MVRW.js?v=online-next-1'])assert.equal(imports['/67park-foundation-next/app/'+key],'/67park-foundation-next/app/chunk-G7D6MVRW.js?v='+revision);
+ for(const key of ['chunk-G7D6MVRW.js','chunk-G7D6MVRW.js?v=online-next-1','chunk-G7D6MVRW.js?v='+revision])assert.equal(imports['/67park-foundation-next/app/'+key],'/67park-foundation-next/app/chunk-G7D6MVRW.js?v=gorilla-only-1');
  for(const file of ['index.html','play/index.html','balloon/index.html','race/index.html','rockets/index.html','sports/index.html','lane-rush/index.html','skybound-soft/index.html','explore/index.html','overview/index.html','style-studio/index.html']){
   const html=read(file),match=html.match(/<script type="importmap">([\s\S]*?)<\/script>/);if(!match)continue;
   const map=JSON.parse(match[1]).imports,path='/67park-foundation-next/app/connection-recovery.js';

@@ -41,7 +41,7 @@ jobs:
         run: sudo apt-get install -y libgl1-mesa-dri libegl-mesa0 libglx-mesa0 mesa-utils xvfb
       - run: npm test
       - name: Release profile and changed-feature unit checks
-        run: node --import ./qa/register-three.mjs --test qa/release-profile.test.mjs qa/running-camera-punch.test.mjs qa/camera-touch-zoom.test.mjs
+        run: node --import ./qa/register-three.mjs --test qa/release-profile.test.mjs qa/running-camera-punch.test.mjs qa/camera-touch-zoom.test.mjs qa/playable-character.test.mjs qa/studio-catalog.test.mjs
       - name: Chat spam, safety, reconnect, 100 home transitions, asset retry and mobile soak
         if: env.RUN_FULL_BROWSER_TESTS == 'true'
         run: xvfb-run -a -s "-screen 0 1280x1024x24" npm run test:browser
