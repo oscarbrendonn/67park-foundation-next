@@ -95,6 +95,7 @@ async function run(mobile){
   }
   await require('./skate-camera.browser.cjs')(page,{mobile,check});
   await require('./recovery-graphics.browser.cjs')(page,{mobile,check});
+  await require('./water-immersion.browser.cjs')(page,{mobile,check});
   await require('./wardrobe-recovery.browser.cjs')(page,{mobile,check});
   if(softwareRender){
    await page.waitForFunction(()=>__islandWorld.renderer.getPixelRatio()===.25);

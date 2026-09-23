@@ -1,4 +1,4 @@
-import{applyParkWaterSurface}from'./park-water-surface.js?v=park-water-4';
+import{applyParkWaterSurface}from'./park-water-surface.js?v=park-water-5-all-swim';
 const notice=document.createElement('aside');
 notice.id='github-preview-notice';notice.setAttribute('role','status');notice.textContent='Online test · Connecting…';
 const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href=new URL('./responsive-shell.css?v=mobile-29',import.meta.url).href;document.head.append(sheet);document.body.append(notice);
