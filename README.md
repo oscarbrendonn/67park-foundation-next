@@ -4,8 +4,9 @@ Independent continuation of the tested foundation, camera and movement work.
 
 Repository: https://github.com/oscarbrendonn/67park-foundation-next
 
-The new game URL is not a verified online release until the required foundation
-gate, Pages deployment and live backend checks all pass. The old temporary
+The new game URL is not a verified release until the selected checks, Pages
+deployment and the changed-scope live verification pass. A short-profile release
+is not a new full-game or multiplayer certification. The old temporary
 backend was unreachable during the September 20 movement fix. With explicit
 user approval, a separate free test backend and temporary tunnel were restored;
 a green source push alone is not evidence of a working public game.
@@ -44,6 +45,25 @@ separate browser-storage keys in this fork.
   contact sounds on successful grab, throw, hit, jump and landing events.
 
 ## Verification
+
+### Temporary short publication profile (23 September 2026)
+
+At the user's explicit request, automatic main pushes temporarily run dependency
+audit, the existing fast unit checks, and focused camera/punch/release-profile
+units before Pages deployment. They **do not** install a browser/OpenGL renderer
+or run the long browser suite, 100 home transitions, or 15-minute mobile soak.
+The complete tests and their acceptance thresholds are retained unchanged.
+
+To run full checks for one release, use the workflow's **Run workflow** action and
+select **full_regression**. To restore full checks on every push later, set the
+repository Actions variable **PARK_FULL_REGRESSION** to the exact value **true**.
+Unset or **false** means the short profile. Deployment still depends on the
+selected checks succeeding; a failed check is never ignored. No running job is
+cancelled or restarted by changing this profile.
+
+This section supersedes older notes that made a full browser pass mandatory for
+every intermediate release. It does not retroactively certify previously failed
+tests or remove the need to inspect the changed feature before publication.
 
 See [RECOVERY-GRAPHICS-QA.md](RECOVERY-GRAPHICS-QA.md) for connection recovery,
 working graphics levels, camera changes, acceptance results and remaining real

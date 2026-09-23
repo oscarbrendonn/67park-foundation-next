@@ -1,0 +1,14 @@
+#running-camera-settings{position:fixed;right:max(16px,env(safe-area-inset-right));top:calc(76px + env(safe-area-inset-top));z-index:90;padding:12px 18px;min-height:44px;border:2px solid #fff;border-radius:22px;background:#fff9ed;color:#514654;box-shadow:0 3px 0 #a89dab66;font:650 14px system-ui;touch-action:manipulation;cursor:pointer}
+#running-camera-dialog{box-sizing:border-box;width:min(420px,calc(100% - 28px));max-height:calc(100dvh - 32px);overflow:auto;padding:22px;border:2px solid #fff;border-radius:24px;background:#fffaf1;color:#514654;font:14px/1.5 system-ui;overscroll-behavior:contain;touch-action:pan-y}
+#running-camera-dialog::backdrop{background:#29263366}
+#running-camera-dialog header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#running-camera-dialog h2{margin:0;font-size:22px;letter-spacing:-.03em}
+#running-camera-dialog button{min-height:44px;min-width:44px;padding:10px 14px;border:1px solid #e1d3cf;border-radius:14px;background:#fff;color:inherit;font:650 14px system-ui;cursor:pointer}
+#running-camera-dialog button[data-action=first]{background:#f7d1e1}
+#running-camera-dialog label{display:block;margin-top:18px;font-weight:600}
+#running-camera-dialog output{float:right;font-variant-numeric:tabular-nums;color:#856a82}
+#running-camera-dialog input{display:block;width:100%;min-height:44px;margin:0;accent-color:#d878a0}
+#running-camera-dialog .camera-actions{display:flex;gap:8px;flex-wrap:wrap}
+#running-camera-dialog [role=status]{font-size:12px;color:#756b71}
+#running-camera-dialog :focus-visible,#running-camera-settings:focus-visible{outline:3px solid #658ca8;outline-offset:3px}
+@media(max-width:600px){#running-camera-settings{top:calc(150px + env(safe-area-inset-top))}}

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 const revision='skate-corner-recovery-1';
 const geometryRevision='curb-touch-finish-1';
-const runtimeRevision='photo-surfaces-1';
+const runtimeRevision='park-animals-solid-1';
 const recoveryRevision='recovery-visibility-2';
 test('camera preparation completes before the world is returned, with one shared module instance',()=>{
  for(const file of ['island/runtime.js','island/runtime.bundle.js']){
@@ -19,7 +19,7 @@ test('camera preparation completes before the world is returned, with one shared
  assert(main.includes('runtime.bundle.js?v='+runtimeRevision));
  assert(read('qa/plaza-climb.browser.cjs').includes('claude-gorilla-runtime.js?v='+revision),'plaza controller observer must import the same runtime singleton as main');
  assert(read('app/party/party-pack.js').includes('./party-audio.js?v=vehicle-feedback-1'));
- assert(read('index.html').includes('app/main.js?v=camera-touch-1'));
+ assert(read('index.html').includes('app/main.js?v=park-animals-solid-1'));
  assert(read('index.html').includes('app/party/party-pack.js?v=vehicle-feedback-1'));
  assert(read('index.html').includes('__partyConfig={runtime:"'+revision+'"'));
  assert(read('explore/index.html').includes('explore.js?v='+runtimeRevision));

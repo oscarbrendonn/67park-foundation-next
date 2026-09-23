@@ -1,6 +1,7 @@
 {
   "version": 57,
-  "scope": "same reference park ensemble on both maps; approved foliage meshes unchanged",
+  "scope": "Four facing park animals; approved foliage and other placements unchanged",
+  "animalDisplayRevision": 1,
   "props": [
     {
       "id": "platform",
@@ -18,10 +19,10 @@
     {
       "id": "bull-north",
       "asset": "toy-bull-orange",
-      "x": 139.3,
-      "z": 41.5,
-      "scale": 2.1,
-      "yaw": -0.3,
+      "x": 135.505,
+      "z": 43.202,
+      "scale": 1.95,
+      "yaw": 0,
       "zone": "sculpture",
       "footprint": [
         3.4,
@@ -31,10 +32,10 @@
     {
       "id": "bull-west",
       "asset": "toy-bull-orange",
-      "x": 133.1,
-      "z": 48.2,
-      "scale": 1.8,
-      "yaw": -0.8,
+      "x": 135.505,
+      "z": 50.802,
+      "scale": 1.95,
+      "yaw": 0,
       "zone": "sculpture",
       "footprint": [
         3.4,
@@ -42,29 +43,29 @@
       ]
     },
     {
-      "id": "pink-friend",
-      "asset": "toy-figure-pink",
-      "x": 146.9,
-      "z": 49.4,
-      "scale": 2.15,
-      "yaw": -0.35,
+      "id": "elephant-yellow",
+      "asset": "toy-elephant-yellow",
+      "x": 146.34,
+      "z": 43.202,
+      "scale": 2.04,
+      "yaw": 3.141592653589793,
       "zone": "sculpture",
       "footprint": [
-        2.3,
-        1.0
+        1.96,
+        0.867
       ]
     },
     {
-      "id": "pink-ball",
-      "asset": "toy-ball-pink",
-      "x": 138.7,
-      "z": 54.3,
-      "scale": 2.1,
-      "yaw": 0,
+      "id": "elephant-pink",
+      "asset": "toy-elephant-pink",
+      "x": 146.34,
+      "z": 50.802,
+      "scale": 2.04,
+      "yaw": 3.141592653589793,
       "zone": "sculpture",
       "footprint": [
-        0.55,
-        0.55
+        1.96,
+        0.867
       ]
     },
     {

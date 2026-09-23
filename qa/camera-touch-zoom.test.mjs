@@ -63,7 +63,10 @@ test('game entries resolve camera and party runtime aliases to the same updated 
   const source=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
   const map=JSON.parse(source.match(/<script type="importmap">([\s\S]*?)<\/script>/)[1]).imports;
   const runtime='/67park-foundation-next/app/claude-gorilla-runtime.js';
-  for(const suffix of ['','?v=skate-corner-recovery-1','?v=camera-touch-1','?v=camera-touch-2'])assert.equal(map[runtime+suffix],runtime+'?v=camera-touch-2');
+  // Only the park/explore entries opt into the cosmetic punch burst. Other
+  // games keep their entry modules and input scope; aliases stay singletons.
+  const revision=['index.html','explore/index.html'].includes(file)?'punch-burst-1':'camera-touch-2';
+  for(const suffix of ['','?v=skate-corner-recovery-1','?v=camera-touch-1','?v=camera-touch-2'])assert.equal(map[runtime+suffix],runtime+'?v='+revision);
   assert.equal(map['/67park-foundation-next/app/feel-camera.js'],'/67park-foundation-next/app/feel-camera.js?v=camera-touch-1');
   for(const suffix of ['','?v=foundation-basics-1','?v=recovery-graphics-1','?v=camera-settings-1'])assert.equal(map['/67park-foundation-next/app/player-settings.js'+suffix],'/67park-foundation-next/app/player-settings.js?v=camera-settings-1');
   assert.equal(map['/67park-foundation-next/app/party/settings-panel.js?v=recovery-graphics-1'],'/67park-foundation-next/app/party/settings-panel.js?v=camera-settings-1');

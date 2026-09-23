@@ -1,8 +1,14 @@
-name: Foundation gate and Pages
+name: Short checks and Pages
 on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      full_regression:
+        description: Run the full browser suite and 15-minute mobile soak before publishing
+        type: boolean
+        required: false
+        default: false
 permissions:
   contents: read
   pages: write
@@ -12,9 +18,12 @@ concurrency:
   cancel-in-progress: true
 jobs:
   regression:
+    name: Short checks (full browser suite is opt-in)
     runs-on: ubuntu-24.04
-    # The added real-input roof/plaza routes run on the CPU-only browser too.
-    # Keep every test and the full 15-minute mobile soak mandatory.
+    # Temporarily opt-in at the user's request. Restore automatic full coverage
+    # by setting the repository variable PARK_FULL_REGRESSION to true.
+    env:
+      RUN_FULL_BROWSER_TESTS: ${{ vars.PARK_FULL_REGRESSION == 'true' || inputs.full_regression == true }}
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -24,11 +33,17 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - run: npm audit --audit-level=high
-      - run: npx playwright install --with-deps chromium
+      - name: Install browser only for the full suite
+        if: env.RUN_FULL_BROWSER_TESTS == 'true'
+        run: npx playwright install --with-deps chromium
       - name: Install CPU OpenGL test renderer
+        if: env.RUN_FULL_BROWSER_TESTS == 'true'
         run: sudo apt-get install -y libgl1-mesa-dri libegl-mesa0 libglx-mesa0 mesa-utils xvfb
       - run: npm test
+      - name: Release profile and changed-feature unit checks
+        run: node --import ./qa/register-three.mjs --test qa/release-profile.test.mjs qa/running-camera-punch.test.mjs qa/camera-touch-zoom.test.mjs
       - name: Chat spam, safety, reconnect, 100 home transitions, asset retry and mobile soak
+        if: env.RUN_FULL_BROWSER_TESTS == 'true'
         run: xvfb-run -a -s "-screen 0 1280x1024x24" npm run test:browser
         env:
           PARK_SOAK_MS: '900000'
@@ -54,6 +69,6 @@ jobs:
       name: github-pages
       url: ${{ steps.publish.outputs.page_url }}
     steps:
-      - name: Publish only after regression passes
+      - name: Publish after selected checks pass
         id: publish
         uses: actions/deploy-pages@v4

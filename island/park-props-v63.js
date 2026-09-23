@@ -11,9 +11,9 @@ const isWater=h=>!h||/GOLET.*SU|WATER|DENIZ|^1_TABAN/.test(h.object?.name??'');
 export async function loadParkProps63({scene,renderer,sample,variant}){
  const loader=new GLTFLoader();
  const [furniture,lowerBridge,toys,foliage,layout]=await Promise.all([
-  loader.loadAsync('./park-furniture-v57.glb?v=1'),loader.loadAsync('./park-lower-bridge-v63.glb?v=anchor2'),loader.loadAsync('./park-toys-v57.glb?v=1'),
+  loader.loadAsync('./park-furniture-v57.glb?v=1'),loader.loadAsync('./park-lower-bridge-v63.glb?v=anchor2'),loader.loadAsync('./park-animals-1.glb?v=animals-1'),
   loader.loadAsync('./small-island-props-v45.glb?v=round1'),
-  fetch('./park-layout-v57.json?v=1').then(r=>{if(!r.ok)throw Error('Park layout unavailable');return r.json();})
+  fetch('./park-layout-v57.json?v=animals-1').then(r=>{if(!r.ok)throw Error('Park layout unavailable');return r.json();})
  ]);
  if(layout.version!==57||layout.props.length!==31)throw Error('Park layout version mismatch');
  const lowerLayout=layout.props.find(p=>p.id==='lower-bridge'&&p.asset==='bridge-lower');
@@ -100,7 +100,9 @@ export async function loadParkProps63({scene,renderer,sample,variant}){
   }
   return y;
  }
- const colliders=rows.filter(p=>!['plinth','bridge','sculpture'].includes(p.zone)&&p.asset!=='shrub').map(p=>{
+ // Sculptures are solid props too. Use the rendered asset's rotated/scaled
+ // bounds, just like furniture; never block the whole display platform.
+ const colliders=rows.filter(p=>!['plinth','bridge'].includes(p.zone)&&p.asset!=='shrub').map(p=>{
   const asset=assets.get(isPlant(p)?p.asset+'-far':p.asset),b=asset.bounds;
   return {...p,c:Math.cos(p.yaw),s:Math.sin(p.yaw),minX:b.min.x*p.scale,maxX:b.max.x*p.scale,minZ:b.min.z*p.scale,maxZ:b.max.z*p.scale,top:p.y+b.max.y*p.scale,radius:p.asset==='tree'?.4*p.scale:null};
  });

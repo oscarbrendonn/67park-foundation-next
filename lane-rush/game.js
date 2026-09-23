@@ -4,8 +4,11 @@ const feelFeedback=createMinigameFeedback();
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {i as createCharacter,f as equipment} from '../balloon/chunk-U4P5F7P3.js';
-import {bindMinigameLook,bindHeldAction} from '../app/minigame-input.js';
-import {CHARACTER_CONTROL as profile,characterDirection,characterCameraPose} from '../app/character-control-profile.js';
+import {bindHeldAction} from '../app/minigame-input.js';
+import {bindRunningLook,createRunningCamera} from '../app/running-camera.js?v=running-camera-1';
+import {installRunningCameraSettings} from '../app/running-camera-settings.js?v=running-camera-1';
+import {settingsOpen} from '../app/player-settings.js';
+import {CHARACTER_CONTROL as profile,characterDirection} from '../app/character-control-profile.js';
 import {poseCarryHands} from '../app/carry-hand-pose.js?v=carry-hands-1';
 
 const $=s=>document.querySelector(s),canvas=$('#game'),placeEl=$('#place'),timerEl=$('#timer'),hint=$('#hint'),countdown=$('#countdown'),restart=$('#restart');
@@ -25,10 +28,13 @@ box(22,.12,1.1,'#fff',0,.12,-112);for(let x=-10;x<10;x+=2)box(1.05,.14,1.2,((x+1
 
 
 const keys=new Set(),touch={x:0,z:0};let phase='loading',elapsed=0,raceTime=0,worldTime=0,frameNumber=0,cameraYaw=0,cameraPitch=profile.pitch,stickPointer=null,actionPending=false,actionCooldown=0,jumpUntil=0;
-const look=bindMinigameLook(canvas,()=>phase==='racing'||phase==='ready');
+const runningCamera=createRunningCamera();
+const look=bindRunningLook(canvas,()=>phase==='racing'||phase==='ready',(yaw,pitch)=>{cameraYaw+=yaw;cameraPitch=THREE.MathUtils.clamp(cameraPitch+pitch,-.15,1.05);});
+installRunningCameraSettings();
 const jump=bindHeldAction($('#jump')),sprint=bindHeldAction($('#sprint'));
 const start=$('#start'),stick=$('#stick'),knob=$('#knob');
-function clearInput(){keys.clear();touch.x=touch.z=0;stickPointer=null;knob.style.transform='translate(0,0)';jump.reset();sprint.reset();look.reset();actionPending=false;}
+function clearInput(){keys.clear();touch.x=touch.z=0;stickPointer=null;knob.style.transform='translate(0,0)';jump.reset();sprint.reset();look.reset();actionPending=false;jumpUntil=0;}
+addEventListener('park:release-controls',clearInput);
 addEventListener('blur',clearInput);document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput()});
 addEventListener('keydown',e=>{
  if(e.target.closest('input,textarea,select,[contenteditable="true"]'))return;
@@ -138,9 +144,9 @@ function resize(){renderer.setSize(innerWidth,innerHeight,false);camera.aspect=i
 const position=new THREE.Vector3(),clock=new THREE.Clock();
 function frame(){
  const dt=Math.min(.033,clock.getDelta());worldTime+=dt;frameNumber++;
- const delta=look.poll();cameraYaw+=delta.lookYaw;cameraPitch=THREE.MathUtils.clamp(cameraPitch-delta.lookPitch,.1,1.05);
- if(phase==='countdown'){elapsed+=dt;countdown.textContent=String(Math.max(1,3-Math.floor(elapsed)));if(elapsed>=3){phase='racing';countdown.classList.add('out');hint.textContent='WASD / joystick · Jump · Grab / throw';}}
- if(phase==='racing'){
+ runningCamera.restore();
+ if(phase==='countdown'&&!settingsOpen()){elapsed+=dt;countdown.textContent=String(Math.max(1,3-Math.floor(elapsed)));if(elapsed>=3){phase='racing';countdown.classList.add('out');hint.textContent='WASD / joystick · Jump · Grab / throw';}}
+ if(phase==='racing'&&!settingsOpen()){
   raceTime+=dt;actionCooldown=Math.max(0,actionCooldown-dt);
   for(const o of obstacles){if(o.kind==='slider')o.mesh.position.x=Math.sin(worldTime*o.speed+o.phase+o.row)*6.9;else o.mesh.rotation.y=worldTime*o.speed;}
   if(actionPending){actionPending=false;grab();}
@@ -165,13 +171,12 @@ function frame(){
  }
  for(const r of racers)poseCarryHands(r.root,r.carry?.root.position||null,r.root.rotation.y,dt);
  $('#grab span').textContent=player.carry?'THROW':'GRAB';
- const pose=characterCameraPose(player.root.position,cameraYaw,cameraPitch,profile.distance);
- camera.position.set(pose.position.x,pose.position.y,pose.position.z);camera.lookAt(pose.target.x,pose.target.y,pose.target.z);camera.updateMatrixWorld();
+ const view=runningCamera.update(camera,player.visual,player.root.position,cameraYaw,cameraPitch);camera.updateMatrixWorld();
  sun.position.set(player.root.position.x-22,38,player.root.position.z+20);sun.target.position.copy(player.root.position);
- for(const r of racers){position.copy(r.root.position);position.y+=r.labelHeight||1.5;position.project(camera);r.label.hidden=position.z>1||position.z< -1;r.label.style.transform=`translate(${(position.x*.5+.5)*innerWidth}px,${(-position.y*.5+.5)*innerHeight}px) translate(-50%,-100%)`;}
+ for(const r of racers){position.copy(r.root.position);position.y+=r.labelHeight||1.5;position.project(camera);r.label.hidden=(r===player&&view.avatarHidden)||position.z>1||position.z< -1;r.label.style.transform=`translate(${(position.x*.5+.5)*innerWidth}px,${(-position.y*.5+.5)*innerHeight}px) translate(-50%,-100%)`;}
  const sorted=[...racers].sort((a,b)=>a.finished&&b.finished?a.finishTime-b.finishTime:a.finished?-1:b.finished?1:a.root.position.z-b.root.position.z);
  placeEl.textContent=`${sorted.indexOf(player)+1} / 4`;timerEl.textContent=raceTime.toFixed(1)+'s';
  renderer.render(scene,camera);requestAnimationFrame(frame);
 }
-window.__rushReadState=()=>({phase,frames:frameNumber,time:raceTime,yaw:cameraYaw,player:{x:player.root.position.x,y:player.y,z:player.root.position.z,facing:player.root.rotation.y,carry:player.carry?.name,stun:player.stun},racers:racers.map(r=>({name:r.name,base:r.avatar?.root.userData.equipment?.base,clip:r.avatar?.animator.stats?.clip,x:r.root.position.x,y:r.root.position.y,carriedBy:r.carriedBy?.name,z:r.root.position.z,hands:r.root.userData.carryHands})),touch:{...touch}});
+window.__rushReadState=()=>({phase,frames:frameNumber,time:raceTime,yaw:cameraYaw,cameraSettings:camera.userData.runningCamera,otherAvatars:racers.slice(1).map(r=>r.visual.visible),player:{x:player.root.position.x,y:player.y,z:player.root.position.z,facing:player.root.rotation.y,carry:player.carry?.name,stun:player.stun},racers:racers.map(r=>({name:r.name,base:r.avatar?.root.userData.equipment?.base,clip:r.avatar?.animator.stats?.clip,x:r.root.position.x,y:r.root.position.y,carriedBy:r.carriedBy?.name,z:r.root.position.z,hands:r.root.userData.carryHands})),touch:{...touch}});
 countdown.textContent='Loading characters';frame();loadCharacters().catch(error=>{console.error(error);phase='error';countdown.textContent='Could not load characters';hint.textContent='Please reload to retry';restart.hidden=false;restart.textContent='Reload'});
