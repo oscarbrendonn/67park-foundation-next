@@ -142,7 +142,7 @@ async function run(mobile){
   });
   await check('1000 punch and interact events',()=>page.evaluate(()=>{for(let i=0;i<1000;i++){document.querySelector('#preview-hit')?.click();dispatchEvent(new KeyboardEvent('keydown',{code:'KeyE',bubbles:true}));dispatchEvent(new KeyboardEvent('keyup',{code:'KeyE',bubbles:true}));}}));
   await check('20 outfit changes and return from studio',async()=>{
-   await page.getByRole('button',{name:'Profile studio',exact:true}).click();
+   await page.getByRole('button',{name:'Profile studio',exact:true}).click();await page.getByRole('button',{name:'Choose & dress up',exact:true}).click();
    await page.getByRole('dialog',{name:'Style Studio',exact:true}).waitFor();
    for(let i=0;i<20;i++)await page.getByRole('button',{name:'Next shoes',exact:true}).click();
    await page.getByRole('button',{name:'Enter the park',exact:true}).click();

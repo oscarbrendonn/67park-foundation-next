@@ -25,7 +25,7 @@ const sceneItems=page=>page.evaluate(()=>{const items=[];window.__eggyScene?.tra
   await observer.waitForFunction(id=>window.__candyOnline?.data?.island?.players?.some(p=>p.id===id),actorId,{timeout:30000});
   await observer.waitForFunction(()=>{let n=0;window.__eggyScene?.traverse(o=>{if(typeof o.userData.studioEquipment==='string')n++});return n>=5},null,{timeout:30000});
   for(const page of pages){const items=await sceneItems(page);for(const id of Object.values(eq).filter(x=>typeof x==='string'&&x.includes(':')))assert(items.includes(id),'Rendered equipment missing: '+id)}
-  await actor.getByRole('button',{name:'Profile studio',exact:true}).click();
+  await actor.getByRole('button',{name:'Profile studio',exact:true}).click();await actor.getByRole('button',{name:'Choose & dress up',exact:true}).click();
   await actor.getByRole('dialog',{name:'Style Studio',exact:true}).waitFor();
   await actor.waitForTimeout(23000);
   assert(await observer.evaluate(id=>__candyOnline.data.island.players.some(p=>p.id===id&&p.connected),actorId),'Studio must retain social presence past disconnect grace');
@@ -34,7 +34,7 @@ const sceneItems=page=>page.evaluate(()=>{const items=[];window.__eggyScene?.tra
   await observer.waitForFunction(()=>{let found=false;window.__eggyScene?.traverse(o=>{if(o.userData.studioEquipment==='friendsie_1:3')found=true});return found},null,{timeout:30000});
   await actor.keyboard.down('KeyW');await actor.waitForTimeout(1000);await actor.keyboard.up('KeyW');await actor.waitForTimeout(200);
   await actor.screenshot({path:'/tmp/67park-studio-equipped-park.png'});
-  await observer.getByRole('button',{name:'Profile studio',exact:true}).click();await observer.getByRole('dialog',{name:'Style Studio',exact:true}).waitFor();
+  await observer.getByRole('button',{name:'Profile studio',exact:true}).click();await observer.getByRole('button',{name:'Choose & dress up',exact:true}).click();await observer.getByRole('dialog',{name:'Style Studio',exact:true}).waitFor();
   assert.equal(await observer.locator('.wardrobe-studio').getAttribute('data-selected-base'),'friendsie_1');
   await observer.getByRole('button',{name:'Next back',exact:true}).click();await observer.getByRole('button',{name:'Enter the park',exact:true}).click();await observer.locator('.wardrobe').waitFor({state:'hidden',timeout:180000});
   const sameId=await actor.evaluate(()=>__candyOnline.data.me.id);assert.equal(sameId,actorId);

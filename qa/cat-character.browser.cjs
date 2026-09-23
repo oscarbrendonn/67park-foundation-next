@@ -50,6 +50,7 @@ const equip={base:'cat67',body:null,head:null,sprout:null,back:null,kicks:null,h
    await page.evaluate(async()=>{const T=await import('three'),w=__islandWorld,previous=w.scene.onBeforeRender;w.scene.onBeforeRender=function(...args){previous?.apply(this,args);if(!window.__catFront)return;const p=__eggyInput.playerRef.body.translation();let rig;w.scene.traverse(o=>{if(o.userData.claudeGorillaAnimation?.base==='cat67'&&!o.userData.claudeRemoteCharacter)rig=o});if(!rig)return;const d=new T.Vector3(0,0,1).applyQuaternion(rig.getWorldQuaternion(new T.Quaternion()));w.camera.position.set(p.x+d.x*3.2,p.y+1.05,p.z+d.z*3.2);w.camera.lookAt(p.x,p.y+.3,p.z);w.camera.updateMatrixWorld(true)};window.__catFront=true});
    await page.screenshot({path:out+'/'+(mobile?'touch':'desktop')+'-park.png'});
    await click(page.getByRole('button',{name:'Profile studio',exact:true}));
+   await click(page.getByRole('button',{name:'Choose & dress up',exact:true}));
    await page.getByRole('dialog',{name:'Style Studio',exact:true}).waitFor();
    await click(page.getByRole('button',{name:'‹ Characters',exact:true}));
    const names=await page.locator('.wardrobe-options').innerText();assert(names.includes('Cat 67'));assert(names.includes('Gorilla 67'));assert(!names.includes('Buddy #'));

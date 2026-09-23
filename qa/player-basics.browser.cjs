@@ -62,7 +62,7 @@ const settings=p=>p.getByRole('button',{name:'Party settings',exact:true}).click
    await p.getByRole('button',{name:'Reset settings',exact:true}).click();
    assert.equal(await p.getByRole('slider',{name:'Sound effects',exact:true}).inputValue(),'80');
    assert.equal(await p.evaluate(()=>localStorage.getItem('67park-feel-lab.character.v3')),savedAvatar);
-   await p.keyboard.press('Escape');await p.getByRole('button',{name:'Profile studio',exact:true}).click();
+   await p.keyboard.press('Escape');await p.getByRole('button',{name:'Profile studio',exact:true}).click();await p.getByRole('button',{name:'Choose & dress up',exact:true}).click();
    await p.getByRole('dialog',{name:'Style Studio',exact:true}).waitFor();assert.equal(await p.locator('#party-settings-btn').isVisible(),false);
    assert.equal(new URL(p.url()).pathname,new URL(base).pathname);
    await p.getByRole('button',{name:'Enter the park',exact:true}).click();await ready(p);

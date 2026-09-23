@@ -19,7 +19,7 @@ const base=process.env.FEEL_URL||'http://127.0.0.1:8497/67park-foundation-next/'
   const after=await page.evaluate(()=>({...__eggyInput.playerRef.body.translation()}));
   assert(Math.hypot(after.x-before.x,after.z-before.z)>.3,'Movement must still work after outfit spam');
   for(let i=0;i<5;i++){
-   await page.getByRole('button',{name:'Profile studio',exact:true}).click();await page.getByRole('dialog',{name:'Style Studio',exact:true}).waitFor();
+   await page.getByRole('button',{name:'Profile studio',exact:true}).click();await page.getByRole('button',{name:'Choose & dress up',exact:true}).click();await page.getByRole('dialog',{name:'Style Studio',exact:true}).waitFor();
    await page.getByRole('button',{name:'Next back',exact:true}).click();await page.getByRole('button',{name:'Enter the park',exact:true}).click();await page.locator('.wardrobe').waitFor({state:'hidden',timeout:120000});
   }
   const stats=await page.evaluate(()=>({canvases:document.querySelectorAll('canvas').length,blocked:document.documentElement.hasAttribute('data-park-settings-open'),renderer:__islandWorld?.renderer?.info?.memory}));

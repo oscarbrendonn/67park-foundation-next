@@ -15,6 +15,7 @@ assert(url&&out,'Use an explicit versioned live URL and a separate evidence path
   report.avatar=await page.evaluate(()=>{let rig;__islandWorld.scene.traverse(o=>{if(o.userData.claudeGorillaAnimation?.base==='cat67'&&!o.userData.claudeRemoteCharacter)rig=o});const meshes=[];rig.traverse(o=>{if(o.isMesh)meshes.push({name:o.name,visible:o.visible})});return {base:document.documentElement.dataset.gameplayAvatarBase,meshes,bones:rig.getObjectByName('67Park_Cat_Head').skeleton.bones.length,equipment:JSON.parse(localStorage.getItem('67park-feel-lab.character.v3'))}});
   assert.equal(report.avatar.bones,20);assert.equal(report.avatar.meshes.length,4);assert(report.avatar.meshes.every(m=>m.visible));
   await page.getByRole('button',{name:'Profile studio',exact:true}).tap();
+  await page.getByRole('button',{name:'Choose & dress up',exact:true}).tap();
   await page.waitForFunction(()=>!document.querySelector('.wardrobe-model-status'));
   await page.screenshot({path:out+'/live-cat.png'});assert.deepEqual(report.errors,[]);report.pass=true;console.log('LIVE_CAT_PASS',JSON.stringify(report.avatar));
  }catch(error){report.failure=String(error);throw error;}

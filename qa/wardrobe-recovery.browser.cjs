@@ -2,7 +2,7 @@ const assert=require('node:assert/strict');
 
 module.exports=async function wardrobeRecovery(page,{mobile=false,check=async(_name,action)=>action()}={}){
  await check('wardrobe visible-resume redraw, Retry and disposal',async()=>{
-  await page.getByRole('button',{name:'Profile studio',exact:true}).click();
+  await page.getByRole('button',{name:'Profile studio',exact:true}).click();await page.getByRole('button',{name:'Choose & dress up',exact:true}).click();
   await page.getByRole('dialog',{name:'Style Studio',exact:true}).waitFor();
   await page.waitForFunction(()=>{
    const canvas=document.querySelector('canvas.wardrobe-avatar');
@@ -44,7 +44,7 @@ module.exports=async function wardrobeRecovery(page,{mobile=false,check=async(_n
   await page.waitForFunction(()=>__eggyNet.connected&&__candyOnline.data.connected,null,{timeout:30000});
   await page.locator('#park-connection-recovery').waitFor({state:'hidden',timeout:5000});
   console.log('WARDROBE_OFFLINE_CONTROLS_PASS',JSON.stringify({mobile}));
-  await page.getByRole('button',{name:'Profile studio',exact:true}).click();
+  await page.getByRole('button',{name:'Profile studio',exact:true}).click();await page.getByRole('button',{name:'Choose & dress up',exact:true}).click();
   await page.getByRole('dialog',{name:'Style Studio',exact:true}).waitFor();
   await page.waitForFunction(()=>document.querySelector('canvas.wardrobe-avatar')?.dataset.characterBase&&!document.querySelector('.wardrobe-model-status'),null,{timeout:30000});
   const resumed=await page.evaluate(async()=>{

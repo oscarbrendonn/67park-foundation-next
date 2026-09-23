@@ -23,6 +23,7 @@ const waitPark=page=>page.waitForFunction(()=>document.documentElement.dataset.g
     await waitPark(page);const eq=await saved(page);assert.equal(eq.base,'goril');assert.equal(eq.head,null);
     for(const k of ['body','back','kicks','sprout'])assert.equal(eq[k],old[k]);
     await click(page.getByRole('button',{name:'Profile studio',exact:true}));
+   await click(page.getByRole('button',{name:'Choose & dress up',exact:true}));
    }else{
     await page.getByRole('dialog',{name:'Character wardrobe',exact:true}).waitFor({timeout:60000});
     const names=await page.locator('.wardrobe-options').innerText();assert(names.includes('Gorilla 67'));assert(!names.includes('Buddy #'));

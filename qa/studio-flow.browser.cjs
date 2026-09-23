@@ -28,7 +28,7 @@ const errors=[];
    await page.reload({waitUntil:'domcontentloaded'});await waitPlaying(page);
    assert.deepEqual(await readEquip(page),eq,'Reload must preserve selected equipment');
    const identity=await page.evaluate(()=>window.__candyOnline?.data?.me?.id);
-   await page.getByRole('button',{name:'Profile studio',exact:true}).click();await page.getByRole('dialog',{name:'Style Studio',exact:true}).waitFor();
+   await page.getByRole('button',{name:'Profile studio',exact:true}).click();await page.getByRole('button',{name:'Choose & dress up',exact:true}).click();await page.getByRole('dialog',{name:'Style Studio',exact:true}).waitFor();
    assert.equal(new URL(page.url()).pathname,new URL(base).pathname,'Studio must not navigate away from the lobby');
    assert.equal(await page.evaluate(()=>window.__candyOnline?.data?.me?.id),identity);
    await page.getByRole('button',{name:'Next shoes',exact:true}).click();
