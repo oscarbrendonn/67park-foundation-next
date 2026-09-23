@@ -2,6 +2,7 @@ import {register} from 'node:module';
 import fs from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 register(new URL('./three-test-loader.mjs',import.meta.url));
 const T=await import('three');
 const {applyNorthHousingSurface}=await import('../app/north-housing-surface.js');
@@ -12,14 +13,35 @@ function fixture(){
  for(const r of patch.meshes){
   const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute([1000,9,0,1000,9,1,1001,9,0],3));
   g.setAttribute('normal',new T.Float32BufferAttribute([0,1,0,0,1,0,0,1,0],3));g.setAttribute('uv',new T.Float32BufferAttribute([0,0,0,1,1,0],2));
-  g.setIndex([0,1,2,0,1,2]);r.remove=[3];
-  r.expected={vertices:3,indices:6,positionCRC:crc(g.attributes.position.array),indexCRC:crc(Uint32Array.from(g.index.array))};
+  const soil=r.name==='4_KIYI_TOPRAK_TABANI';g.setIndex(soil?Array.from({length:633},(_,i)=>i%3):[0,1,2,0,1,2]);r.remove=soil?Array.from({length:210},(_,i)=>(i+1)*3):[3];
+  r.expected={vertices:3,indices:g.index.count,positionCRC:crc(g.attributes.position.array),indexCRC:crc(Uint32Array.from(g.index.array))};
   const mesh=new T.Mesh(g,material);mesh.name=r.name;root.add(mesh);
  }return {root,patch,material};
 }
-test('northern patch is two compact existing meshes, unchanged lawns and apartment plots',()=>{
+test('joined grass buffer is byte-identical to the approved previous release',()=>{
+ const grass=data.meshes.find(m=>m.name==='3_CIMEN');
+ assert.equal(createHash('sha256').update(JSON.stringify(grass)).digest('hex'),'c4e364d3fa220741c786e2a830d1d0551fc7357731a4e0b089aac3a9c7446e7d');
+});
+test('actual coastal triangle boundary follows the lawn at uniform width, including edge midpoints',()=>{
+ function boundary(row){
+  const edges=new Map();
+  for(let i=0;i<row.ix.length;i+=3){const ids=row.ix.slice(i,i+3);if(ids.some(j=>row.n[j*3+1]<.999))continue;
+   for(let k=0;k<3;k++){const a=ids[k],b=ids[(k+1)%3],key=[a,b].sort((a,b)=>a-b).join(',');if(edges.has(key))edges.delete(key);else edges.set(key,[a,b].map(j=>[row.p[j*3],row.p[j*3+2]]));}
+  }return [...edges.values()];
+ }
+ const grass=boundary(data.meshes.find(m=>m.name==='3_CIMEN')),coast=boundary(data.meshes.find(m=>m.name==='7_KALDIRIM_TABANI')).filter(e=>e.every(p=>p[1]<-220));
+ assert(coast.length>100);
+ for(const [a,b]of coast)for(const p of [a,b,[(a[0]+b[0])/2,(a[1]+b[1])/2]]){
+  const distance=Math.min(...grass.map(([q,r])=>{const dx=r[0]-q[0],dz=r[1]-q[1],t=Math.max(0,Math.min(1,((p[0]-q[0])*dx+(p[1]-q[1])*dz)/(dx*dx+dz*dz)));return Math.hypot(p[0]-q[0]-dx*t,p[1]-q[1]-dz*t)}));
+  assert(Math.abs(distance-4.34016)<.003,JSON.stringify({p,distance}));
+ }
+});
+test('northern patch reuses meshes and removes only covered coplanar soil; lawns and plots unchanged',()=>{
  assert.equal(data.metrics.existingGrassRemovedArea,0);assert.equal(data.metrics.reservedParcelChangedArea,0);
- assert.equal(data.metrics.triangleDelta,-452);assert.equal(data.metrics.addedMeshes,0);assert.equal(data.metrics.perFrameWork,0);
+ assert.equal(data.metrics.triangleDelta,-250);assert.equal(data.metrics.addedMeshes,0);assert.equal(data.metrics.perFrameWork,0);
+ assert.equal(data.metrics.removedCoplanarSoilTriangles,210);assert.equal(data.metrics.exteriorSoilChangedArea,0);
+ assert.equal(data.metrics.coastWalkwayWidth,4.34016);assert(data.metrics.coastWidthSamples>100);
+ assert(Math.abs(data.metrics.coastWidthMin-4.34016)<.003);assert(Math.abs(data.metrics.coastWidthMax-4.34016)<.003);
  for(const r of data.meshes)for(let i=0;i<r.ix.length;i+=3){
   const p=r.ix.slice(i,i+3).map(j=>new T.Vector3(...r.p.slice(j*3,j*3+3)));
   const n=p[1].clone().sub(p[0]).cross(p[2].clone().sub(p[0]));assert(n.length()>1e-10);
@@ -51,6 +73,6 @@ test('both runtimes apply after photo repair and before shadow refresh; public c
   const s=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');assert.equal(s.split('dataset.northHousingSurface1=').length,2);
   const i=s.indexOf('dataset.northHousingSurface1=');assert(i>s.indexOf('dataset.photoSurfaceFinish1='));assert(s.slice(i,i+750).includes('67D_SKATEPARK_BASE'));
  }
- for(const file of ['app/main.js','explore/explore.js'])assert(fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').includes('runtime.bundle.js?v=north-housing-1'));
- assert(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('app/main.js?v=north-housing-1'));
+ for(const file of ['app/main.js','explore/explore.js'])assert(fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').includes('runtime.bundle.js?v=north-housing-2'));
+ assert(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('app/main.js?v=north-housing-2'));
 });

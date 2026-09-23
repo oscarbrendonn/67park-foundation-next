@@ -9,6 +9,7 @@ import numpy as np
 import shapely
 from shapely import Polygon, Point, box, union_all, set_precision, constrained_delaunay_triangles
 from shapely.geometry.polygon import orient
+from shapely.ops import nearest_points
 
 source, destination = map(Path, sys.argv[1:3])
 meshes = {m['name']:m for m in json.loads(source.read_text())['meshes']}
@@ -39,21 +40,35 @@ grass_bridge=Polygon([(64.66048,-235.74118),(80.81157,-232.76522),
                       (84.04179,-218.44049),(61.43026,-218.44049)])
 new_grass=set_precision(union_all([old_grass,grass_bridge]),.00001)
 assert len(parts(new_grass))==1 and new_grass.covers(old_grass)
-# The front edge follows the existing inner curb exactly. The tapered rear
-# edge stays within the housing strip; the two outer sandy corners stay sand.
-infill=Polygon([(-3.38677,-236.41735),(0.95339,-236.41735),
- (64.13255,-237.51534),(81.27871,-235.67313),(132.98977,-218.44049),
- (144.51865,-216.43129),(148.33391,-215.0),(148.33391,-192.12653),
+# The previous union retained the old squared-off coastal tabs. Derive this
+# edge ONLY from the joined lawn, with a uniform round-offset promenade.
+# Width also meets the existing western inner curb without a narrow sand slit.
+coast_width=4.34016
+coast_band=new_grass.buffer(coast_width,quad_segs=24,join_style='round')
+# Front plaza remains joined to the exact authored curb. It is independent of
+# the coastal contour, so apartment plots and road boundaries cannot move.
+corner_radius=3.44049
+corner=[(148.33391-corner_radius+corner_radius*np.cos(a),-215+corner_radius*np.sin(a)) for a in np.linspace(-np.pi/2,0,25)]
+infill=Polygon([(-3.38677,-218.44049),*corner,(148.33391,-192.12653),
  (147.78192,-191.61547),(147.27087,-191.06350),(-2.32373,-191.06350),
  (-2.83478,-191.61547),(-3.38677,-192.12653)])
 carriers=footprint(triangles(meshes['7_KB_SPOR_CIM_TASIYICI']))
 parcels=[Polygon(p.exterior) for p in parts(carriers) if p.bounds[0]>0 and p.bounds[2]<145 and -217<p.bounds[1]<-215]
 assert len(parcels)==2
 reserved=union_all(parcels)
-new_paving=set_precision(union_all([old_paving,infill,new_grass]).difference(reserved),.00001)
-assert len(parts(new_paving))==1 and new_paving.is_valid
-assert old_paving.difference(new_paving).area<.0001
+new_paving=set_precision(union_all([coast_band,infill]).difference(reserved),.00001)
+assert len(parts(new_paving))==1 and new_paving.is_valid, [(p.area,p.bounds) for p in parts(new_paving)]
 assert new_paving.intersection(reserved).area==0
+# Check the actual coastal contour, not only the intended buffer argument.
+coast_samples=[Point(x,z) for x,z in new_paving.exterior.coords if z < -220]
+widths=[p.distance(new_grass) for p in coast_samples]
+assert len(widths)>100 and max(abs(w-coast_width) for w in widths)<.003
+coast_probe_candidates=[p for p in coast_samples if 1<p.x<130]
+coast_probes=[]
+for i in np.linspace(0,len(coast_probe_candidates)-1,16,dtype=int):
+    p=coast_probe_candidates[i];q=nearest_points(new_grass,p)[0]
+    dx,dz=(p.x-q.x)/coast_width,(p.y-q.y)/coast_width
+    coast_probes.append({'inside':[p.x-dx*.025,p.y-dz*.025], 'outside':[p.x+dx*.025,p.y+dz*.025]})
 for x,z in [(-3.8,-238),(72,-242),(145,-225),(154,-210),(-8,-220)]:
     assert not new_paving.covers(Point(x,z)), 'Keep sand or road outside the housing strip'
 for x,z in [(70,-225),(74,-203),(-2,-225),(-2,-200),(72,-195),(147,-205)]:
@@ -93,11 +108,29 @@ for name,mask,shape,top,bottom in [
         if key not in unique:unique[key]=len(p)//3;p.extend(a);n.extend(b)
         ix.append(unique[key])
     r.update(p=p,n=n,ix=ix);rows.append(r)
+# The old coast soil collar contains a flat cap exactly at pavement height.
+# All 210 affected faces lie wholly underneath the new pavement; remove only
+# these hidden faces, keeping every beach face and slope outside it unchanged.
+soil=meshes['4_KIYI_TOPRAK_TABANI'];st=triangles(soil);soil_remove=[];soil_area=0
+for i,v in enumerate(st):
+    if np.max(abs(v[:,1]-9.380085642765648))>1e-5:continue
+    poly=Polygon(v[:,[0,2]])
+    if poly.area<1e-10 or poly.intersection(new_paving).area<1e-9:continue
+    assert poly.difference(new_paving).area<1e-8, 'Never remove exposed beach'
+    soil_remove.append(i*3);soil_area+=poly.area
+assert soil_remove==list(range(864*3,1074*3,3))
+rows.append({'name':soil['name'],'remove':soil_remove,'p':[],'n':[],'ix':[],'expected':{
+ 'vertices':len(soil['p'])//3,'indices':len(soil['ix']),
+ 'positionCRC':f'{zlib.crc32(np.array(soil["p"],dtype="<f4").tobytes()):08x}',
+ 'indexCRC':f'{zlib.crc32(np.array(soil["ix"],dtype="<u4").tobytes()):08x}'}})
 metrics={'joinedLawns':2,'pavingAddedArea':new_paving.difference(old_paving).area,
+ 'removedCoplanarSoilTriangles':len(soil_remove),'coveredSoilArea':soil_area,'exteriorSoilChangedArea':0,
+ 'pavingRemovedArea':old_paving.difference(new_paving).area,
+ 'coastWalkwayWidth':coast_width,'coastWidthMin':min(widths),'coastWidthMax':max(widths),'coastWidthSamples':len(widths),
  'grassAddedArea':new_grass.difference(old_grass).area,'existingGrassRemovedArea':old_grass.difference(new_grass).area,
  'reservedParcelChangedArea':new_paving.intersection(reserved).area,'addedMeshes':0,'addedMaterials':0,'perFrameWork':0,
- 'bounds':[-3.38677,-240.48899,148.33391,-191.0635],
+ 'bounds':list(new_paving.bounds),
  'triangleDelta':sum(len(r['ix'])//3-len(r['remove']) for r in rows)}
 assert 800<metrics['pavingAddedArea']<2000 and 250<metrics['grassAddedArea']<400
-destination.write_text(json.dumps({'version':1,'metrics':metrics,'meshes':rows},separators=(',',':'))+'\n')
+destination.write_text(json.dumps({'version':1,'metrics':metrics,'coastProbes':coast_probes,'meshes':rows},separators=(',',':'))+'\n')
 print(json.dumps(metrics))
