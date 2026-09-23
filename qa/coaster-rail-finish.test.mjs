@@ -14,8 +14,8 @@ test('source and shipped bundle finish coaster rails before batching; entry cach
  const source=read('island/lunapark-placement-v77.js'),bundle=read('island/runtime.bundle.js');
  assert(source.indexOf('finishCoasterRails(source)')<source.indexOf('const bins=new Map()'));
  assert(bundle.includes('dataset.coasterRailFinish1=JSON.stringify(finishCoasterRails1(z))'));
- assert(read('app/main.js').includes('runtime.bundle.js?v=north-housing-7'));
- assert(read('index.html').includes('app/main.js?v=north-housing-7'));
+ assert(read('app/main.js').includes('runtime.bundle.js?v=north-housing-8'));
+ assert(read('index.html').includes('app/main.js?v=north-housing-8'));
 });
 test('only the two authored red rails change, with four rounded caps and zero new draw calls',()=>{
  assert.deepEqual(report,{version:1,rails:2,caps:4,addedTriangles:528,addedDraws:0,deckChanged:false});

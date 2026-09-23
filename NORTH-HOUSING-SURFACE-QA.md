@@ -1,5 +1,52 @@
 # Northern housing: joined pavement and grass
 
+## Revision 8 — western pool-side road tip, straight and closed
+
+The next user photo is the WEST road at x=-82.21576,z=-243.56441144,
+not the eastern housing road corrected in revisions 5-7. The original live
+inspection (`.qa-results/pool-west-end-inspect/`) shows a real shape defect:
+the inner 20 cm round stops before the road end, while the outer cap protrudes
+60 cm past it and forms a diagonal bulge/backtracking tooth.
+
+The existing pavement now ends on the actual western road's endpoint. Its
+inner road-facing corner is closed; the outer corner has one tangent convex
+16 cm return. There is no extra overlay or hidden coplanar cap. Road geometry,
+width and height, the pool deck/rim/water, materials and lighting are unchanged.
+
+- Change is bounded to x=[-82.217,-80.13],z=[-244.83,-243.0]; the baker asserts
+  zero footprint change outside that window. It removes 0.551741 m2 of bulge
+  and fills 0.009096 m2 at the inner end. Total triangle delta is -2096 versus
+  original geometry, 52 fewer than revision 7; no added meshes/draws/frame work.
+- Grass, retained soil, eastern road-end data and curb-removal data remain
+  byte-identical to revision 7. Unit tests pin grass/soil/road-end SHA-256 values.
+- New endpoint regression failed before the repair: original result retained
+  in `.qa-results/pool-west-end-regression-before.log`. The first bake also
+  stopped because the terrain export lacks `5_YOL`; its log is preserved in
+  `north-housing-west-bake-first.log`. The baker now explicitly takes the
+  separate unchanged road source export, rather than assuming it is present.
+- Reproduce with `python3 qa/bake-north-housing-surface.py
+  .qa-results/north-housing-source-with-soil.json
+  repairs/north-housing-surface-1.json .qa-results/north-road-source.json`, then
+  `python3 qa/bake-north-road-end.py .qa-results/north-road-source.json
+  repairs/north-housing-surface-1.json`.
+- `.qa-results/north-housing-8-unit.log`: 11/11 PASS. Focused unit log:
+  40 PASS, one existing optional-fixture skip, zero failures.
+- `.qa-results/north-housing-8-west-local.log`: desktop and touch emulation
+  each PASS, 156 probes, three views and zero errors. Probes cover inside/outside
+  the cap, both sides of the road/pavement join at 1 mm, and the convex arc.
+  `PARK_NORTH_WEST_ONLY=1` selects this narrow profile without removing old
+  assertions from the full northern profile.
+- Desktop low/top and touch top images were inspected. Clean diagnostic-only
+  HUD-hidden views in `north-housing-8-clean-local/` show the original reference
+  angle, straight overhead and low angle without UI covering the tip. The
+  bulge/notch and exposed gap at this join are absent; the normal raised
+  pavement step is retained. Hardware Chrome on Apple M4, not physical iPhone.
+
+Cache alias: `north-housing-8`. Only short checks and scoped visual verification;
+no full browser regression/soak or workflow changes. This is not proof that all
+map corners are flawless. The separately diagnosed white edge/relief streaks
+are not changed by this geometry-only revision.
+
 ## Revision 7 — equal road and pool parcel frontage
 
 The user identified unequal northern lengths in the palm-corner close-up.

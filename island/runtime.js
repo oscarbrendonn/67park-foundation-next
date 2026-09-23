@@ -1,4 +1,4 @@
-import {applyNorthHousingSurface} from '../app/north-housing-surface.js?v=north-housing-7';
+import {applyNorthHousingSurface} from '../app/north-housing-surface.js?v=north-housing-8';
 import {applyPhotoSurfaceFinish} from '../app/photo-surface-finish.js?v=photo-surfaces-1';
 import {applyParkEntryFinish} from '../app/park-entry-finish.js?v=park-entry-finish-1';
 import {installRideContacts} from './ride-contacts.js?v=ride-launch-sync-1';
@@ -1584,7 +1584,7 @@ await entryStage(13,'Finishing the northern neighbourhood');
   const stairGeometry=repairIslandStairs(kok);
   renderer.domElement.dataset.stairGeometry=JSON.stringify(stairGeometry.stats);
   zeminler=zeminler.filter(m=>!stairGeometry.nonWalkableNames.includes(m.name));
-  renderer.domElement.dataset.photoSurfaceFinish1=JSON.stringify(applyPhotoSurfaceFinish(kok,await islandFetch('/67park-foundation-next/repairs/photo-surface-finish-1.json?v=photo-surfaces-1').then(r=>{if(!r.ok)throw Error('Photo surface repair missing');return r.json()})));renderer.domElement.dataset.northHousingSurface1=JSON.stringify(applyNorthHousingSurface(kok,await islandFetch('/67park-foundation-next/repairs/north-housing-surface-1.json?v=north-housing-7').then(r=>{if(!r.ok)throw Error('Northern housing repair missing');return r.json()})));for(const name of ['3_CIMEN','8_PARK_PATIKA_UST','6_BORDUR','5_YOL','7_KALDIRIM_TABANI','67D_SKATEPARK_BASE']){
+  renderer.domElement.dataset.photoSurfaceFinish1=JSON.stringify(applyPhotoSurfaceFinish(kok,await islandFetch('/67park-foundation-next/repairs/photo-surface-finish-1.json?v=photo-surfaces-1').then(r=>{if(!r.ok)throw Error('Photo surface repair missing');return r.json()})));renderer.domElement.dataset.northHousingSurface1=JSON.stringify(applyNorthHousingSurface(kok,await islandFetch('/67park-foundation-next/repairs/north-housing-surface-1.json?v=north-housing-8').then(r=>{if(!r.ok)throw Error('Northern housing repair missing');return r.json()})));for(const name of ['3_CIMEN','8_PARK_PATIKA_UST','6_BORDUR','5_YOL','7_KALDIRIM_TABANI','67D_SKATEPARK_BASE']){
     if(!DIK_YAN_GOLGE_KAYNAGI.test(name))continue;
     const source=kok.getObjectByName(name),helper=source?.getObjectByName('67D_DIK_YAN_GOLGE_'+name),geometry=dikYanGolgeGeometrisi(source.geometry);
     if(helper&&geometry){helper.geometry.dispose();helper.geometry=geometry;}

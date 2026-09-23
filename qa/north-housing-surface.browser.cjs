@@ -1,10 +1,14 @@
 // Focused northern housing geometry/renderer gate. No broad regression/soak.
 const {chromium}=require('playwright'),fs=require('node:fs'),assert=require('node:assert/strict');
 const {browserLaunchOptions,assertBrowserRenderer}=require('./browser-launch.cjs');
-const url=process.env.PARK_NORTH_URL||'http://127.0.0.1:8496/67park-foundation-next/?v=north-housing-7';
+const url=process.env.PARK_NORTH_URL||'http://127.0.0.1:8496/67park-foundation-next/?v=north-housing-8';
 const output=process.env.PARK_NORTH_EVIDENCE||'.qa-results/north-housing-local';
 const cornerOnly=process.env.PARK_NORTH_CORNER_ONLY==='1';
+const westOnly=process.env.PARK_NORTH_WEST_ONLY==='1';
 const views=[
+ {name:'west-reference',p:[-84.5,20,-245],t:[-79.4,9.888,-238.9]},
+ {name:'west-top',p:[-82.1995854,20,-243.3923957],t:[-82.1995854,9,-243.3923957]},
+ {name:'west-low',p:[-84.4,10.8,-245.5],t:[-81,9.25,-243]},
  {name:'alignment',p:[-17.5,42,-240.87256525074335],t:[-17.5,9.4,-240.87256525074335]},
  {name:'pool-corner',p:[-17.5,26,-237.5],t:[-17.5,9.4,-237.5]},
  {name:'road-end',p:[-10,60,-225],t:[-10,9.4,-225]},
@@ -18,7 +22,7 @@ const views=[
  {name:'coast-middle',p:[70,23,-253],t:[70,9.4,-237]},
  {name:'coast-right',p:[110,23,-241],t:[110,9.4,-226]},
 ];
-const selectedViews=cornerOnly?views.filter(v=>['alignment','pool-corner','road-end','road-level'].includes(v.name)):views;
+const selectedViews=westOnly?views.filter(v=>v.name.startsWith('west-')):cornerOnly?views.filter(v=>['alignment','pool-corner','road-end','road-level'].includes(v.name)):views;
 (async()=>{
  fs.mkdirSync(output,{recursive:true});const browser=await chromium.launch(browserLaunchOptions()),reports=[];
  try{for(const mobile of [false,true]){
@@ -29,7 +33,7 @@ const selectedViews=cornerOnly?views.filter(v=>['alignment','pool-corner','road-
    await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000});
    await page.waitForFunction(()=>window.__islandWorld?.ready&&window.__eggyInput?.playerRef?.body&&document.documentElement.dataset.gameplayAvatarState==='ready',null,{timeout:120000});
    const renderer=await assertBrowserRenderer(page);
-   const report=await page.evaluate(async(cornerOnly)=>{
+   const report=await page.evaluate(async({cornerOnly,westOnly})=>{
     const T=await import('three'),w=__islandWorld,ray=new T.Raycaster(new T.Vector3(),new T.Vector3(0,-1,0));
     const points=[];
     for(const x of [-14.9,-10,-4.7])for(const z of [-240.87,-240.85,-240.8,-240.74,-240,-239,-238,-237.29,-237.27,-237,-236])points.push({kind:'road',x,z});
@@ -42,7 +46,7 @@ const selectedViews=cornerOnly?views.filter(v=>['alignment','pool-corner','road-
     for(const x of [-4.4,-3.5,-3.39,-3.38,-3.3,-3.1,-2.8])for(let z=-240.5;z<=-193;z+=.5)points.push({kind:'paving',x,z});
     for(const x of [-14,-10,-5])points.push({kind:'sand',x,z:-240.9});
     points.push({kind:'paving',x:27.422581,z:-240.570434},{kind:'paving',x:27.576825,z:-240.684388});
-    const coast=await fetch('./repairs/north-housing-surface-1.json?v=north-housing-7').then(r=>r.json());
+    const coast=await fetch('./repairs/north-housing-surface-1.json?v=north-housing-8').then(r=>r.json());
     for(const q of coast.coastProbes){points.push({kind:'paving',x:q.inside[0],z:q.inside[1]});points.push({kind:'sand',x:q.outside[0],z:q.outside[1]})}
     for(const x of [68.4,70,72,74,76,79])for(let z=-230;z<=-193;z+=1)points.push({kind:z<=-218.5?'grass':'paving',x,z});
     for(const x of [-2,-1,0,146,147])for(const z of [-212,-205,-198,-193])points.push({kind:'paving',x,z});
@@ -52,7 +56,20 @@ const selectedViews=cornerOnly?views.filter(v=>['alignment','pool-corner','road-
     points.push({kind:'paving',x:-3.8,z:-239});
     for(const [x,z]of [[72,-242],[145,-225]])points.push({kind:'sand',x,z});
     for(const [x,z]of [[16,-202],[56,-202],[94,-202],[134,-202]])points.push({kind:'parcel',x,z});
-    const selected=cornerOnly?points.filter(q=>(q.x< -15&&q.x>=-21&&q.z< -231)||(q.kind==='road'&&q.z<=-237)):points;
+    const westPoints=[],westEnd=-243.56441144026343;
+    // Sample the exact end and both sides of the shared road/pavement edge.
+    for(const x of [-82.214,-82.21,-82.1,-81.8,-81.5,-81,-80.5,-80.35]){
+     for(const dz of [.001,.004,.02,.08,.2,.4,.55])westPoints.push({kind:'paving',x,z:westEnd+dz});
+     for(const dz of [-.001,-.02,-.1,-.3,-.6])westPoints.push({kind:'sand',x,z:westEnd+dz});
+    }
+    for(const x of [-82.22,-82.217,-82.216,-82.215,-82.214])for(const dz of [.001,.01,.05,.2,.4,.55])
+     westPoints.push({kind:x<-82.21576075?'road':'paving',x,z:westEnd+dz});
+    for(let i=1;i<16;i++)for(const sign of [-1,1]){
+     const a=-Math.PI/2+i*Math.PI/32,r=.16+sign*.003;
+     westPoints.push({kind:sign<0?'paving':'sand',x:-80.30304+Math.cos(a)*r,z:westEnd+.16+Math.sin(a)*r});
+    }
+    points.push(...westPoints);
+    const selected=westOnly?westPoints:cornerOnly?points.filter(q=>(q.x< -15&&q.x>=-21&&q.z< -231)||(q.kind==='road'&&q.z<=-237)):points;
     const hits=selected.map(q=>{ray.ray.origin.set(q.x,12,q.z);const all=ray.intersectObjects(w.terrain.children,true).filter(h=>h.object.visible&&!h.object.name.startsWith('67D_DIK_')),h=all[0];return {...q,mesh:h?.object.name,y:h?.point.y,ground:w.terrainGround(q.x,q.z),coplanarSoil:all.some(s=>s.object.name==='4_KIYI_TOPRAK_TABANI'&&Math.abs(s.point.y-h.point.y)<.002)}});
     const muted=localStorage.getItem('67park-feel-lab-muted'),frame=w.renderer.info.render.frame;
     const roadMesh=w.terrain.getObjectByName('5_YOL'),position=roadMesh.geometry.attributes.position,v=new T.Vector3();let roadFront=Infinity;
@@ -61,7 +78,7 @@ const selectedViews=cornerOnly?views.filter(v=>['alignment','pool-corner','road-
     const alignment={poolFront,roadFront,difference:Math.abs(roadFront-poolFront)};
     const before=w.scene.onBeforeRender;w.scene.onBeforeRender=function(...args){before?.apply(this,args);if(window.__northView){w.camera.position.fromArray(__northView.p);w.camera.lookAt(...__northView.t);w.camera.updateMatrixWorld(true)}};
     return {patch:w.terrain.userData.northHousingSurface1,alignment,hits,muted,frame,dpr:devicePixelRatio,touch:navigator.maxTouchPoints,errors:window.__candyErrors||[]};
-   },cornerOnly);
+   },{cornerOnly,westOnly});
    // Save original results even if any assertion below fails.
    reports.push({mobile,renderer,...report,errors});fs.writeFileSync(output+'/report.json',JSON.stringify({url,reports},null,2));
    assert.equal(report.patch?.version,1);assert.equal(report.patch.addedMeshes,0);assert.equal(report.patch.existingGrassRemovedArea,0);assert.equal(report.patch.reservedParcelChangedArea,0);
@@ -86,7 +103,7 @@ const selectedViews=cornerOnly?views.filter(v=>['alignment','pool-corner','road-
    for(const v of selectedViews){await page.evaluate(v=>window.__northView=v,v);await page.waitForTimeout(350);await page.screenshot({path:`${output}/${mobile?'touch':'desktop'}-${v.name}.png`})}
    assert(await page.evaluate(()=>__islandWorld.renderer.info.render.frame)>report.frame);assert.equal(report.muted,'1');assert.deepEqual(report.errors,[]);assert.deepEqual(errors,[]);
    if(mobile){assert.equal(report.dpr,3);assert(report.touch>0)}
-   console.log('NORTH_HOUSING_PASS',JSON.stringify({mobile,cornerOnly,probes:report.hits.length,shots:selectedViews.length,errors:0}));
+   console.log('NORTH_HOUSING_PASS',JSON.stringify({mobile,cornerOnly,westOnly,probes:report.hits.length,shots:selectedViews.length,errors:0}));
   }finally{await context.close()}
  }}finally{await browser.close()}
 })().catch(e=>{console.error('NORTH_HOUSING_FAIL',e);process.exitCode=1});

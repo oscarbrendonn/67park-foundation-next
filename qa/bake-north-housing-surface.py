@@ -1,5 +1,6 @@
 """Join the two northern housing lawns and interior pavements; keep the beach.
 
+Arguments: terrain source, output JSON, road source export.
 Input is a live post-repair mesh export. Output uses the existing grass/paving
 meshes and materials; no new draw calls or frame-time work are introduced.
 """
@@ -13,6 +14,7 @@ from shapely.ops import nearest_points
 
 source, destination = map(Path, sys.argv[1:3])
 meshes = {m['name']:m for m in json.loads(source.read_text())['meshes']}
+road_meshes={m['name']:m for m in json.loads(Path(sys.argv[3]).read_text())['meshes']}
 def parts(g):
     return [] if g.is_empty else [g] if g.geom_type=='Polygon' else [p for c in g.geoms for p in parts(c)]
 def triangles(m):
@@ -96,6 +98,26 @@ assert 20<pool_new.difference(pool_before).area<50
 assert pool_before.difference(pool_new).area<1
 assert pool_new.is_valid
 pool_added=pool_new.difference(pool_before).area
+# Western road cap: the old inner 20 cm round stopped short of the road,
+# while the diagonal outer cap stuck out 60 cm. Use the road's real endpoint
+# and one tangent convex return. Only this small existing pavement tip changes.
+west_road=triangles(road_meshes['5_YOL']).reshape(-1,3)
+west_end_vertices=west_road[(west_road[:,0]>-92.79)&(west_road[:,0]<-82.21)&(west_road[:,2]<-243)&(west_road[:,1]>9.2)]
+assert len(west_end_vertices)>0
+west_end=float(west_end_vertices[:,2].min())
+assert abs(west_end+243.564411)<.00002
+west_inner=-82.21576;west_outer=-80.14304;west_radius=.16
+west_window=box(-82.217,-244.83,-80.13,-243.0)
+west_before=pool_new
+west_arc=[(west_outer-west_radius+west_radius*np.cos(a),west_end+west_radius+west_radius*np.sin(a)) for a in np.linspace(-np.pi/2,0,17)]
+west_cap=Polygon([(west_inner,west_end),*west_arc,(west_outer,-243.0),(west_inner,-243.0)])
+pool_new=set_precision(union_all([pool_new.difference(west_window),west_cap]),.00001)
+west_changed=west_before.symmetric_difference(pool_new)
+assert pool_new.is_valid
+assert west_changed.difference(west_window).area<1e-8
+assert .2<west_before.difference(pool_new).area<1
+assert 0<pool_new.difference(west_before).area<.05
+assert not pool_new.intersection(west_window).intersects(box(-83,-245,-80,west_end-.00002))
 old_paving=union_all([old_paving,pool_old]);new_paving=union_all([new_paving,pool_new])
 ps|=pool_ps;cs|=pool_cs
 # Check the actual coastal contour, not only the intended buffer argument.
@@ -174,6 +196,8 @@ rows.append(soil_row)
 metrics={'joinedLawns':2,'pavingAddedArea':new_paving.difference(old_paving).area,
  'mergedCurbTriangles':int(cs.sum()),'mergedCurbArea':housing_curb.area+pool_curb.area,
  'poolCornerAddedArea':pool_added,'poolCornerChangedBounds':list(pool_changed.bounds),'poolOutsideCornerChangedArea':pool_changed.difference(corner_window).area,
+ 'poolWestEndZ':west_end,'poolWestCornerRadius':west_radius,'poolWestRemovedArea':west_before.difference(pool_new).area,
+ 'poolWestAddedArea':pool_new.difference(west_before).area,'poolWestChangedBounds':list(west_changed.bounds),'poolWestOutsideChangedArea':west_changed.difference(west_window).area,
  'removedCoplanarSoilTriangles':len(soil_remove),'retainedSoilTriangles':len(soil_row['ix'])//3,'retainedExteriorSoilArea':soil_preserved_area,'coveredSoilArea':soil_area,'exteriorSoilChangedArea':0,
  'pavingRemovedArea':old_paving.difference(new_paving).area,
  'coastWalkwayWidth':coast_width,'coastWidthMin':min(widths),'coastWidthMax':max(widths),'coastWidthSamples':len(widths),

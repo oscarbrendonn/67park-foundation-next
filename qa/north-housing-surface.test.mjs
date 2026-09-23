@@ -44,6 +44,31 @@ test('joined grass buffer is byte-identical to the approved previous release',()
  const grass=data.meshes.find(m=>m.name==='3_CIMEN');
  assert.equal(createHash('sha256').update(JSON.stringify(grass)).digest('hex'),'c4e364d3fa220741c786e2a830d1d0551fc7357731a4e0b089aac3a9c7446e7d');
 });
+test('western cap repair preserves soil, eastern road and curb removal data byte-for-byte',()=>{
+ const hash=x=>createHash('sha256').update(JSON.stringify(x)).digest('hex');
+ assert.equal(hash(data.meshes.find(m=>m.name==='4_KIYI_TOPRAK_TABANI')),'debeae0b656ea29d4427146de9a204c89a93648603a9124f9de1fbd9ef2ec318');
+ assert.equal(hash(data.roadEnd),'56a995715ff75fdf6bf2371f6fa7d042a8f7f65967acc6a10c3645770920682e');
+});
+test('western pool pavement ends flush with the western road, without a bulge or inner notch',()=>{
+ const row=data.meshes.find(m=>m.name==='7_KALDIRIM_TABANI'),end=-243.564411;
+ const scene=new T.Group(),g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(row.p,3));g.setIndex(row.ix);
+ scene.add(new T.Mesh(g,new T.MeshBasicMaterial()));scene.updateMatrixWorld(true);
+ const ray=new T.Raycaster(new T.Vector3(),new T.Vector3(0,-1,0));
+ const hit=(x,z)=>{ray.ray.origin.set(x,12,z);return ray.intersectObjects(scene.children)[0]};
+ for(let x=-82.214;x<=-80.31;x+=.04){
+  assert(hit(x,end+.001),'No recessed tooth at western cap: '+JSON.stringify({x,end}));
+  assert.equal(hit(x,end-.001),undefined,'No paving beyond western road cap: '+JSON.stringify({x,end}));
+ }
+ for(let x=-82.21;x<=-80.13;x+=.04)for(let z=end-.02;z>=end-.65;z-=.04)
+  assert.equal(hit(x,z),undefined,'No asymmetric western bulge: '+JSON.stringify({x,z}));
+ // The outside corner has one convex 16 cm return, tangent to the cap/side.
+ const cx=-80.30304,cz=end+.16,r=.16;
+ for(let i=1;i<16;i++){
+  const a=-Math.PI/2+i*Math.PI/32;
+  assert(hit(cx+Math.cos(a)*(r-.003),cz+Math.sin(a)*(r-.003)),'Rounded return inside');
+  assert.equal(hit(cx+Math.cos(a)*(r+.003),cz+Math.sin(a)*(r+.003)),undefined,'Rounded return outside');
+ }
+});
 test('actual coastal triangle boundary follows the lawn at uniform width, including edge midpoints',()=>{
  function boundary(row){
   const edges=new Map();
@@ -62,10 +87,12 @@ test('actual coastal triangle boundary follows the lawn at uniform width, includ
 });
 test('northern patch reuses meshes and removes only covered coplanar soil; lawns and plots unchanged',()=>{
  assert.equal(data.metrics.existingGrassRemovedArea,0);assert.equal(data.metrics.reservedParcelChangedArea,0);
- assert.equal(data.metrics.triangleDelta,-2044);assert.equal(data.metrics.addedMeshes,0);assert.equal(data.metrics.perFrameWork,0);
+ assert.equal(data.metrics.triangleDelta,-2096);assert.equal(data.metrics.addedMeshes,0);assert.equal(data.metrics.perFrameWork,0);
  assert.equal(data.metrics.mergedCurbTriangles,987);assert.equal(data.curbMerge.remove.length,987);
  assert.equal(data.metrics.removedCoplanarSoilTriangles,266);assert.equal(data.metrics.retainedSoilTriangles,55);assert.equal(data.metrics.exteriorSoilChangedArea,0);
  assert.equal(data.metrics.coastWalkwayWidth,4.34016);assert(data.metrics.coastWidthSamples>100);
+ assert.equal(data.metrics.poolWestCornerRadius,.16);assert.equal(data.metrics.poolWestOutsideChangedArea,0);
+ assert(data.metrics.poolWestRemovedArea>.55&&data.metrics.poolWestRemovedArea<.56);
  assert(Math.abs(data.metrics.coastWidthMin-4.34016)<.003);assert(Math.abs(data.metrics.coastWidthMax-4.34016)<.003);
  for(const r of data.meshes)for(let i=0;i<r.ix.length;i+=3){
   const p=r.ix.slice(i,i+3).map(j=>new T.Vector3(...r.p.slice(j*3,j*3+3)));
@@ -109,7 +136,7 @@ test('same mesh/material references, unrelated triangles retained, idempotent',(
  for(let i=0;i<children.length;i++){const m=children[i];assert.equal(m.material,material);assert.deepEqual(Array.from(m.geometry.index.array.slice(0,3)),[0,1,2]);if(i<3){assert.equal(m.geometry.index.count,3+patch.meshes[i].ix.length);assert(m.geometry.attributes.uv)}else assert.equal(m.geometry.index.count,3)}
 });
 test('last-source mismatch and malformed geometry reject atomically',()=>{
- for(const damage of [p=>p.roadEnd.rows[1].expected.indexCRC='00000000',p=>p.roadEnd.rows[0].p[0]=999,p=>p.roadEnd.endZ=-250,p=>p.meshes[1].expected.indexCRC='00000000',p=>p.meshes[1].p[0]=999,p=>p.meshes[1].n[0]=NaN,p=>p.meshes[1].remove=[0,0],p=>p.metrics.existingGrassRemovedArea=1,p=>p.meshes[1].name=p.meshes[0].name]){
+ for(const damage of [p=>p.roadEnd.rows[1].expected.indexCRC='00000000',p=>p.roadEnd.rows[0].p[0]=999,p=>p.roadEnd.endZ=-250,p=>p.meshes[1].expected.indexCRC='00000000',p=>p.meshes[1].p[0]=999,p=>p.meshes[1].n[0]=NaN,p=>p.meshes[1].remove=[0,0],p=>p.metrics.existingGrassRemovedArea=1,p=>p.meshes[1].name=p.meshes[0].name,p=>p.metrics.poolWestOutsideChangedArea=1,p=>p.metrics.poolWestEndZ=-250]){
   const {root,patch}=fixture(),before=root.children.map(m=>m.geometry);damage(patch);assert.throws(()=>applyNorthHousingSurface(root,patch));
   root.children.forEach((m,i)=>assert.equal(m.geometry,before[i]));assert.equal(root.userData.northHousingSurface1,undefined);
  }
@@ -119,6 +146,6 @@ test('both runtimes apply after photo repair and before shadow refresh; public c
   const s=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');assert.equal(s.split('dataset.northHousingSurface1=').length,2);
   const i=s.indexOf('dataset.northHousingSurface1=');assert(i>s.indexOf('dataset.photoSurfaceFinish1='));assert(s.slice(i,i+750).includes('67D_SKATEPARK_BASE'));
  }
- for(const file of ['app/main.js','explore/explore.js'])assert(fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').includes('runtime.bundle.js?v=north-housing-7'));
- assert(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('app/main.js?v=north-housing-7'));
+ for(const file of ['app/main.js','explore/explore.js'])assert(fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').includes('runtime.bundle.js?v=north-housing-8'));
+ assert(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('app/main.js?v=north-housing-8'));
 });

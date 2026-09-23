@@ -13,6 +13,9 @@ export function applyNorthHousingSurface(root,patch){
     !(m.pavingAddedArea>800&&m.pavingAddedArea<2000)||!(m.grassAddedArea>250&&m.grassAddedArea<400)||
     m.removedCoplanarSoilTriangles!==266||m.retainedSoilTriangles!==55||m.exteriorSoilChangedArea!==0||
     !(m.poolCornerAddedArea>20&&m.poolCornerAddedArea<50)||m.poolOutsideCornerChangedArea!==0||
+    !Number.isFinite(m.poolWestEndZ)||Math.abs(m.poolWestEndZ+243.56441144026343)>.00002||
+    m.poolWestCornerRadius!==.16||m.poolWestOutsideChangedArea!==0||
+    !(m.poolWestRemovedArea>.2&&m.poolWestRemovedArea<1)||!(m.poolWestAddedArea>0&&m.poolWestAddedArea<.05)||
     m.coastWalkwayWidth!==4.34016||!Number.isInteger(m.coastWidthSamples)||m.coastWidthSamples<100||
     !Number.isFinite(m.coastWidthMin)||!Number.isFinite(m.coastWidthMax)||
     Math.abs(m.coastWidthMin-m.coastWalkwayWidth)>.003||Math.abs(m.coastWidthMax-m.coastWalkwayWidth)>.003||
