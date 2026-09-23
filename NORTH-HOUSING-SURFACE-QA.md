@@ -1,5 +1,43 @@
 # Northern housing: joined pavement and grass
 
+## Revision 7 — equal road and pool parcel frontage
+
+The user identified unequal northern lengths in the palm-corner close-up.
+World-space vertex inspection (`.qa-results/north-end-alignment-before.json`)
+found the road at z=-240.7575142783, 0.115051 m behind the pool parcel front
+z=-240.8725652507. Earlier revisions had used the housing-side coastal tangent
+as the road endpoint instead of the actual pool parcel front.
+
+The road and both road-facing pavement ends now use `poolLayout104.parcel.north`.
+The housing-side return tapers into its unchanged coastal tangent. The bounded
+pool corner is rebuilt to reach the new endpoint without restoring the old
+notch/tooth. The raised pool deck, white rim, water, palms, road width and all
+surface heights are unchanged. Their different elevations still have normal
+perspective parallax; this is world-space alignment, not a camera offset trick.
+
+- Sparse road change retains its 12 moved road vertices and 409 curb vertices;
+  no road indices/normals/width/height changes. Total extension from the original
+  source is 3.5891496456 m. Pool corner window z minimum is now -241.1 to fully
+  absorb the translated old tooth; no changes outside that window.
+- No new meshes, materials, draw calls or per-frame work. Total triangle delta
+  versus the original source is -2044 (16 more than revision 6). Existing grass
+  is byte-identical; zero exterior soil loss or apartment parcel overlap.
+- `.qa-results/north-housing-7-unit.log`: 9/9 PASS; focused unit log: 35/35 PASS.
+- `.qa-results/north-housing-7-local.log`: desktop and touch emulation each
+  PASS, 348 terrain probes, three views, zero errors.
+- Additional alignment coverage in `north-housing-7-alignment-local.log`:
+  desktop and touch each PASS, 348 probes and four views. Actual rendered road
+  vertices match the pool parcel front within 2.3e-13 m on both profiles.
+  The original user-angle close view remains; a centered front view was added
+  to show plan alignment without elevation parallax. Desktop alignment and
+  desktop/touch corner images were visually inspected.
+- This is hardware Chrome and touch emulation, not physical iPhone/Safari.
+  Revision 6's initial live startup timeout remains recorded in its original
+  log; later ready-state inspections do not erase that failure.
+
+Cache alias: `north-housing-7`. Existing short publication checks only; no
+workflow changes, broad browser regression or soak.
+
 ## Revision 6 — exact pool-side road endpoint
 
 Revision 5 passed its local and live grids (1318 points per desktop/touch

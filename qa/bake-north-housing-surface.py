@@ -44,10 +44,12 @@ assert len(parts(new_grass))==1 and new_grass.covers(old_grass)
 # has a lowered inner bevel, while the replacement paving is flat: retaining
 # both leaves broken shading seams. Its complete northern U is isolated from
 # other curb components, so absorb its footprint into the existing pavement.
+road_end=-240.87256525074335  # poolLayout104.parcel.north
+road_extension=-237.28341560515864-road_end
 ct,cs=selected('6_BORDUR',(-5,-238,150,-189))
 curb_triangles=ct[cs].copy()
 end_mask=(curb_triangles[:,:,0]<-3.3)&(curb_triangles[:,:,2]<-237)
-curb_triangles[:,:,2][end_mask]-=3.4740943948413587
+curb_triangles[:,:,2][end_mask]-=road_extension
 housing_curb=footprint(curb_triangles)
 assert len(parts(housing_curb))==1 and 280<housing_curb.area<285
 # The previous union retained the old squared-off coastal tabs. Derive this
@@ -66,7 +68,7 @@ carriers=footprint(triangles(meshes['7_KB_SPOR_CIM_TASIYICI']))
 parcels=[Polygon(p.exterior) for p in parts(carriers) if p.bounds[0]>0 and p.bounds[2]<145 and -217<p.bounds[1]<-215]
 assert len(parcels)==2
 reserved=union_all(parcels)
-west_join=box(-4.52901,-240.75751,0.94837,-192.12653)
+west_join=Polygon([(-4.52901,road_end),(0.94837,-240.75751),(0.94837,-192.12653),(-4.52901,-192.12653)])
 new_paving=set_precision(union_all([coast_band,infill,housing_curb,west_join]).difference(reserved),.00001)
 assert len(parts(new_paving))==1 and new_paving.is_valid, [(p.area,p.bounds) for p in parts(new_paving)]
 assert new_paving.intersection(reserved).area==0
@@ -79,14 +81,14 @@ _,pool_ps=selected('7_KALDIRIM_TABANI',(-83,-245,-15,-189))
 _,pool_cs=selected('6_BORDUR',(-83,-245,-15,-189))
 pool_old=footprint(pt[pool_ps]);pool_ct=ct[pool_cs].copy()
 end_mask=(pool_ct[:,:,0]>-16.5)&(pool_ct[:,:,2]<-237)
-pool_ct[:,:,2][end_mask]-=3.4740943948413587
+pool_ct[:,:,2][end_mask]-=road_extension
 pool_curb=footprint(pool_ct)
 pool_before=set_precision(union_all([pool_old,pool_curb]),.00001)
-corner_window=box(-24,-241,-15.099,-231)
+corner_window=box(-24,-241.1,-15.099,-231)
 # The small convex return continues directly from the authored pool edge to
 # the road endpoint. It removes the backtracking notch without a square tab.
-corner=union_all([pool_before.intersection(corner_window).intersection(box(-83,-240.75751,-15.099,-189)),
-                  Point(-15.099,-240.75751)]).convex_hull
+corner=union_all([pool_before.intersection(corner_window).intersection(box(-83,road_end,-15.099,-189)),
+                  Point(-15.099,road_end)]).convex_hull
 pool_new=set_precision(union_all([pool_before.difference(corner_window),corner]),.00001)
 pool_changed=pool_before.symmetric_difference(pool_new)
 assert pool_changed.difference(corner_window).area<1e-8

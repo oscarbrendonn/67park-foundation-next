@@ -21,7 +21,7 @@ export function applyNorthHousingSurface(root,patch){
  const prepared=[],allocated=[];
  try{
   const road=patch.roadEnd;
-  if(!road||![road.oldZ,road.extension].every(Number.isFinite)||road.endZ!==-240.75751||Math.abs(road.oldZ+237.28341624)>.00002||
+  if(!road||![road.oldZ,road.extension].every(Number.isFinite)||road.endZ!==-240.87256525074335||Math.abs(road.oldZ+237.28341624)>.00002||
      Math.abs(road.extension-(road.oldZ-road.endZ))>1e-8||road.addedTriangles!==0||
      road.rows?.length!==2||road.rows[0].name!=='5_YOL'||road.rows[1].name!=='6_BORDUR')throw Error('Invalid northern road endpoint');
   for(const row of road.rows){

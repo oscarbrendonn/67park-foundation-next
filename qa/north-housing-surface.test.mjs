@@ -28,8 +28,10 @@ function fixture(){
  }
  return {root,patch,material};
 }
-test('road endpoint meets the coastal tangent without changing width, height or triangle count',()=>{
- const road=data.roadEnd;assert.equal(road.endZ,-240.75751);assert(Math.abs(road.extension-3.4740944)<1e-6);assert.equal(road.addedTriangles,0);
+test('road endpoint meets the actual pool parcel front without changing width, height or triangle count',()=>{
+ const poolSource=fs.readFileSync(new URL('../island/north-pool-v104.js',import.meta.url),'utf8');
+ const poolNorth=Number(poolSource.match(/parcel:\{[^}]*north:([-\d.]+)/)[1]);
+ const road=data.roadEnd;assert.equal(road.endZ,poolNorth);assert.equal(road.endZ,-240.87256525074335);assert(Math.abs(road.extension-3.5891496456)<1e-6);assert.equal(road.addedTriangles,0);
  assert.deepEqual(road.rows.map(r=>r.name),['5_YOL','6_BORDUR']);
  const r=road.rows[0],x=r.p.filter((_,i)=>i%3===0),z=r.p.filter((_,i)=>i%3===2);
  assert(z.every(v=>Math.abs(v-road.endZ)<1e-6));assert(Math.abs(Math.max(...x)-Math.min(...x)-10.56999)<.00002);
@@ -60,7 +62,7 @@ test('actual coastal triangle boundary follows the lawn at uniform width, includ
 });
 test('northern patch reuses meshes and removes only covered coplanar soil; lawns and plots unchanged',()=>{
  assert.equal(data.metrics.existingGrassRemovedArea,0);assert.equal(data.metrics.reservedParcelChangedArea,0);
- assert.equal(data.metrics.triangleDelta,-2060);assert.equal(data.metrics.addedMeshes,0);assert.equal(data.metrics.perFrameWork,0);
+ assert.equal(data.metrics.triangleDelta,-2044);assert.equal(data.metrics.addedMeshes,0);assert.equal(data.metrics.perFrameWork,0);
  assert.equal(data.metrics.mergedCurbTriangles,987);assert.equal(data.curbMerge.remove.length,987);
  assert.equal(data.metrics.removedCoplanarSoilTriangles,266);assert.equal(data.metrics.retainedSoilTriangles,55);assert.equal(data.metrics.exteriorSoilChangedArea,0);
  assert.equal(data.metrics.coastWalkwayWidth,4.34016);assert(data.metrics.coastWidthSamples>100);
@@ -87,7 +89,7 @@ test('pool-side corner is continuous, with no protruding curb tooth or coplanar 
   ray.ray.origin.set(x,12,z);assert.equal(ray.intersectObjects(scene.children).length,0,'No pavement over the beach/road');
  }
  // The old rounded road-facing tip left a tiny triangle at the exact end.
- for(const x of [-15.102,-15.11,-15.15,-15.3])for(const z of [-240.754,-240.75,-240.7]){
+ for(const x of [-15.102,-15.11,-15.15,-15.3])for(const z of [-240.870,-240.85,-240.80,-240.754,-240.75,-240.7]){
   ray.ray.origin.set(x,12,z);assert.equal(ray.intersectObjects(scene.children)[0]?.object.name,'7_KALDIRIM_TABANI','Pave right up to the exact road corner: '+JSON.stringify({x,z}));
  }
 });
@@ -117,6 +119,6 @@ test('both runtimes apply after photo repair and before shadow refresh; public c
   const s=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');assert.equal(s.split('dataset.northHousingSurface1=').length,2);
   const i=s.indexOf('dataset.northHousingSurface1=');assert(i>s.indexOf('dataset.photoSurfaceFinish1='));assert(s.slice(i,i+750).includes('67D_SKATEPARK_BASE'));
  }
- for(const file of ['app/main.js','explore/explore.js'])assert(fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').includes('runtime.bundle.js?v=north-housing-6'));
- assert(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('app/main.js?v=north-housing-6'));
+ for(const file of ['app/main.js','explore/explore.js'])assert(fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').includes('runtime.bundle.js?v=north-housing-7'));
+ assert(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('app/main.js?v=north-housing-7'));
 });

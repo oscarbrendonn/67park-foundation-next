@@ -11,7 +11,7 @@ source, destination = map(Path, sys.argv[1:3])
 meshes={m['name']:m for m in json.loads(source.read_text())['meshes']}
 patch=json.loads(destination.read_text())
 old_z=-237.28341623769234
-end_z=-240.75751  # Existing coastal pavement tangent at x=0.94837.
+end_z=-240.87256525074335  # North pool parcel front, not the shorter housing-side tangent.
 rows=[]
 for name in ['5_YOL','6_BORDUR']:
  m=meshes[name];p=np.array(m['p']).reshape(-1,3);mat=np.array(m['matrix']).reshape(4,4).T
