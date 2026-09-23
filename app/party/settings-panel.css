@@ -20,7 +20,7 @@
 #party-settings section:nth-of-type(3) h3{color:#49866f}
 #party-settings .party-setting-row{display:grid;grid-template-columns:1fr auto;gap:5px 12px;padding:9px 0;border-top:1px solid #ede6dc;font-size:14px;font-weight:600}
 #party-settings output{color:#81707f;font-size:12px;min-width:38px;text-align:right;font-variant-numeric:tabular-nums}
-#party-settings input[type=range]{grid-column:1/-1;width:100%;margin:0;min-height:32px;accent-color:#e978aa;cursor:pointer;touch-action:pan-y}
+#party-settings input[type=range]{grid-column:1/-1;width:100%;margin:0;min-height:44px;accent-color:#e978aa;cursor:pointer;touch-action:pan-y}
 #party-settings .party-row{font-size:14px;border-color:#ede6dc;min-height:44px;padding:4px 0}
 #party-settings select{min-height:44px;max-width:52%;border:1px solid #d8ccc4;border-radius:12px;padding:8px;background:#fff;color:#514954;font:600 16px system-ui;cursor:pointer}
 #party-settings .party-toggle{flex:none;width:58px;height:36px}

@@ -119,7 +119,7 @@ async function run(mobile){
    await page.getByRole('button',{name:'Restore defaults',exact:true}).click();
    await page.getByRole('button',{name:'Reset settings',exact:true}).click();
    const reset=await readStored(page);
-   assert.deepEqual(reset,{mouseSensitivity:1,touchSensitivity:1,desktopButtonSize:1,mobileButtonSize:1,sfx:.8,ambience:1,showChat:true,showNames:true,juice:true,pads:true,haptics:true,graphics:'auto'});
+   assert.deepEqual(reset,{cameraDistance:6.8,mouseSensitivity:1,touchSensitivity:1,desktopButtonSize:1,mobileButtonSize:1,sfx:.8,ambience:1,showChat:true,showNames:true,juice:true,pads:true,haptics:true,graphics:'auto'});
    assert.deepEqual(errors,[]);
    console.log('SETTINGS PANEL ACCEPTANCE PASS',JSON.stringify({mobile,live,turn:{originalDelta,changedDelta,originalYaw,changedYaw},buttons:{smallButtons,midButtons,largeButtons},graphics:{high,medium,low}}));
    return;

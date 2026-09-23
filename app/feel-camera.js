@@ -4,7 +4,8 @@ export const FEEL_CAMERA = Object.freeze({pitch:.36,distance:6.8,fov:55,targetHe
 const finitePoint = p => p && [p.x,p.y,p.z].every(Number.isFinite);
 export function feelCameraPose(feet,yaw,pitch,distance=FEEL_CAMERA.distance,aspect=1.5){
  const p=Math.max(-.15,Math.min(1.1,Number.isFinite(pitch)?pitch:FEEL_CAMERA.pitch));
- const d=Math.max(2.2,Math.min(18,Number.isFinite(distance)?distance:FEEL_CAMERA.distance)) + Math.max(0,Math.min(1,(.9-aspect)/.45))*FEEL_CAMERA.portraitExtra;
+ const orbit=Math.max(.5,Math.min(18,Number.isFinite(distance)?distance:FEEL_CAMERA.distance));
+ const d=orbit + Math.max(0,Math.min(1,(.9-aspect)/.45))*FEEL_CAMERA.portraitExtra*Math.min(1,Math.max(0,(orbit-.5)/1.7));
  const target={x:feet.x,y:feet.y+FEEL_CAMERA.targetHeight,z:feet.z};
  return {target,position:{x:target.x+Math.sin(yaw)*Math.cos(p)*d,y:target.y+Math.sin(p)*d,z:target.z+Math.cos(yaw)*Math.cos(p)*d}};
 }

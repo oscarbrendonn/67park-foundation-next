@@ -1,8 +1,8 @@
 // Browser-local preferences only. No changes to physics, accounts or saved outfits.
-export const SETTINGS_VERSION = 'settings-3';
+export const SETTINGS_VERSION = 'settings-4-camera';
 export const SETTINGS_KEY = '67park.feel-lab.player-settings.v1';
-export const DEFAULTS = Object.freeze({mouseSensitivity:1,touchSensitivity:1,desktopButtonSize:1,mobileButtonSize:1,sfx:.8,ambience:1,showChat:true,showNames:true,juice:true,pads:true,haptics:true,graphics:'auto'});
-const ranges = {mouseSensitivity:[.25,2],touchSensitivity:[.25,2],desktopButtonSize:[.8,1.2],mobileButtonSize:[.8,1.2],sfx:[0,1],ambience:[0,1]};
+export const DEFAULTS = Object.freeze({cameraDistance:6.8,mouseSensitivity:1,touchSensitivity:1,desktopButtonSize:1,mobileButtonSize:1,sfx:.8,ambience:1,showChat:true,showNames:true,juice:true,pads:true,haptics:true,graphics:'auto'});
+const ranges = {cameraDistance:[.5,12],mouseSensitivity:[.25,2],touchSensitivity:[.25,2],desktopButtonSize:[.8,1.2],mobileButtonSize:[.8,1.2],sfx:[0,1],ambience:[0,1]};
 export function sanitizeSettings(value) {
  const out={...DEFAULTS};
  if(!value||typeof value!=='object'||Array.isArray(value))return out;
@@ -22,6 +22,8 @@ export const playerSettings=globalThis[slot] ||= (()=>{
  try{value=JSON.parse(raw||'{}')}catch{persistence.state='recovered'}
  return sanitizeSettings(value);
 })();
+// Adopt this additive preference if an older module created the shared object.
+playerSettings.cameraDistance=sanitizeSettings(playerSettings).cameraDistance;
 export function savePlayerSettings(){
  Object.assign(playerSettings,sanitizeSettings(playerSettings));
  try{
