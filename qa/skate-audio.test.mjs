@@ -91,7 +91,7 @@ test('shared player publishes feedback and entry cache keys include the sound fi
   const read=p=>fs.readFileSync(new URL(p,import.meta.url),'utf8');
   assert(read('../app/main.js').includes('publishSkateFeedback(sk.events,A)'));
   assert(read('../app/party/party-pack.js').includes('./party-audio.js?v=vehicle-feedback-1'));
-  const html=read('../index.html');assert(html.includes('app/main.js?v=north-housing-5'));
+  const html=read('../index.html');assert(html.includes('app/main.js?v=north-housing-6'));
   assert(html.includes('app/party/party-pack.js?v=vehicle-feedback-1'));
 });
 

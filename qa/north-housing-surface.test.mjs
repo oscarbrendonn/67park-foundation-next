@@ -60,7 +60,7 @@ test('actual coastal triangle boundary follows the lawn at uniform width, includ
 });
 test('northern patch reuses meshes and removes only covered coplanar soil; lawns and plots unchanged',()=>{
  assert.equal(data.metrics.existingGrassRemovedArea,0);assert.equal(data.metrics.reservedParcelChangedArea,0);
- assert.equal(data.metrics.triangleDelta,-2040);assert.equal(data.metrics.addedMeshes,0);assert.equal(data.metrics.perFrameWork,0);
+ assert.equal(data.metrics.triangleDelta,-2060);assert.equal(data.metrics.addedMeshes,0);assert.equal(data.metrics.perFrameWork,0);
  assert.equal(data.metrics.mergedCurbTriangles,987);assert.equal(data.curbMerge.remove.length,987);
  assert.equal(data.metrics.removedCoplanarSoilTriangles,266);assert.equal(data.metrics.retainedSoilTriangles,55);assert.equal(data.metrics.exteriorSoilChangedArea,0);
  assert.equal(data.metrics.coastWalkwayWidth,4.34016);assert(data.metrics.coastWidthSamples>100);
@@ -85,6 +85,10 @@ test('pool-side corner is continuous, with no protruding curb tooth or coplanar 
  }
  for(const [x,z]of [[-16,-240.9],[-15.5,-240.9],[-15,-240.5]]){
   ray.ray.origin.set(x,12,z);assert.equal(ray.intersectObjects(scene.children).length,0,'No pavement over the beach/road');
+ }
+ // The old rounded road-facing tip left a tiny triangle at the exact end.
+ for(const x of [-15.102,-15.11,-15.15,-15.3])for(const z of [-240.754,-240.75,-240.7]){
+  ray.ray.origin.set(x,12,z);assert.equal(ray.intersectObjects(scene.children)[0]?.object.name,'7_KALDIRIM_TABANI','Pave right up to the exact road corner: '+JSON.stringify({x,z}));
  }
 });
 test('interior is paved, lawns join, apartment plots and exterior sand remain uncovered',()=>{
@@ -113,6 +117,6 @@ test('both runtimes apply after photo repair and before shadow refresh; public c
   const s=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');assert.equal(s.split('dataset.northHousingSurface1=').length,2);
   const i=s.indexOf('dataset.northHousingSurface1=');assert(i>s.indexOf('dataset.photoSurfaceFinish1='));assert(s.slice(i,i+750).includes('67D_SKATEPARK_BASE'));
  }
- for(const file of ['app/main.js','explore/explore.js'])assert(fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').includes('runtime.bundle.js?v=north-housing-5'));
- assert(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('app/main.js?v=north-housing-5'));
+ for(const file of ['app/main.js','explore/explore.js'])assert(fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').includes('runtime.bundle.js?v=north-housing-6'));
+ assert(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('app/main.js?v=north-housing-6'));
 });

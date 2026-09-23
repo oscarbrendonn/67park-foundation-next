@@ -85,7 +85,8 @@ pool_before=set_precision(union_all([pool_old,pool_curb]),.00001)
 corner_window=box(-24,-241,-15.099,-231)
 # The small convex return continues directly from the authored pool edge to
 # the road endpoint. It removes the backtracking notch without a square tab.
-corner=pool_before.intersection(corner_window).intersection(box(-83,-240.75751,-15.099,-189)).convex_hull
+corner=union_all([pool_before.intersection(corner_window).intersection(box(-83,-240.75751,-15.099,-189)),
+                  Point(-15.099,-240.75751)]).convex_hull
 pool_new=set_precision(union_all([pool_before.difference(corner_window),corner]),.00001)
 pool_changed=pool_before.symmetric_difference(pool_new)
 assert pool_changed.difference(corner_window).area<1e-8

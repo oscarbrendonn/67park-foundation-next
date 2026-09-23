@@ -1,5 +1,31 @@
 # Northern housing: joined pavement and grass
 
+## Revision 6 — exact pool-side road endpoint
+
+Revision 5 passed its local and live grids (1318 points per desktop/touch
+profile), but the live close-up revealed a tiny triangular opening at the exact
+road-facing tip. Its old 0.2 m rounded cap stopped short of the road endpoint.
+The new unit regression first fails on revision 5 at (-15.102,-240.754), as
+recorded in `.qa-results/north-housing-6-regression-before.log`.
+
+The pool return hull now includes the exact road corner (-15.099,-240.75751).
+Only 0.009096 m2 is added; soil, grass, roads, pool rim and all outside-corner
+footprints are unchanged. The simpler end contour removes another 20 triangles
+(total delta -2060). Twelve exact-tip probes were added to both unit and browser
+checks, keeping all original assertions. The optional `PARK_NORTH_CORNER_ONLY=1`
+profile selects the affected pool corner, road endpoint and three close views
+for this tiny follow-up; the default northern profile remains intact.
+
+- `north-housing-6-unit.log`: 9/9 PASS; `north-housing-6-focused.log`: 35/35.
+- `north-housing-6-local.log`: desktop and touch each PASS, 327 probes and
+  three views, zero browser errors. Both close-up images were inspected: the
+  remaining dark endpoint triangle is gone. These are Chrome/touch emulation,
+  not physical iPhone/Safari tests.
+
+Cache alias: `north-housing-6`. Revision-5 live evidence is retained separately;
+it is not presented as proof that the tiny opening was absent. No broad browser
+regression/soak or workflow changes were made.
+
 ## Revision 5 — pool-side palm corner
 
 The next user crop identifies the opposite (pool-side) road cap. Revision 3
