@@ -40,6 +40,13 @@ export function applyNorthHousingSurface(root,patch){
    // The end cap is translated and the straight side faces lengthened; their
    // normals are unchanged. Retain all authored shading outside this endpoint.
    next.attributes.position.needsUpdate=true;next.computeBoundingBox();next.computeBoundingSphere();prepared.push({mesh,next,old:g});
+   if(row.name==='6_BORDUR'){
+    const merge=patch.curbMerge,removed=new Set(merge?.remove);
+    if(merge?.name!=='6_BORDUR'||!Number.isInteger(m.mergedCurbTriangles)||m.mergedCurbTriangles<100||removed.size!==m.mergedCurbTriangles||removed.size!==merge.remove.length||
+       merge.remove.some(i=>!Number.isInteger(i)||i%3||i<0||i>=g.index.count))throw Error('Invalid northern curb merge');
+    const indices=[];for(let i=0;i<g.index.count;i+=3)if(!removed.has(i))indices.push(g.index.getX(i),g.index.getX(i+1),g.index.getX(i+2));
+    next.setIndex(indices);next.clearGroups();next.setDrawRange(0,indices.length);
+   }
   }
   for(const row of patch.meshes){
    const mesh=root.getObjectByName(row.name),g=mesh?.geometry,e=row.expected;
@@ -54,7 +61,7 @@ export function applyNorthHousingSurface(root,patch){
       !removed.size||removed.size!==row.remove.length||row.remove.some(i=>!Number.isInteger(i)||i%3||i<0||i>=g.index.count))throw Error('Invalid northern housing geometry');
    for(let i=0;i<row.p.length;i+=3){
     const [x,y,z]=row.p.slice(i,i+3);
-    if(x< -3.387||x>148.335||z< -244.830||z> -191.062||y<8.796||y>9.399)throw Error('Northern housing patch outside district');
+    if(x< -4.530||x>149.478||z< -244.830||z> -189.920||y<8.796||y>9.399)throw Error('Northern housing patch outside district');
     if(Math.abs(Math.hypot(...row.n.slice(i,i+3))-1)>.001)throw Error('Invalid northern housing normal');
    }
    const added=new T.BufferGeometry();allocated.push(added);

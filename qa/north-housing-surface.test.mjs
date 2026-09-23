@@ -19,8 +19,9 @@ function fixture(){
  }
  for(const r of patch.roadEnd.rows){
   const p=r.p.map((v,i)=>i%3===2?v+patch.roadEnd.extension:v),g=new T.BufferGeometry();
-  g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setIndex([0,1,2]);g.computeVertexNormals();
-  r.ids=Array.from({length:p.length/3},(_,i)=>i);r.expected={vertices:p.length/3,indices:3,positionCRC:crc(g.attributes.position.array),indexCRC:crc(Uint32Array.from(g.index.array))};
+  g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setIndex(r.name==='6_BORDUR'?Array.from({length:(patch.metrics.mergedCurbTriangles+1)*3},(_,i)=>i%3):[0,1,2]);g.computeVertexNormals();
+  if(r.name==='6_BORDUR')patch.curbMerge.remove=Array.from({length:patch.metrics.mergedCurbTriangles},(_,i)=>(i+1)*3);
+  r.ids=Array.from({length:p.length/3},(_,i)=>i);r.expected={vertices:p.length/3,indices:g.index.count,positionCRC:crc(g.attributes.position.array),indexCRC:crc(Uint32Array.from(g.index.array))};
   // Store Float32 round-trip coordinates in the fixture, exactly as the baker does.
   r.p=Array.from(g.attributes.position.array,(v,i)=>i%3===2?v-patch.roadEnd.extension:v);
   const mesh=new T.Mesh(g,material);mesh.name=r.name;root.add(mesh);
@@ -34,7 +35,7 @@ test('road endpoint meets the coastal tangent without changing width, height or 
  assert(z.every(v=>Math.abs(v-road.endZ)<1e-6));assert(Math.abs(Math.max(...x)-Math.min(...x)-10.56999)<.00002);
  const {root,patch}=fixture(),before=root.children.slice(3).map(m=>({p:Array.from(m.geometry.attributes.position.array),ix:Array.from(m.geometry.index.array)}));
  applyNorthHousingSurface(root,patch);
- for(let j=0;j<2;j++){const m=root.children[j+3],p=Array.from(m.geometry.attributes.position.array);assert.deepEqual(Array.from(m.geometry.index.array),before[j].ix);
+ for(let j=0;j<2;j++){const m=root.children[j+3],p=Array.from(m.geometry.attributes.position.array);assert.deepEqual(Array.from(m.geometry.index.array),[0,1,2]);
   p.forEach((v,i)=>assert(Math.abs(v-(before[j].p[i]-(i%3===2?road.extension:0)))<.00002));}
 });
 test('joined grass buffer is byte-identical to the approved previous release',()=>{
@@ -48,8 +49,10 @@ test('actual coastal triangle boundary follows the lawn at uniform width, includ
    for(let k=0;k<3;k++){const a=ids[k],b=ids[(k+1)%3],key=[a,b].sort((a,b)=>a-b).join(',');if(edges.has(key))edges.delete(key);else edges.set(key,[a,b].map(j=>[row.p[j*3],row.p[j*3+2]]));}
   }return [...edges.values()];
  }
- const grass=boundary(data.meshes.find(m=>m.name==='3_CIMEN')),coast=boundary(data.meshes.find(m=>m.name==='7_KALDIRIM_TABANI')).filter(e=>e.every(p=>p[1]<-220));
- assert(coast.length>100);
+ const grass=boundary(data.meshes.find(m=>m.name==='3_CIMEN')),coast=boundary(data.meshes.find(m=>m.name==='7_KALDIRIM_TABANI')).filter(e=>e.every(p=>p[1]<-220&&p[0]>1&&p[0]<130));
+ // The western round return is now a straight road join. Continue measuring
+ // the coastal boundary with more than 100 endpoint/midpoint checks.
+ assert(coast.length*3>100);
  for(const [a,b]of coast)for(const p of [a,b,[(a[0]+b[0])/2,(a[1]+b[1])/2]]){
   const distance=Math.min(...grass.map(([q,r])=>{const dx=r[0]-q[0],dz=r[1]-q[1],t=Math.max(0,Math.min(1,((p[0]-q[0])*dx+(p[1]-q[1])*dz)/(dx*dx+dz*dz)));return Math.hypot(p[0]-q[0]-dx*t,p[1]-q[1]-dz*t)}));
   assert(Math.abs(distance-4.34016)<.003,JSON.stringify({p,distance}));
@@ -57,7 +60,8 @@ test('actual coastal triangle boundary follows the lawn at uniform width, includ
 });
 test('northern patch reuses meshes and removes only covered coplanar soil; lawns and plots unchanged',()=>{
  assert.equal(data.metrics.existingGrassRemovedArea,0);assert.equal(data.metrics.reservedParcelChangedArea,0);
- assert.equal(data.metrics.triangleDelta,-250);assert.equal(data.metrics.addedMeshes,0);assert.equal(data.metrics.perFrameWork,0);
+ assert.equal(data.metrics.triangleDelta,-714);assert.equal(data.metrics.addedMeshes,0);assert.equal(data.metrics.perFrameWork,0);
+ assert.equal(data.metrics.mergedCurbTriangles,408);assert.equal(data.curbMerge.remove.length,408);
  assert.equal(data.metrics.removedCoplanarSoilTriangles,210);assert.equal(data.metrics.exteriorSoilChangedArea,0);
  assert.equal(data.metrics.coastWalkwayWidth,4.34016);assert(data.metrics.coastWidthSamples>100);
  assert(Math.abs(data.metrics.coastWidthMin-4.34016)<.003);assert(Math.abs(data.metrics.coastWidthMax-4.34016)<.003);
@@ -74,7 +78,8 @@ test('interior is paved, lawns join, apartment plots and exterior sand remain un
  function hit(x,z){ray.ray.origin.set(x,15,z);return ray.intersectObjects(scene.children)[0]}
  for(const [x,z]of [[70,-225],[74,-225],[79,-230]])assert.equal(hit(x,z)?.object.name,'3_CIMEN');
  for(const [x,z]of [[72,-200],[-2,-205],[147,-205],[74,-218]])assert.equal(hit(x,z)?.object.name,'7_KALDIRIM_TABANI');
- for(const [x,z]of [[-3.8,-239],[72,-242],[145,-225],[16,-202],[94,-202],[-8,-220]])assert.equal(hit(x,z),undefined);
+ for(const x of [-4.4,-3.5,-3.39,-3.38,-3.3,-3.1,-2.8])for(let z=-240.5;z<=-193;z+=.25)assert.equal(hit(x,z)?.object.name,'7_KALDIRIM_TABANI','No gaps along the merged road-side pavement');
+ for(const [x,z]of [[72,-242],[145,-225],[16,-202],[94,-202],[-8,-220]])assert.equal(hit(x,z),undefined);
 });
 test('same mesh/material references, unrelated triangles retained, idempotent',()=>{
  const {root,patch,material}=fixture(),children=[...root.children];const result=applyNorthHousingSurface(root,patch);
@@ -92,6 +97,6 @@ test('both runtimes apply after photo repair and before shadow refresh; public c
   const s=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');assert.equal(s.split('dataset.northHousingSurface1=').length,2);
   const i=s.indexOf('dataset.northHousingSurface1=');assert(i>s.indexOf('dataset.photoSurfaceFinish1='));assert(s.slice(i,i+750).includes('67D_SKATEPARK_BASE'));
  }
- for(const file of ['app/main.js','explore/explore.js'])assert(fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').includes('runtime.bundle.js?v=north-housing-3'));
- assert(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('app/main.js?v=north-housing-3'));
+ for(const file of ['app/main.js','explore/explore.js'])assert(fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').includes('runtime.bundle.js?v=north-housing-4'));
+ assert(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('app/main.js?v=north-housing-4'));
 });

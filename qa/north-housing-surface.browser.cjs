@@ -1,7 +1,7 @@
 // Focused northern housing geometry/renderer gate. No broad regression/soak.
 const {chromium}=require('playwright'),fs=require('node:fs'),assert=require('node:assert/strict');
 const {browserLaunchOptions,assertBrowserRenderer}=require('./browser-launch.cjs');
-const url=process.env.PARK_NORTH_URL||'http://127.0.0.1:8496/67park-foundation-next/?v=north-housing-3';
+const url=process.env.PARK_NORTH_URL||'http://127.0.0.1:8496/67park-foundation-next/?v=north-housing-4';
 const output=process.env.PARK_NORTH_EVIDENCE||'.qa-results/north-housing-local';
 const views=[
  {name:'road-end',p:[-10,60,-225],t:[-10,9.4,-225]},
@@ -29,17 +29,19 @@ const views=[
     const T=await import('three'),w=__islandWorld,ray=new T.Raycaster(new T.Vector3(),new T.Vector3(0,-1,0));
     const points=[];
     for(const x of [-14.9,-10,-4.7])for(const z of [-240.74,-240,-239,-238,-237.29,-237.27,-237,-236])points.push({kind:'road',x,z});
-    for(const x of [-16,-3.9])for(const z of [-240.5,-240,-239,-238])points.push({kind:'curb',x,z});
+    for(const x of [-16,-3.9])for(const z of [-240.5,-240,-239,-238])points.push({kind:x<-10?'curb':'paving',x,z});
+    // Dense grid over the actual photographed inner seam and triangular gap.
+    for(const x of [-4.4,-3.5,-3.39,-3.38,-3.3,-3.1,-2.8])for(let z=-240.5;z<=-193;z+=.5)points.push({kind:'paving',x,z});
     for(const x of [-14,-10,-5])points.push({kind:'sand',x,z:-240.8});
     points.push({kind:'paving',x:27.422581,z:-240.570434},{kind:'paving',x:27.576825,z:-240.684388});
-    const coast=await fetch('./repairs/north-housing-surface-1.json?v=north-housing-3').then(r=>r.json());
+    const coast=await fetch('./repairs/north-housing-surface-1.json?v=north-housing-4').then(r=>r.json());
     for(const q of coast.coastProbes){points.push({kind:'paving',x:q.inside[0],z:q.inside[1]});points.push({kind:'sand',x:q.outside[0],z:q.outside[1]})}
     for(const x of [68.4,70,72,74,76,79])for(let z=-230;z<=-193;z+=1)points.push({kind:z<=-218.5?'grass':'paving',x,z});
     for(const x of [-2,-1,0,146,147])for(const z of [-212,-205,-198,-193])points.push({kind:'paving',x,z});
     // Probe both sides of old joins. Their height must agree with the sampler.
     for(const x of [64.66048,68.24961,77.22244,80.81157])for(const dx of [-.003,.003])for(const z of [-225,-220,-210,-200])points.push({kind:'joined',x:x+dx,z});
     // This former sand probe is now inside the explicitly requested curb extension.
-    points.push({kind:'curb',x:-3.8,z:-239});
+    points.push({kind:'paving',x:-3.8,z:-239});
     for(const [x,z]of [[72,-242],[145,-225]])points.push({kind:'sand',x,z});
     for(const [x,z]of [[16,-202],[56,-202],[94,-202],[134,-202]])points.push({kind:'parcel',x,z});
     const hits=points.map(q=>{ray.ray.origin.set(q.x,12,q.z);const all=ray.intersectObjects(w.terrain.children,true).filter(h=>h.object.visible&&!h.object.name.startsWith('67D_DIK_')),h=all[0];return {...q,mesh:h?.object.name,y:h?.point.y,ground:w.terrainGround(q.x,q.z),coplanarSoil:all.some(s=>s.object.name==='4_KIYI_TOPRAK_TABANI'&&Math.abs(s.point.y-h.point.y)<.002)}});

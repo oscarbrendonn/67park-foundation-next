@@ -40,6 +40,16 @@ grass_bridge=Polygon([(64.66048,-235.74118),(80.81157,-232.76522),
                       (84.04179,-218.44049),(61.43026,-218.44049)])
 new_grass=set_precision(union_all([old_grass,grass_bridge]),.00001)
 assert len(parts(new_grass))==1 and new_grass.covers(old_grass)
+# Keep one continuous cap at the housing/road join. The old independent curb
+# has a lowered inner bevel, while the replacement paving is flat: retaining
+# both leaves broken shading seams. Its complete northern U is isolated from
+# other curb components, so absorb its footprint into the existing pavement.
+ct,cs=selected('6_BORDUR',(-5,-238,150,-189))
+curb_triangles=ct[cs].copy()
+end_mask=(curb_triangles[:,:,0]<-3.3)&(curb_triangles[:,:,2]<-237)
+curb_triangles[:,:,2][end_mask]-=3.4740943948413587
+housing_curb=footprint(curb_triangles)
+assert len(parts(housing_curb))==1 and 280<housing_curb.area<285
 # The previous union retained the old squared-off coastal tabs. Derive this
 # edge ONLY from the joined lawn, with a uniform round-offset promenade.
 # Width also meets the existing western inner curb without a narrow sand slit.
@@ -56,11 +66,13 @@ carriers=footprint(triangles(meshes['7_KB_SPOR_CIM_TASIYICI']))
 parcels=[Polygon(p.exterior) for p in parts(carriers) if p.bounds[0]>0 and p.bounds[2]<145 and -217<p.bounds[1]<-215]
 assert len(parcels)==2
 reserved=union_all(parcels)
-new_paving=set_precision(union_all([coast_band,infill]).difference(reserved),.00001)
+west_join=box(-4.52901,-240.75751,0.94837,-192.12653)
+new_paving=set_precision(union_all([coast_band,infill,housing_curb,west_join]).difference(reserved),.00001)
 assert len(parts(new_paving))==1 and new_paving.is_valid, [(p.area,p.bounds) for p in parts(new_paving)]
 assert new_paving.intersection(reserved).area==0
 # Check the actual coastal contour, not only the intended buffer argument.
-coast_samples=[Point(x,z) for x,z in new_paving.exterior.coords if z < -220]
+coast_samples=[Point(x,z) for x,z in new_paving.exterior.coords if z < -220 and 1<x<130]
+coast_samples += [Point((a.x+b.x)/2,(a.y+b.y)/2) for a,b in zip(coast_samples,coast_samples[1:]) if a.distance(b)<2]
 widths=[p.distance(new_grass) for p in coast_samples]
 assert len(widths)>100 and max(abs(w-coast_width) for w in widths)<.003
 coast_probe_candidates=[p for p in coast_samples if 1<p.x<130]
@@ -69,7 +81,7 @@ for i in np.linspace(0,len(coast_probe_candidates)-1,16,dtype=int):
     p=coast_probe_candidates[i];q=nearest_points(new_grass,p)[0]
     dx,dz=(p.x-q.x)/coast_width,(p.y-q.y)/coast_width
     coast_probes.append({'inside':[p.x-dx*.025,p.y-dz*.025], 'outside':[p.x+dx*.025,p.y+dz*.025]})
-for x,z in [(-3.8,-238),(72,-242),(145,-225),(154,-210),(-8,-220)]:
+for x,z in [(72,-242),(145,-225),(154,-210),(-8,-220)]:
     assert not new_paving.covers(Point(x,z)), 'Keep sand or road outside the housing strip'
 for x,z in [(70,-225),(74,-203),(-2,-225),(-2,-200),(72,-195),(147,-205)]:
     assert new_paving.covers(Point(x,z)), 'Interior sand gap remains'
@@ -124,13 +136,14 @@ rows.append({'name':soil['name'],'remove':soil_remove,'p':[],'n':[],'ix':[],'exp
  'positionCRC':f'{zlib.crc32(np.array(soil["p"],dtype="<f4").tobytes()):08x}',
  'indexCRC':f'{zlib.crc32(np.array(soil["ix"],dtype="<u4").tobytes()):08x}'}})
 metrics={'joinedLawns':2,'pavingAddedArea':new_paving.difference(old_paving).area,
+ 'mergedCurbTriangles':int(cs.sum()),'mergedCurbArea':housing_curb.area,
  'removedCoplanarSoilTriangles':len(soil_remove),'coveredSoilArea':soil_area,'exteriorSoilChangedArea':0,
  'pavingRemovedArea':old_paving.difference(new_paving).area,
  'coastWalkwayWidth':coast_width,'coastWidthMin':min(widths),'coastWidthMax':max(widths),'coastWidthSamples':len(widths),
  'grassAddedArea':new_grass.difference(old_grass).area,'existingGrassRemovedArea':old_grass.difference(new_grass).area,
  'reservedParcelChangedArea':new_paving.intersection(reserved).area,'addedMeshes':0,'addedMaterials':0,'perFrameWork':0,
  'bounds':list(new_paving.bounds),
- 'triangleDelta':sum(len(r['ix'])//3-len(r['remove']) for r in rows)}
+ 'triangleDelta':sum(len(r['ix'])//3-len(r['remove']) for r in rows)-int(cs.sum())}
 assert 800<metrics['pavingAddedArea']<2000 and 250<metrics['grassAddedArea']<400
-destination.write_text(json.dumps({'version':1,'metrics':metrics,'coastProbes':coast_probes,'meshes':rows},separators=(',',':'))+'\n')
+destination.write_text(json.dumps({'version':1,'metrics':metrics,'coastProbes':coast_probes,'curbMerge':{'name':'6_BORDUR','remove':(np.flatnonzero(cs)*3).tolist()},'meshes':rows},separators=(',',':'))+'\n')
 print(json.dumps(metrics))

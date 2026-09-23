@@ -1,5 +1,41 @@
 # Northern housing: joined pavement and grass
 
+## Revision 4 — remove the photographed pavement gap and broken inner seam
+
+The revision-3 road endpoint was aligned, but visual QA missed a triangular
+hole at the western edge of the housing pavement near x=-3.3,z=-218.8. A
+screen-coordinate raycast in `.qa-results/north-road-seam-before.json` reaches
+dry sand there; neighbouring points hit pavement. The curved buffer did not
+meet the straight inner curb. The independently bevelled curb also left an
+irregular inner line alongside the flat new pavement.
+
+The western pavement is now a continuous union from the road edge to the lawn
+and plaza. The existing northern housing U-shaped curb footprint is absorbed
+into that same pavement cap, and its 408 original faces are removed from the
+curb mesh. There is no overlay strip, hidden coplanar cap or second interior
+wall at this join. The road retains its exact previous endpoint/width/height;
+the pool-side curb, grass, lower parcel holes and exterior beach remain.
+
+- Grass repair row remains byte-identical to the approved previous release.
+- No extra meshes/materials/draw calls or per-frame work. Total baked triangle
+  delta vs original source is -714 (464 fewer than revision 3).
+- Existing coast width tolerance remains 3 mm. The western return now belongs
+  to the straight road join, so coastal-only samples are x>1,x<130 and include
+  edge midpoints (146 baked samples); no coastal distance tolerance was widened.
+- The first development bake rejected the former >100 vertex count when the
+  western arc was removed; adding coastal midpoints restored the sampling count
+  while preserving the exact 3 mm geometric tolerance.
+- Unit coverage includes a 1,337-point grid over the reported join; browser
+  coverage adds 672 points along the photographed seam (1,028 total per profile).
+- `.qa-results/north-housing-4-unit-first.log`: 8/8 PASS.
+- `.qa-results/north-housing-4-focused.log`: 34/34 PASS. npm tests: water 5/5,
+  main 263 PASS, two existing optional-fixture skips, zero failures.
+- `.qa-results/north-housing-4-local-first.log`: focused desktop/touch profiles;
+  screenshots in `north-housing-4-local`. Desktop close overhead and road-level
+  images were visually inspected; the triangle and broken inner line are gone.
+  These checks are not a physical iPhone test or whole-map perfection claim.
+- Public cache alias: `north-housing-4`; existing short publication profile.
+
 ## Revision 3 — align the road endpoint with the coastal pavement
 
 The user identified the short road between the northern pool and housing. The
