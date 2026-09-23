@@ -1,11 +1,12 @@
-// Keep donor catalogues/models intact: their clothes are still used by Gorilla.
+import {isNativeCharacter} from './native-character.js?v=cat-character-1';
+// Keep donor catalogues/models intact: their clothes are used by both originals.
 export const PLAYABLE_BASE = 'goril';
 export const EQUIPMENT_KEY = '67park-feel-lab.character.v3';
 export const PREVIOUS_CHARACTER_KEY = '67park-feel-lab.character.before-gorilla-only.v1';
 const PROFILE_KEY = '67park-feel-lab.player-profile.v1';
 
 export function gorillaEquipment(equipment) {
-  if (equipment?.base === PLAYABLE_BASE) return equipment;
+  if (isNativeCharacter(equipment?.base)) return equipment;
   // A donor face is a character, not clothing. Preserve the fitted glasses.
   return {...equipment, base: PLAYABLE_BASE,
     head: equipment?.head === 'friendsie_26:90' ? equipment.head : null};

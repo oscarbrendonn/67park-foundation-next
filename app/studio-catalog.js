@@ -29,14 +29,14 @@ export function withoutFittedItems(equipment) {
 }
 
 export function studioSlots(equipment,baseEquipment,label) {
-  const gorilla=equipment.base==='goril', original=baseEquipment(equipment.base);
+  const gorilla=equipment.base==='goril', cat=equipment.base==='cat67', native=gorilla||cat, original=baseEquipment(equipment.base);
   const rows=[
     ['kicks','Shoes','shoe','#c9e4fb',[original.kicks,'friendsie_3333:5','friendsie_1:3','friendsie_2:5']],
     ['back','Back','back','#e1d5fa',[null,original.back,'friendsie_2:4','friendsie_3333:4']],
     ['body','Outfit','top','#ffe4a6',[original.body,'friendsie_2:2']],
-    ['sprout','Headwear','hat','#ffd7e3',gorilla?[null,'friendsie_8:90','friendsie_2:1','goril:TAC']:[null,original.sprout,'spr-flower','spr-leaf','spr-cherry']],
-    ...(gorilla?[['head','Eyewear','glasses','#d5ecc4',[null,'friendsie_26:90']]]:[]),
-    ['held','Held item','hand','#ffe1cd',[null,original.held,'goril:CICEK']],
+    ['sprout','Headwear','hat','#ffd7e3',native?[null,'friendsie_8:90','friendsie_2:1',...(gorilla?['goril:TAC']:[])]:[null,original.sprout,'spr-flower','spr-leaf','spr-cherry']],
+    ...(native?[['head','Eyewear','glasses','#d5ecc4',[null,'friendsie_26:90']]]:[]),
+    ['held','Held item','hand','#ffe1cd',[null,original.held,...(cat?[]:['goril:CICEK'])]],
     ['power','Effect','star','#fff0a9',[null,'pwr-stars','pwr-hearts','pwr-bolts']],
     ['vibe','Glow','ring','#d5eafa',[null,'vibe-pink','vibe-mint','vibe-gold','vibe-sky']],
   ];

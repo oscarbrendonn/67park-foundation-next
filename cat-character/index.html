@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>67Park · Cat character</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;color:#3f4843;background:#eeeae2;font:15px/1.5 system-ui,sans-serif}
+    main{height:100dvh;min-height:560px;display:grid;grid-template-rows:auto 1fr auto;padding:26px}
+    header{position:relative;z-index:1;pointer-events:none}header img{width:96px}h1{font-size:26px;letter-spacing:-1px;margin:12px 0 2px}p{margin:0;color:#727970;font-size:13px}
+    #stage{position:relative;min-height:0;touch-action:none}canvas{width:100%;height:100%;display:block}
+    footer{text-align:center;z-index:1}nav{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin-bottom:8px}
+    button,a{font:inherit;font-size:13px;border:1px solid #fff;border-radius:24px;background:#fff9ef;color:inherit;padding:10px 17px;text-decoration:none;cursor:pointer}
+    button[aria-pressed=true]{background:#cfd9c7;border-color:#bacbb1}button:focus-visible,a:focus-visible{outline:3px solid #69896a;outline-offset:3px}
+    #status{position:absolute;inset:45% 12px auto;text-align:center}.detail{font-size:11px;margin-top:7px}
+    @media(max-width:600px){main{padding:18px 14px;min-height:500px}h1{font-size:22px}header img{width:82px}button,a{padding:9px 12px;font-size:12px}}
+  </style>
+  <script type="importmap">{"imports":{"three":"../vendor/three.module.js","three/addons/":"../vendor/addons/"}}</script>
+</head>
+<body>
+<main>
+  <header><img src="../brand/67park-logo.png" alt="67Park"><h1>Same little face. A whole new friend.</h1><p>Original cat head · Gorilla body · Matching light-grey fur</p></header>
+  <section id="stage" aria-label="Interactive 3D cat character"><div id="status" role="status">Preparing your character…</div></section>
+  <footer>
+    <nav aria-label="Character angle"><button data-view="front" aria-pressed="false">Front</button><button data-view="quarter" aria-pressed="true">Three-quarter</button><button data-view="back" aria-pressed="false">Back</button></nav>
+    <nav aria-label="Character motion"><button data-motion="idle" aria-pressed="true">Idle</button><button data-motion="walk" aria-pressed="false">Walk</button><button data-motion="pose" aria-pressed="false">Still</button><a href="./cat-gorilla-body.glb" download>Download GLB</a></nav>
+    <p>Drag to rotate · Scroll or pinch to zoom</p><p class="detail">Local character design · Not installed in the game</p>
+  </footer>
+</main>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+const stage=document.querySelector('#stage'), status=document.querySelector('#status');
+const errors=[]; window.addEventListener('error', e=>errors.push(e.message));
+window.addEventListener('unhandledrejection',e=>errors.push(String(e.reason)));
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+stage.append(renderer.domElement);
+const scene=new THREE.Scene(), camera=new THREE.PerspectiveCamera(32,1,.01,100);
+const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.enablePan=false;
+controls.minDistance=2.8;controls.maxDistance=8;controls.maxPolarAngle=Math.PI*.58;
+const room=new RoomEnvironment(),pmrem=new THREE.PMREMGenerator(renderer);scene.environment=pmrem.fromScene(room,.06).texture;room.dispose();pmrem.dispose();
+scene.environmentIntensity=.65;
+scene.add(new THREE.HemisphereLight(0xfffaf3,0xa5b3ac,1.2));
+const key=new THREE.DirectionalLight(0xfffaf6,2.2);key.position.set(-3,5,4);key.castShadow=true;
+key.shadow.mapSize.set(1024,1024);Object.assign(key.shadow.camera,{left:-3,right:3,top:4,bottom:-2,near:.1,far:20});key.shadow.normalBias=.025;scene.add(key);
+const fill=new THREE.DirectionalLight(0xe6f0ff,.7);fill.position.set(4,3,-2);scene.add(fill);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(100,100),new THREE.ShadowMaterial({opacity:.16}));
+floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+const pivot=new THREE.Group();scene.add(pivot);let mixer,clips=[],model,height=2;
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+function setView(view){const a={front:0,quarter:.55,back:Math.PI}[view];const distance=Math.max(4.6,2.25/camera.aspect);camera.position.set(Math.sin(a)*distance,height*.55+distance*.075,Math.cos(a)*distance);controls.target.set(0,height*.52,0);controls.update();document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.view===view))}
+function setMotion(name){mixer?.stopAllAction();if(name==='pose'){model?.traverse(o=>{if(o.isSkinnedMesh)o.skeleton.pose()})}else{const clip=THREE.AnimationClip.findByName(clips,name);if(clip)mixer.clipAction(clip).reset().play()}document.querySelectorAll('[data-motion]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.motion===name))}
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>setView(b.dataset.view));
+document.querySelectorAll('[data-motion]').forEach(b=>b.onclick=()=>setMotion(b.dataset.motion));
+new ResizeObserver(resize).observe(stage);resize();
+try{
+ const draco=new DRACOLoader();draco.setDecoderPath('../vendor/addons/libs/draco/gltf/');
+ const loader=new GLTFLoader();loader.setDRACOLoader(draco);
+ const gltf=await loader.loadAsync('./cat-gorilla-body.glb?v=grey-tone-4');model=gltf.scene;clips=gltf.animations;
+ model.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(model,true),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
+ const scale=2.2/size.y;model.scale.multiplyScalar(scale);model.position.set(-center.x*scale,-box.min.y*scale,-center.z*scale);height=2.2;
+ model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false}});pivot.add(model);
+ mixer=new THREE.AnimationMixer(model);setMotion('idle');setView('quarter');status.hidden=true;
+ window.catCharacter={ready:true,model,pivot,mixer,clips,renderer,scene,camera,controls,setView,setMotion,errors,bounds:{min:box.min.toArray(),max:box.max.toArray()}};
+ draco.dispose();
+}catch(error){errors.push(String(error));status.textContent='The character could not load. Please reload.';console.error(error)}
+const clock=new THREE.Clock();renderer.setAnimationLoop(()=>{mixer?.update(Math.min(clock.getDelta(),.05));controls.update();renderer.render(scene,camera)});
+</script>
+</body>
+</html>

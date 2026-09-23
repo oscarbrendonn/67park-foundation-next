@@ -16,11 +16,11 @@ test('legacy renderer cannot double-attach fitted pieces or hide gorilla hands',
  assert.equal(eq.body,'friendsie_2:2');
 });
 test('all studio rows preserve current equipment and wrap without duplicates',()=>{
- for(const base of ['goril','friendsie_1']){
+ for(const base of ['goril','cat67','friendsie_1']){
   const eq={base,kicks:'friendsie_888:5',head:base==='goril'?null:'friendsie_1:0'};
   const rows=studioSlots(eq,()=>({head:eq.head}),id=>id);
   assert(rows.find(r=>r.slot==='kicks').items.some(i=>i.id===eq.kicks));
-  assert.equal(rows.some(r=>r.title==='Eyewear'),base==='goril');
+  assert.equal(rows.some(r=>r.title==='Eyewear'),base!=='friendsie_1');
   for(const r of rows)assert.equal(new Set(r.items.map(i=>i.id)).size,r.items.length);
  }
 });

@@ -1,0 +1,47 @@
+{
+  "sources": [
+    {
+      "path": "models/goril-motion-v3.glb",
+      "sha256": "cd14c7a06dda3c6c7a25e7106e90bfb34c8276bd1cc09b810d9b5c2f174e9c01"
+    },
+    {
+      "path": "cat-preview/cat-head-mobile.glb",
+      "sha256": "e1f628ea5fc06bcd874c12270356ec5d2ce9368db57ac4cbae6b0e28d0bd789a"
+    }
+  ],
+  "output": "cat-character/cat-gorilla-body.glb",
+  "bytes": 1723216,
+  "triangles": 20912,
+  "meshes": 4,
+  "materials": 2,
+  "bones": 20,
+  "clips": [
+    "celebrate",
+    "fall",
+    "idle",
+    "jump",
+    "land",
+    "run",
+    "walk"
+  ],
+  "preservedViews": 849,
+  "bodyFurTextureSRGB": "#e7e9e8",
+  "bodyTintLinear": [
+    0.65,
+    0.65,
+    0.65
+  ],
+  "bodyRoughness": 0.7,
+  "bodySharesHeadBaseColorTexture": true,
+  "bodyFurUVRect": [
+    0.048828125,
+    0.302734375,
+    0.17578125,
+    0.458984375
+  ],
+  "bodyUVChanged": true,
+  "bodyGeometryChanged": false,
+  "headGeometryChanged": false,
+  "headMaterialChanged": false,
+  "installedInGame": false
+}

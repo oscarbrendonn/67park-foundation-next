@@ -1,4 +1,5 @@
 import {createTravelSampler} from './feel-camera.js';
+import {isNativeCharacter} from './native-character.js?v=cat-character-1';
 import * as T from 'three';
 import {createClaudeGorillaAnimation} from './claude-gorilla-animation.js?v=bot-hit-13';
 import {createClaudeCharacterAnimation} from './claude-character-animation.js?v=bot-hit-13';
@@ -7,7 +8,7 @@ import {createClaudeCharacterAnimation} from './claude-character-animation.js?v=
 // Mini-game physics, hit rules, weapon poses and vehicle seating remain owners
 // of those states. Failed clip loading falls back to the existing animator.
 export function shareMinigameMotion(model, donor, root, fallback) {
-  const base=root.userData.equipment?.base??'goril',native=base==='goril';
+  const base=root.userData.equipment?.base??'goril',native=isNativeCharacter(base);
   const mixer=native?new T.AnimationMixer(model):null;
   const motion=native?createClaudeGorillaAnimation({model,mixer,actions:{},base}):createClaudeCharacterAnimation({model,donor:donor.scene,base});
   const sampleTravel=createTravelSampler(),travelPosition=new T.Vector3();
