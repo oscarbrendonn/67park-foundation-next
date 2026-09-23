@@ -13,7 +13,7 @@ function fixture(){
  for(const r of patch.meshes){
   const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute([1000,9,0,1000,9,1,1001,9,0],3));
   g.setAttribute('normal',new T.Float32BufferAttribute([0,1,0,0,1,0,0,1,0],3));g.setAttribute('uv',new T.Float32BufferAttribute([0,0,0,1,1,0],2));
-  const soil=r.name==='4_KIYI_TOPRAK_TABANI';g.setIndex(soil?Array.from({length:633},(_,i)=>i%3):[0,1,2,0,1,2]);r.remove=soil?Array.from({length:210},(_,i)=>(i+1)*3):[3];
+  const soil=r.name==='4_KIYI_TOPRAK_TABANI',soilCount=patch.metrics.removedCoplanarSoilTriangles;g.setIndex(soil?Array.from({length:(soilCount+1)*3},(_,i)=>i%3):[0,1,2,0,1,2]);r.remove=soil?Array.from({length:soilCount},(_,i)=>(i+1)*3):[3];
   r.expected={vertices:3,indices:g.index.count,positionCRC:crc(g.attributes.position.array),indexCRC:crc(Uint32Array.from(g.index.array))};
   const mesh=new T.Mesh(g,material);mesh.name=r.name;root.add(mesh);
  }
@@ -60,15 +60,31 @@ test('actual coastal triangle boundary follows the lawn at uniform width, includ
 });
 test('northern patch reuses meshes and removes only covered coplanar soil; lawns and plots unchanged',()=>{
  assert.equal(data.metrics.existingGrassRemovedArea,0);assert.equal(data.metrics.reservedParcelChangedArea,0);
- assert.equal(data.metrics.triangleDelta,-714);assert.equal(data.metrics.addedMeshes,0);assert.equal(data.metrics.perFrameWork,0);
- assert.equal(data.metrics.mergedCurbTriangles,408);assert.equal(data.curbMerge.remove.length,408);
- assert.equal(data.metrics.removedCoplanarSoilTriangles,210);assert.equal(data.metrics.exteriorSoilChangedArea,0);
+ assert.equal(data.metrics.triangleDelta,-2040);assert.equal(data.metrics.addedMeshes,0);assert.equal(data.metrics.perFrameWork,0);
+ assert.equal(data.metrics.mergedCurbTriangles,987);assert.equal(data.curbMerge.remove.length,987);
+ assert.equal(data.metrics.removedCoplanarSoilTriangles,266);assert.equal(data.metrics.retainedSoilTriangles,55);assert.equal(data.metrics.exteriorSoilChangedArea,0);
  assert.equal(data.metrics.coastWalkwayWidth,4.34016);assert(data.metrics.coastWidthSamples>100);
  assert(Math.abs(data.metrics.coastWidthMin-4.34016)<.003);assert(Math.abs(data.metrics.coastWidthMax-4.34016)<.003);
  for(const r of data.meshes)for(let i=0;i<r.ix.length;i+=3){
   const p=r.ix.slice(i,i+3).map(j=>new T.Vector3(...r.p.slice(j*3,j*3+3)));
   const n=p[1].clone().sub(p[0]).cross(p[2].clone().sub(p[0]));assert(n.length()>1e-10);
   assert(n.normalize().dot(new T.Vector3(...r.n.slice(r.ix[i]*3,r.ix[i]*3+3)))>.999);
+ }
+});
+test('pool-side corner is continuous, with no protruding curb tooth or coplanar soil overlay',()=>{
+ assert.equal(data.metrics.poolOutsideCornerChangedArea,0);
+ assert(data.metrics.poolCornerAddedArea>23&&data.metrics.poolCornerAddedArea<25);
+ const scene=new T.Group();
+ for(const r of data.meshes){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(r.p,3));g.setIndex(r.ix);const m=new T.Mesh(g,new T.MeshBasicMaterial());m.name=r.name;scene.add(m)}scene.updateMatrixWorld(true);
+ const ray=new T.Raycaster(new T.Vector3(),new T.Vector3(0,-1,0));
+ for(let x=-21;x<=-15.2;x+=.2)for(let z=-240.3;z<=-232;z+=.2){
+  ray.ray.origin.set(x,12,z);const hits=ray.intersectObjects(scene.children);
+  assert.equal(hits[0]?.object.name,'7_KALDIRIM_TABANI',JSON.stringify({x,z}));
+  assert(!hits.some(h=>h.object.name==='4_KIYI_TOPRAK_TABANI'));
+  assert(Math.abs(hits[0].point.y-9.38008564)<.00001);
+ }
+ for(const [x,z]of [[-16,-240.9],[-15.5,-240.9],[-15,-240.5]]){
+  ray.ray.origin.set(x,12,z);assert.equal(ray.intersectObjects(scene.children).length,0,'No pavement over the beach/road');
  }
 });
 test('interior is paved, lawns join, apartment plots and exterior sand remain uncovered',()=>{
@@ -97,6 +113,6 @@ test('both runtimes apply after photo repair and before shadow refresh; public c
   const s=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');assert.equal(s.split('dataset.northHousingSurface1=').length,2);
   const i=s.indexOf('dataset.northHousingSurface1=');assert(i>s.indexOf('dataset.photoSurfaceFinish1='));assert(s.slice(i,i+750).includes('67D_SKATEPARK_BASE'));
  }
- for(const file of ['app/main.js','explore/explore.js'])assert(fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').includes('runtime.bundle.js?v=north-housing-4'));
- assert(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('app/main.js?v=north-housing-4'));
+ for(const file of ['app/main.js','explore/explore.js'])assert(fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').includes('runtime.bundle.js?v=north-housing-5'));
+ assert(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('app/main.js?v=north-housing-5'));
 });

@@ -1,9 +1,10 @@
 // Focused northern housing geometry/renderer gate. No broad regression/soak.
 const {chromium}=require('playwright'),fs=require('node:fs'),assert=require('node:assert/strict');
 const {browserLaunchOptions,assertBrowserRenderer}=require('./browser-launch.cjs');
-const url=process.env.PARK_NORTH_URL||'http://127.0.0.1:8496/67park-foundation-next/?v=north-housing-4';
+const url=process.env.PARK_NORTH_URL||'http://127.0.0.1:8496/67park-foundation-next/?v=north-housing-5';
 const output=process.env.PARK_NORTH_EVIDENCE||'.qa-results/north-housing-local';
 const views=[
+ {name:'pool-corner',p:[-17.5,26,-237.5],t:[-17.5,9.4,-237.5]},
  {name:'road-end',p:[-10,60,-225],t:[-10,9.4,-225]},
  {name:'road-level',p:[-10,12,-229],t:[-10,9.2,-243]},
  {name:'overview',p:[40,145,-205],t:[40,9.4,-205]},
@@ -29,12 +30,15 @@ const views=[
     const T=await import('three'),w=__islandWorld,ray=new T.Raycaster(new T.Vector3(),new T.Vector3(0,-1,0));
     const points=[];
     for(const x of [-14.9,-10,-4.7])for(const z of [-240.74,-240,-239,-238,-237.29,-237.27,-237,-236])points.push({kind:'road',x,z});
-    for(const x of [-16,-3.9])for(const z of [-240.5,-240,-239,-238])points.push({kind:x<-10?'curb':'paving',x,z});
+    for(const x of [-16,-3.9])for(const z of [-240.5,-240,-239,-238])points.push({kind:'paving',x,z});
+    // Pool-side notch and the removed protruding tooth from the user's crop.
+    for(const x of [-19.1,-18.5,-18,-17.5,-17,-16.5,-16,-15.3])for(let z=-240.3;z<=-231.5;z+=.25)points.push({kind:'paving',x,z});
+    for(const x of [-16,-15.5])points.push({kind:'sand',x,z:-240.9});
     // Dense grid over the actual photographed inner seam and triangular gap.
     for(const x of [-4.4,-3.5,-3.39,-3.38,-3.3,-3.1,-2.8])for(let z=-240.5;z<=-193;z+=.5)points.push({kind:'paving',x,z});
     for(const x of [-14,-10,-5])points.push({kind:'sand',x,z:-240.8});
     points.push({kind:'paving',x:27.422581,z:-240.570434},{kind:'paving',x:27.576825,z:-240.684388});
-    const coast=await fetch('./repairs/north-housing-surface-1.json?v=north-housing-4').then(r=>r.json());
+    const coast=await fetch('./repairs/north-housing-surface-1.json?v=north-housing-5').then(r=>r.json());
     for(const q of coast.coastProbes){points.push({kind:'paving',x:q.inside[0],z:q.inside[1]});points.push({kind:'sand',x:q.outside[0],z:q.outside[1]})}
     for(const x of [68.4,70,72,74,76,79])for(let z=-230;z<=-193;z+=1)points.push({kind:z<=-218.5?'grass':'paving',x,z});
     for(const x of [-2,-1,0,146,147])for(const z of [-212,-205,-198,-193])points.push({kind:'paving',x,z});

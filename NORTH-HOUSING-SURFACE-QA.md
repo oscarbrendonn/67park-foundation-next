@@ -1,5 +1,50 @@
 # Northern housing: joined pavement and grass
 
+## Revision 5 — pool-side palm corner
+
+The next user crop identifies the opposite (pool-side) road cap. Revision 3
+extended the curb without its old inner paving finger, leaving an open notch
+and a 0.18 m backtracking tooth. The original diagnostic is
+`.qa-results/pool-corner-before.json` and its matching close overhead PNG.
+
+The northern pool pavement and curb now share one continuous existing paving
+cap. The photographed corner has a straight return joining the authored pool
+edge to the road endpoint. Its footprint changes only inside
+x=[-24,-15.099], z=[-241,-231]: 23.962 m2 of notch filled and less than 1 m2 of
+the protruding tooth trimmed. The pool rim, water, palm, grass and all other
+scene meshes are untouched. The existing road endpoint/width/height remain.
+
+- 579 pool-side curb faces join the previous 408 housing-side removals. No
+  extra meshes, materials, draw calls or per-frame work. Total triangle delta
+  versus the original source is -2040 (1326 fewer than revision 4).
+- The original grass repair row remains byte-identical. Coastal width and its
+  3 mm tolerance are unchanged. The baker checks zero pool footprint changes
+  outside the bounded corner and zero loss of previous paving.
+- Pool-side soil collar triangles crossing the new pavement are split on the
+  exact border: all 8.654 m2 of exposed remainder is retained as 55 triangles,
+  while the covered coplanar portion is removed. Total soil source removals
+  are 266 triangles, including the previous 210. No exposed beach is deleted.
+- Initial development bakes rejected a single-polygon assumption after the
+  second side was added, then rejected removing partly exposed soil. The
+  implementation now explicitly handles separate polygons and preserves the
+  clipped exterior soil. Neither rejection emitted a new surface asset.
+- `.qa-results/north-housing-5-unit-first.log`: 9/9 PASS, including the new
+  dense pool-corner grid, absence of soil overlap and absence of the old tooth.
+- `.qa-results/north-housing-5-focused.log`: 35/35 PASS. Local npm tests:
+  water 5/5, main 263 PASS, two existing optional-fixture skips, zero fail.
+- `.qa-results/north-housing-5-local-first.log`: desktop and touch emulation
+  each PASS, 1318 terrain probes, 11 views and zero browser errors. The close
+  desktop and overview images were inspected. The mobile close-view center was
+  then shifted 2.5 m toward the road for the final live capture, because the
+  first portrait crop put the palm in front of the join.
+- `.qa-results/pool-rim-inspect.json`: separate whole-scene raycasts confirm
+  the white `POOL104_edge` and raised `POOL104_paving` remain above the terrain
+  repair at their original levels. Their deliberate rim/step is not a crack.
+  The extra low diagnostic image was obscured by a palm and is not used as
+  visual proof. Browser touch emulation is not physical iPhone/Safari testing.
+- Public cache alias: `north-housing-5`. Publication uses the existing short
+  profile; no broad browser regression, soak or workflow change.
+
 ## Revision 4 — remove the photographed pavement gap and broken inner seam
 
 The revision-3 road endpoint was aligned, but visual QA missed a triangular

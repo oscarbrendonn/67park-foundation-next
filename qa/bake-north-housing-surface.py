@@ -70,8 +70,33 @@ west_join=box(-4.52901,-240.75751,0.94837,-192.12653)
 new_paving=set_precision(union_all([coast_band,infill,housing_curb,west_join]).difference(reserved),.00001)
 assert len(parts(new_paving))==1 and new_paving.is_valid, [(p.area,p.bounds) for p in parts(new_paving)]
 assert new_paving.intersection(reserved).area==0
+# Pool-side continuation: the former end-cap was translated but its inner
+# pavement finger was not, leaving a sand notch and a stepped curb tooth.
+# Merge the existing isolated northern pool pavement/curb into one cap, just
+# like the housing side. Preserve their footprint everywhere except the small
+# photographed corner; the pool rim, grass, water and palm meshes are untouched.
+_,pool_ps=selected('7_KALDIRIM_TABANI',(-83,-245,-15,-189))
+_,pool_cs=selected('6_BORDUR',(-83,-245,-15,-189))
+pool_old=footprint(pt[pool_ps]);pool_ct=ct[pool_cs].copy()
+end_mask=(pool_ct[:,:,0]>-16.5)&(pool_ct[:,:,2]<-237)
+pool_ct[:,:,2][end_mask]-=3.4740943948413587
+pool_curb=footprint(pool_ct)
+pool_before=set_precision(union_all([pool_old,pool_curb]),.00001)
+corner_window=box(-24,-241,-15.099,-231)
+# The small convex return continues directly from the authored pool edge to
+# the road endpoint. It removes the backtracking notch without a square tab.
+corner=pool_before.intersection(corner_window).intersection(box(-83,-240.75751,-15.099,-189)).convex_hull
+pool_new=set_precision(union_all([pool_before.difference(corner_window),corner]),.00001)
+pool_changed=pool_before.symmetric_difference(pool_new)
+assert pool_changed.difference(corner_window).area<1e-8
+assert 20<pool_new.difference(pool_before).area<50
+assert pool_before.difference(pool_new).area<1
+assert pool_new.is_valid
+pool_added=pool_new.difference(pool_before).area
+old_paving=union_all([old_paving,pool_old]);new_paving=union_all([new_paving,pool_new])
+ps|=pool_ps;cs|=pool_cs
 # Check the actual coastal contour, not only the intended buffer argument.
-coast_samples=[Point(x,z) for x,z in new_paving.exterior.coords if z < -220 and 1<x<130]
+coast_samples=[Point(x,z) for poly in parts(new_paving) for x,z in poly.exterior.coords if z < -220 and 1<x<130]
 coast_samples += [Point((a.x+b.x)/2,(a.y+b.y)/2) for a,b in zip(coast_samples,coast_samples[1:]) if a.distance(b)<2]
 widths=[p.distance(new_grass) for p in coast_samples]
 assert len(widths)>100 and max(abs(w-coast_width) for w in widths)<.003
@@ -124,20 +149,29 @@ for name,mask,shape,top,bottom in [
 # All 210 affected faces lie wholly underneath the new pavement; remove only
 # these hidden faces, keeping every beach face and slope outside it unchanged.
 soil=meshes['4_KIYI_TOPRAK_TABANI'];st=triangles(soil);soil_remove=[];soil_area=0
+soil_row={'name':soil['name'],'remove':soil_remove,'p':[],'n':[],'ix':[],'expected':{
+ 'vertices':len(soil['p'])//3,'indices':len(soil['ix']),
+ 'positionCRC':f'{zlib.crc32(np.array(soil["p"],dtype="<f4").tobytes()):08x}',
+ 'indexCRC':f'{zlib.crc32(np.array(soil["ix"],dtype="<u4").tobytes()):08x}'}}
+soil_preserved_area=0
 for i,v in enumerate(st):
     if np.max(abs(v[:,1]-9.380085642765648))>1e-5:continue
     poly=Polygon(v[:,[0,2]])
     if poly.area<1e-10 or poly.intersection(new_paving).area<1e-9:continue
-    assert poly.difference(new_paving).area<1e-8, 'Never remove exposed beach'
-    soil_remove.append(i*3);soil_area+=poly.area
-assert soil_remove==list(range(864*3,1074*3,3))
-rows.append({'name':soil['name'],'remove':soil_remove,'p':[],'n':[],'ix':[],'expected':{
- 'vertices':len(soil['p'])//3,'indices':len(soil['ix']),
- 'positionCRC':f'{zlib.crc32(np.array(soil["p"],dtype="<f4").tobytes()):08x}',
- 'indexCRC':f'{zlib.crc32(np.array(soil["ix"],dtype="<u4").tobytes()):08x}'}})
+    # A few pool-side collar triangles straddle the new perimeter. Retain
+    # their exposed remainder on its original plane, rather than deleting
+    # beach or leaving a coplanar soil patch over the new pavement.
+    remain=poly.difference(new_paving)
+    if remain.area>1e-8:
+        assert poly.bounds[2]<-15, 'Housing-side soil must remain fully covered'
+        cap(soil_row,remain,float(v[0,1]),True);soil_preserved_area+=remain.area
+    soil_remove.append(i*3);soil_area+=poly.intersection(new_paving).area
+assert set(range(864*3,1074*3,3)).issubset(soil_remove)
+rows.append(soil_row)
 metrics={'joinedLawns':2,'pavingAddedArea':new_paving.difference(old_paving).area,
- 'mergedCurbTriangles':int(cs.sum()),'mergedCurbArea':housing_curb.area,
- 'removedCoplanarSoilTriangles':len(soil_remove),'coveredSoilArea':soil_area,'exteriorSoilChangedArea':0,
+ 'mergedCurbTriangles':int(cs.sum()),'mergedCurbArea':housing_curb.area+pool_curb.area,
+ 'poolCornerAddedArea':pool_added,'poolCornerChangedBounds':list(pool_changed.bounds),'poolOutsideCornerChangedArea':pool_changed.difference(corner_window).area,
+ 'removedCoplanarSoilTriangles':len(soil_remove),'retainedSoilTriangles':len(soil_row['ix'])//3,'retainedExteriorSoilArea':soil_preserved_area,'coveredSoilArea':soil_area,'exteriorSoilChangedArea':0,
  'pavingRemovedArea':old_paving.difference(new_paving).area,
  'coastWalkwayWidth':coast_width,'coastWidthMin':min(widths),'coastWidthMax':max(widths),'coastWidthSamples':len(widths),
  'grassAddedArea':new_grass.difference(old_grass).area,'existingGrassRemovedArea':old_grass.difference(new_grass).area,
