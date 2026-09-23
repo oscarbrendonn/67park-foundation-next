@@ -1,5 +1,6 @@
 const assert=require('node:assert/strict');
 const {prepareJumpInput}=require('./jump-input.cjs');
+const {installFerrisJumpPhase}=require('./ferris-jump-phase.cjs');
 
 // This is deliberately a player-loop check, rather than a sampler-only probe:
 // the reported positions have passed through the same walk/skate contact sweep
@@ -22,7 +23,7 @@ module.exports=async function checkRideContacts(page,{mobile=false,check}){
    await page.waitForFunction(value=>!!__candy.state().board===value,on,{timeout:45000});
   }
  };
- const freshFerrisPlacement=({descending=false}={})=>page.evaluate(async descending=>{
+ const freshFerrisPlacement=({descending=false,cabin:chosenCabin=null}={})=>page.evaluate(async({descending,chosenCabin})=>{
   const w=__islandWorld,b=__eggyInput.playerRef.body,i=__eggyInput.input,contacts=w.rideContacts,ride=w.rides.find(r=>r.asset==='ferris'),foot=.555;
   const frame=()=>new Promise(requestAnimationFrame),stop=()=>{i.x=i.z=0;i.run=false;b.setLinvel({x:0,y:0,z:0},true);};
   if(!contacts||!ride)throw Error('Ferris contact fixture missing');
@@ -37,6 +38,7 @@ module.exports=async function checkRideContacts(page,{mobile=false,check}){
    const centerX=cabins.reduce((sum,next)=>sum+next.seat.position.x,0)/cabins.length,centerY=cabins.reduce((sum,next)=>sum+next.seat.position.y,0)/cabins.length;
    let selected=null;
    for(const next of cabins){
+    if(chosenCabin!==null){if(next.cabin===chosenCabin){selected=next;break;}continue;}
     // A jump needs a cabin descending for the next few slow rendered frames:
     // otherwise a legitimate upward jump can be immediately re-contacted by a
     // rising floor before the observer can measure release. An upper-left
@@ -60,7 +62,7 @@ module.exports=async function checkRideContacts(page,{mobile=false,check}){
    while(!placed){await frame();if(performance.now()-started>45000)throw Error('Fresh Ferris placement did not reach prepareBody');}
    return placed;
   }finally{contacts.prepareBody=original;}
- },descending);
+ },{descending,chosenCabin});
  try{
   await check('ride contacts: controller walk and skate cross the open coaster bay',async()=>{
    const rows=[];
@@ -201,7 +203,10 @@ module.exports=async function checkRideContacts(page,{mobile=false,check}){
    // Resolve and hit-test the fixed HUD before choosing the moving-cabin phase.
    // Locator.tap() would otherwise wait extra rendered frames after arming.
    const jump=await prepareJumpInput(page,{mobile});
-   const placed=await freshFerrisPlacement({descending:true});
+   // Only setup is phase-aligned. No acceptance bound, real input or timeout
+   // is relaxed; the clock is released atomically when the rider is armed.
+   const phase=await page.evaluate(installFerrisJumpPhase);
+   const placed=await freshFerrisPlacement({descending:true,cabin:phase.cabin});
    const setup=await page.evaluate(async placed=>{
     const w=__islandWorld,b=__eggyInput.playerRef.body,i=__eggyInput.input,ride=w.rides.find(r=>r.asset==='ferris'),foot=.555,frame=()=>new Promise(requestAnimationFrame);
     i.x=i.z=0;i.run=false;b.setLinvel({x:0,y:0,z:0},true);for(let f=0;f<12;f++)await frame();
@@ -254,8 +259,8 @@ module.exports=async function checkRideContacts(page,{mobile=false,check}){
    try{
     const armedHandle=await page.waitForFunction(()=>{
      const w=__islandWorld,b=__eggyInput.playerRef.body,p=b.translation(),v=b.linvel(),s=window.__qaRideGorillaState?.(),i=__eggyInput.input;
-     // After settling from the upper-left placement, arm on the outgoing
-     // lower-left approach to the bottom. The real-asset fixture checks all
+     // After twelve grounded setup frames, arm on the unchanged outgoing
+     // lower-left phase. The real-asset fixture checks all
      // three clocks: up to 3.1s dispatch and two .65s post-input game frames.
      // Reserve the production-derived first displacement (.4m in the slow
      // trace), not merely .12m. The actual cabin roof stays solid;
@@ -266,7 +271,7 @@ module.exports=async function checkRideContacts(page,{mobile=false,check}){
      // on the slow CI renderer. The later real event is checked independently.
      const e=document.activeElement;
      const value={p:{...p},v:{...b.linvel()},gorilla:window.__qaRideGorillaState?.(),frame:__islandWorld.renderer.info.render.frame,t:Math.round(performance.now()),cabin,activeElement:e?{tag:e.tagName,id:e.id,className:e.className,aria:e.getAttribute('aria-label'),text:e.textContent?.slice(0,80)}:null};
-     window.__qaRideAirRows.length=0;window.__qaRideJumpArmed=value;window.__qaRideJumpRecord('armed');return value;
+     window.__qaRideAirRows.length=0;window.__qaRideJumpArmed=value;window.__qaRideJumpRecord('armed');window.__qaFerrisPhase.release();return value;
     },null,{timeout:45000});
     try{armed=await armedHandle.jsonValue();}finally{await armedHandle.dispose();}
     assert(armed.cabin.floorVelocity>-.38&&armed.cabin.floorVelocity<-.32&&armed.cabin.horizontalVelocity>.9,JSON.stringify({setup,armed}));
@@ -311,6 +316,13 @@ module.exports=async function checkRideContacts(page,{mobile=false,check}){
    for(const axis of ['x','y','z'])assert(Math.abs(launch.after.p[axis]-launch.before.p[axis]-launch.carried[axis])<.0001,'launch translation must equal carrier delta: '+axis);
    assert(airborne.physics.filter(row=>row.t>launch.t).every(row=>row.carried===null),'after launch no airborne carrier transport is allowed');
    assert(airborne.accepted&&airborne.rows.length>=3&&airborne.maxGap>.07&&airborne.cabinTravel>.025&&airborne.bodyTravel<.1&&airborne.inputKinematics?.floorVelocity<-.05&&Math.abs(airborne.inputKinematics.horizontalVelocity)>.3,JSON.stringify(airborne));
+
+   const phaseStats=await page.evaluate(()=>__qaFerrisPhase.stats());
+   assert.equal(phaseStats.held,false,'no phase hold is allowed during real jump input or flight');
+   assert(phaseStats.heldWrites>=12&&phaseStats.movingWrites>=2&&phaseStats.travel>0,'setup settles, then real network motion resumes');
+   assert(phaseStats.maxDeltaError<1e-10,'each post-arm angular delta must equal the real network delta');
+   console.log('PASS Ferris jump real clock after aligned setup',JSON.stringify({mobile,...phaseStats}));
+   await page.evaluate(()=>{__qaFerrisPhase.restore();delete window.__qaFerrisPhase;});
 
    const walkPlacement=await freshFerrisPlacement();let walked;
    try{walked=await page.evaluate(async placed=>{
@@ -395,6 +407,7 @@ module.exports=async function checkRideContacts(page,{mobile=false,check}){
    }finally{await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await touch.detach();}
   });
  }finally{
+  await page.evaluate(()=>{if(window.__qaFerrisPhase){__qaFerrisPhase.restore();delete window.__qaFerrisPhase;}});
   await page.evaluate(()=>{window.__qaRideJumpStop=true;window.__qaRideAirStop=true;cancelAnimationFrame(window.__qaRideJumpObserver);cancelAnimationFrame(window.__qaRideAirObserver);removeEventListener('keydown',window.__qaRideJumpKeyHandler,true);removeEventListener('pointerdown',window.__qaRideJumpPointerHandler,true);if(window.__qaRideJumpPrepare)__islandWorld.rideContacts.prepareBody=window.__qaRideJumpPrepare;delete window.__qaRideJumpPrepare;delete window.__qaRideJumpRecord;delete window.__qaRideJumpKinematics;delete window.__qaRideJumpCabin;delete window.__qaRideGorillaState;delete window.__qaRideJumpArmed;});
   if(await page.evaluate(()=>!!__candy.state().board)!==original.board)await page.keyboard.press('KeyV');
   await page.evaluate(saved=>{const b=__eggyInput.playerRef.body,i=__eggyInput.input;Object.assign(i,saved.input);b.setLinvel({x:0,y:0,z:0},true);__tp([saved.p.x,saved.p.y,saved.p.z]);},original);

@@ -10,6 +10,8 @@ import {createRideContacts,installRideContacts} from '../island/ride-contacts.js
 import {resolveCharacterContact,sweepRideContact} from '../app/character-contact.js';
 import {CHARACTER_CONTROL} from '../app/character-control-profile.js';
 import {boundedSimulationStep} from '../app/simulation-step.js';
+import {installFerrisJumpPhase} from './ferris-jump-phase.cjs';
+import './ferris-phase-fixture.test.cjs';
 
 const base=9.212547645568847,foot=.555;
 const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
@@ -23,6 +25,43 @@ const movement=await fs.readFile(new URL('../app/chunk-OZ77422N.js',import.meta.
 const start=movement.indexOf('var ke=Object.freeze'),end=movement.indexOf('f();function nt(',start);
 const walk=Function(movement.slice(start,end)+';return tt;')();
 const close=(a,b,t=.002)=>assert(Math.abs(a-b)<t,`${a} != ${b}`);
+
+test('exact hosted frames skip the old phase, while aligned setup preserves real clock deltas',t=>{
+ // Recorded body centers, frames 1312 and 1313, run 35815685714. The unchanged
+ // fixture body offset cancels the authored seat offset: circle center x=173.
+ const recorded=[{t:814016,x:168.4872283935547},{t:815099,x:169.5078125}];
+ const rate=2*Math.PI/ferris.stats.period,velocities=recorded.map(p=>(p.x-173)*rate);
+ assert(velocities[0]<-.38&&velocities[1]>-.32,'the entire original band was skipped');
+ const seats=Array.from({length:12},(_,n)=>ferris.seat(n*4));
+ const cx=seats.reduce((n,s)=>n+s.position.x,0)/12,cy=seats.reduce((n,s)=>n+s.position.y,0)/12;
+ const radius=Math.hypot(seats[0].position.x-cx,seats[0].position.y-cy);
+ const bandMs=(Math.acos(-.38/(radius*rate))-Math.acos(-.32/(radius*rate)))/rate*1000;
+ assert(bandMs<recorded[1].t-recorded[0].t);
+ const sourceSetter=ferris.setNetworkAngle;
+ let schedules=0;
+ try{
+  for(const initial of [0,1.2,3.8,6.26])for(const frameMs of [16,650,1027,1083,1247]){
+   ferris.setNetworkAngle(initial);const fixture=installFerrisJumpPhase(ferris);
+   let source=initial;
+   for(let n=0;n<16;n++){source=(source+rate*frameMs/1000)%(2*Math.PI);ferris.setNetworkAngle(source);}
+   const seat=ferris.seat(0),all=Array.from({length:12},(_,n)=>ferris.seat(n*4));
+   const centerX=all.reduce((n,s)=>n+s.position.x,0)/12,centerY=all.reduce((n,s)=>n+s.position.y,0)/12;
+   const fv=(seat.position.x-centerX)*rate,hv=-(seat.position.y-centerY)*rate;
+   assert(fv>-.38&&fv<-.32&&hv>.9,'same strict arming predicate after all settling frames');
+   fixture.release();assert.throws(()=>fixture.release(),/only release once/);
+   for(const gap of [6,frameMs,1153,1068,2600]){
+    const before=ferris.angle,step=rate*gap/1000;source=(source+step)%(2*Math.PI);
+    ferris.setNetworkAngle(source);
+    close(Math.atan2(Math.sin(ferris.angle-before),Math.cos(ferris.angle-before)),step,1e-10);
+   }
+   const stats=fixture.stats();assert.equal(stats.held,false);assert.equal(stats.movingWrites,5);
+   assert(stats.maxDeltaError<1e-10&&stats.travel>0);
+   fixture.restore();fixture.restore();assert.equal(ferris.setNetworkAngle,sourceSetter);close(ferris.angle,source,1e-10);
+   schedules++;
+  }
+ }finally{ferris.setNetworkAngle=sourceSetter;ferris.setNetworkAngle(0);}
+ t.diagnostic(JSON.stringify({recordedVelocities:velocities,recordedGapMs:1083,bandMs,schedules}));
+});
 
 test('real coaster preserves the visible open bay, columns and layered upper deck',()=>{
  const floor=base+.25,x=187.5,z=-107;

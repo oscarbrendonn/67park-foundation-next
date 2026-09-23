@@ -1,5 +1,9 @@
 # Ferris grounded launch synchronization and trusted-input scheduling
 
+Latest test-setup correction: see `FERRIS-PHASE-SETUP-QA.md` for the camera
+release's pre-input phase-sampling timeout and deterministic setup fixture.
+It preserves the production launch synchronization and historic evidence below.
+
 ## Current production correction: synchronize support before consuming jump
 
 Candidate `329e0ca` / hosted run `35653182246` failed on desktop; Pages was

@@ -44,8 +44,11 @@ test('Ferris prepares trusted HUD input and observation before arming a moving c
  const code=fs.readFileSync(require.resolve('./ride-contacts.browser.cjs'),'utf8');
  const jumpCase=code.slice(code.indexOf("await check('ride contacts: jumping and walking off"));
  assert(code.includes("require('./jump-input.cjs')"));
- assert(jumpCase.indexOf('await prepareJumpInput(page,{mobile})')<jumpCase.indexOf('await freshFerrisPlacement({descending:true})'));
- assert(jumpCase.indexOf('requestAnimationFrame(observeAir)')<jumpCase.indexOf('window.__qaRideJumpArmed=value'));
+ const sequence=['await prepareJumpInput(page,{mobile})','await page.evaluate(installFerrisJumpPhase)',
+  'await freshFerrisPlacement({descending:true,cabin:phase.cabin})','requestAnimationFrame(observeAir)',
+  'window.__qaRideJumpArmed=value','window.__qaFerrisPhase.release()','await jump()'];
+ let previous=-1;
+ for(const step of sequence){const index=jumpCase.indexOf(step);assert(index>previous,'required setup/input order: '+step);previous=index;}
  assert(!code.includes("name:'Jump',exact:true}).tap()"),'no per-jump locator stability frames');
 });
 
