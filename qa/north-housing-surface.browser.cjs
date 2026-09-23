@@ -1,9 +1,11 @@
 // Focused northern housing geometry/renderer gate. No broad regression/soak.
 const {chromium}=require('playwright'),fs=require('node:fs'),assert=require('node:assert/strict');
 const {browserLaunchOptions,assertBrowserRenderer}=require('./browser-launch.cjs');
-const url=process.env.PARK_NORTH_URL||'http://127.0.0.1:8496/67park-foundation-next/?v=north-housing-2';
+const url=process.env.PARK_NORTH_URL||'http://127.0.0.1:8496/67park-foundation-next/?v=north-housing-3';
 const output=process.env.PARK_NORTH_EVIDENCE||'.qa-results/north-housing-local';
 const views=[
+ {name:'road-end',p:[-10,60,-225],t:[-10,9.4,-225]},
+ {name:'road-level',p:[-10,12,-229],t:[-10,9.2,-243]},
  {name:'overview',p:[40,145,-205],t:[40,9.4,-205]},
  {name:'center',p:[72,13,-197],t:[72,9.4,-226]},
  {name:'left',p:[-1,12.5,-195],t:[-1,9.4,-225]},
@@ -26,14 +28,19 @@ const views=[
    const report=await page.evaluate(async()=>{
     const T=await import('three'),w=__islandWorld,ray=new T.Raycaster(new T.Vector3(),new T.Vector3(0,-1,0));
     const points=[];
+    for(const x of [-14.9,-10,-4.7])for(const z of [-240.74,-240,-239,-238,-237.29,-237.27,-237,-236])points.push({kind:'road',x,z});
+    for(const x of [-16,-3.9])for(const z of [-240.5,-240,-239,-238])points.push({kind:'curb',x,z});
+    for(const x of [-14,-10,-5])points.push({kind:'sand',x,z:-240.8});
     points.push({kind:'paving',x:27.422581,z:-240.570434},{kind:'paving',x:27.576825,z:-240.684388});
-    const coast=await fetch('./repairs/north-housing-surface-1.json?v=north-housing-2').then(r=>r.json());
+    const coast=await fetch('./repairs/north-housing-surface-1.json?v=north-housing-3').then(r=>r.json());
     for(const q of coast.coastProbes){points.push({kind:'paving',x:q.inside[0],z:q.inside[1]});points.push({kind:'sand',x:q.outside[0],z:q.outside[1]})}
     for(const x of [68.4,70,72,74,76,79])for(let z=-230;z<=-193;z+=1)points.push({kind:z<=-218.5?'grass':'paving',x,z});
     for(const x of [-2,-1,0,146,147])for(const z of [-212,-205,-198,-193])points.push({kind:'paving',x,z});
     // Probe both sides of old joins. Their height must agree with the sampler.
     for(const x of [64.66048,68.24961,77.22244,80.81157])for(const dx of [-.003,.003])for(const z of [-225,-220,-210,-200])points.push({kind:'joined',x:x+dx,z});
-    for(const [x,z]of [[-3.8,-239],[72,-242],[145,-225]])points.push({kind:'sand',x,z});
+    // This former sand probe is now inside the explicitly requested curb extension.
+    points.push({kind:'curb',x:-3.8,z:-239});
+    for(const [x,z]of [[72,-242],[145,-225]])points.push({kind:'sand',x,z});
     for(const [x,z]of [[16,-202],[56,-202],[94,-202],[134,-202]])points.push({kind:'parcel',x,z});
     const hits=points.map(q=>{ray.ray.origin.set(q.x,12,q.z);const all=ray.intersectObjects(w.terrain.children,true).filter(h=>h.object.visible&&!h.object.name.startsWith('67D_DIK_')),h=all[0];return {...q,mesh:h?.object.name,y:h?.point.y,ground:w.terrainGround(q.x,q.z),coplanarSoil:all.some(s=>s.object.name==='4_KIYI_TOPRAK_TABANI'&&Math.abs(s.point.y-h.point.y)<.002)}});
     const muted=localStorage.getItem('67park-feel-lab-muted'),frame=w.renderer.info.render.frame;
@@ -46,6 +53,11 @@ const views=[
    for(const q of report.hits){
     if(q.kind==='sand')assert.match(q.mesh,/KURU_IC_ZEMIN|KUM|KIYI/,'Keep exterior beach: '+JSON.stringify(q));
     else if(q.kind==='parcel')assert.equal(q.mesh,'5_KB_SPOR_ZEMIN');
+    else if(q.kind==='road'||q.kind==='curb'){
+     assert.equal(q.mesh,q.kind==='road'?'5_YOL':'6_BORDUR','Road/curb extension mismatch: '+JSON.stringify(q));
+     assert(Math.abs(q.y-(q.kind==='road'?9.22754747:9.38008564))<.003,'Endpoint height changed: '+JSON.stringify(q));
+     assert(Math.abs(q.y-q.ground)<.003,'Endpoint sampler mismatch: '+JSON.stringify(q));
+    }
     else{
      assert.equal(q.coplanarSoil,false,'Soil overlaps the visible pavement: '+JSON.stringify(q));
      assert(!/KUM|KURU_IC_ZEMIN|KIYI/.test(q.mesh||''),'Interior sand remains: '+JSON.stringify(q));

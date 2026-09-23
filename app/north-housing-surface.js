@@ -19,6 +19,28 @@ export function applyNorthHousingSurface(root,patch){
  root.updateMatrixWorld(true);
  const prepared=[],allocated=[];
  try{
+  const road=patch.roadEnd;
+  if(!road||![road.oldZ,road.extension].every(Number.isFinite)||road.endZ!==-240.75751||Math.abs(road.oldZ+237.28341624)>.00002||
+     Math.abs(road.extension-(road.oldZ-road.endZ))>1e-8||road.addedTriangles!==0||
+     road.rows?.length!==2||road.rows[0].name!=='5_YOL'||road.rows[1].name!=='6_BORDUR')throw Error('Invalid northern road endpoint');
+  for(const row of road.rows){
+   const mesh=root.getObjectByName(row.name),g=mesh?.geometry,e=row.expected;
+   if(!mesh?.isMesh||g?.attributes.position?.count!==e?.vertices||g.index?.count!==e.indices||
+      crc(g.attributes.position.array)!==e.positionCRC||crc(Uint32Array.from(g.index.array))!==e.indexCRC||
+      !row.ids?.length||new Set(row.ids).size!==row.ids.length||row.p?.length!==row.ids.length*3)throw Error('Northern road source changed');
+   const next=g.clone();allocated.push(next);const inverse=mesh.matrixWorld.clone().invert(),v=new T.Vector3(),old=new T.Vector3();
+   for(let j=0;j<row.ids.length;j++){
+    const i=row.ids[j];v.fromArray(row.p,j*3);
+    if(!Number.isInteger(i)||i<0||i>=e.vertices||![v.x,v.y,v.z].every(Number.isFinite))throw Error('Invalid northern road vertex');
+    old.fromBufferAttribute(g.attributes.position,i).applyMatrix4(mesh.matrixWorld);
+    if(old.x<=-16.5||old.x>=-3.3||old.z>=-237||old.z<=-237.5||
+       Math.abs(v.x-old.x)>1e-6||Math.abs(v.y-old.y)>1e-6||Math.abs(v.z-(old.z-road.extension))>1e-6)throw Error('Northern road edit outside endpoint');
+    v.applyMatrix4(inverse);next.attributes.position.setXYZ(i,v.x,v.y,v.z);
+   }
+   // The end cap is translated and the straight side faces lengthened; their
+   // normals are unchanged. Retain all authored shading outside this endpoint.
+   next.attributes.position.needsUpdate=true;next.computeBoundingBox();next.computeBoundingSphere();prepared.push({mesh,next,old:g});
+  }
   for(const row of patch.meshes){
    const mesh=root.getObjectByName(row.name),g=mesh?.geometry,e=row.expected;
    if(!TARGETS.has(row.name)||!mesh?.isMesh||Array.isArray(mesh.material)||!g?.index||
@@ -56,5 +78,5 @@ export function applyNorthHousingSurface(root,patch){
  }catch(error){for(const g of allocated)g.dispose();throw error;}
  const triangleDelta=prepared.reduce((n,p)=>n+(p.next.index.count-p.old.index.count)/3,0);
  for(const p of prepared)p.mesh.geometry=p.next;
- return root.userData.northHousingSurface1={...m,version:1,triangleDelta,meshes:prepared.map(p=>p.mesh.name),materialsPreserved:true};
+ return root.userData.northHousingSurface1={...m,version:1,triangleDelta,roadEnd:{endZ:patch.roadEnd.endZ,extension:patch.roadEnd.extension,addedTriangles:0},meshes:prepared.map(p=>p.mesh.name),materialsPreserved:true};
 }

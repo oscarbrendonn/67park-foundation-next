@@ -1,5 +1,35 @@
 # Northern housing: joined pavement and grass
 
+## Revision 3 — align the road endpoint with the coastal pavement
+
+The user identified the short road between the northern pool and housing. The
+road endpoint moves from z=-237.283415605 to z=-240.75751 (3.474094395 m), matching
+the adjacent coastal pavement tangent. The 10.56999 m road width and all heights
+remain unchanged. Its existing two side curbs extend with it.
+
+- 12 road vertices and 409 curb vertices move only in z. Indices, authored
+  normals, materials and all other vertices remain unchanged; no extra mesh,
+  triangle or per-frame work. Source buffers are CRC-checked, and the five mesh
+  changes install atomically before the final terrain sampler/shadow refresh.
+- Previous grass/pavement/soil patch rows are byte-identical to revision 2.
+- Reproduce after the base baker with `python3 qa/bake-north-road-end.py
+  .qa-results/north-road-source.json repairs/north-housing-surface-1.json`.
+  This uses an unchanged-road/curb post-photo-repair export.
+- First unit run: 8/8 PASS (`north-housing-3-unit-first.log`). Focused changed
+  feature tests: 34/34 PASS (`north-housing-3-focused.log`). Local npm tests:
+  water 5/5 and main 263 pass, two existing optional-fixture skips, zero failures.
+- First local browser run stopped on the old sand expectation at (-3.8,-239).
+  That point is now deliberately inside the extended curb. The point was kept
+  and explicitly changed to expect curb; exterior sand probes beyond the new
+  road end were added. Original failure remains in
+  `.qa-results/north-housing-3-local-first.log`.
+- Final focused evidence is `.qa-results/north-housing-3-local-final.log` and
+  matching screenshot/report directory. Includes old/new road joins, new curb
+  ends, exterior sand, terrain sampler agreement, and close overhead/road-level
+  views. Browser touch emulation is not physical iPhone testing.
+- Cache entry/runtime/module/JSON alias: `north-housing-3`. Keep short publish
+  profile; no broad browser suite or soak is needed for this small change.
+
 ## Revision 2 — regular coastal pavement
 
 The user reported that the pavement outside the grass was still irregular.

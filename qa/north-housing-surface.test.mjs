@@ -16,8 +16,27 @@ function fixture(){
   const soil=r.name==='4_KIYI_TOPRAK_TABANI';g.setIndex(soil?Array.from({length:633},(_,i)=>i%3):[0,1,2,0,1,2]);r.remove=soil?Array.from({length:210},(_,i)=>(i+1)*3):[3];
   r.expected={vertices:3,indices:g.index.count,positionCRC:crc(g.attributes.position.array),indexCRC:crc(Uint32Array.from(g.index.array))};
   const mesh=new T.Mesh(g,material);mesh.name=r.name;root.add(mesh);
- }return {root,patch,material};
+ }
+ for(const r of patch.roadEnd.rows){
+  const p=r.p.map((v,i)=>i%3===2?v+patch.roadEnd.extension:v),g=new T.BufferGeometry();
+  g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setIndex([0,1,2]);g.computeVertexNormals();
+  r.ids=Array.from({length:p.length/3},(_,i)=>i);r.expected={vertices:p.length/3,indices:3,positionCRC:crc(g.attributes.position.array),indexCRC:crc(Uint32Array.from(g.index.array))};
+  // Store Float32 round-trip coordinates in the fixture, exactly as the baker does.
+  r.p=Array.from(g.attributes.position.array,(v,i)=>i%3===2?v-patch.roadEnd.extension:v);
+  const mesh=new T.Mesh(g,material);mesh.name=r.name;root.add(mesh);
+ }
+ return {root,patch,material};
 }
+test('road endpoint meets the coastal tangent without changing width, height or triangle count',()=>{
+ const road=data.roadEnd;assert.equal(road.endZ,-240.75751);assert(Math.abs(road.extension-3.4740944)<1e-6);assert.equal(road.addedTriangles,0);
+ assert.deepEqual(road.rows.map(r=>r.name),['5_YOL','6_BORDUR']);
+ const r=road.rows[0],x=r.p.filter((_,i)=>i%3===0),z=r.p.filter((_,i)=>i%3===2);
+ assert(z.every(v=>Math.abs(v-road.endZ)<1e-6));assert(Math.abs(Math.max(...x)-Math.min(...x)-10.56999)<.00002);
+ const {root,patch}=fixture(),before=root.children.slice(3).map(m=>({p:Array.from(m.geometry.attributes.position.array),ix:Array.from(m.geometry.index.array)}));
+ applyNorthHousingSurface(root,patch);
+ for(let j=0;j<2;j++){const m=root.children[j+3],p=Array.from(m.geometry.attributes.position.array);assert.deepEqual(Array.from(m.geometry.index.array),before[j].ix);
+  p.forEach((v,i)=>assert(Math.abs(v-(before[j].p[i]-(i%3===2?road.extension:0)))<.00002));}
+});
 test('joined grass buffer is byte-identical to the approved previous release',()=>{
  const grass=data.meshes.find(m=>m.name==='3_CIMEN');
  assert.equal(createHash('sha256').update(JSON.stringify(grass)).digest('hex'),'c4e364d3fa220741c786e2a830d1d0551fc7357731a4e0b089aac3a9c7446e7d');
@@ -60,10 +79,10 @@ test('interior is paved, lawns join, apartment plots and exterior sand remain un
 test('same mesh/material references, unrelated triangles retained, idempotent',()=>{
  const {root,patch,material}=fixture(),children=[...root.children];const result=applyNorthHousingSurface(root,patch);
  assert.deepEqual(root.children,children);assert.equal(applyNorthHousingSurface(root,patch),result);
- for(let i=0;i<children.length;i++){const m=children[i];assert.equal(m.material,material);assert.deepEqual(Array.from(m.geometry.index.array.slice(0,3)),[0,1,2]);assert.equal(m.geometry.index.count,3+patch.meshes[i].ix.length);assert(m.geometry.attributes.uv)}
+ for(let i=0;i<children.length;i++){const m=children[i];assert.equal(m.material,material);assert.deepEqual(Array.from(m.geometry.index.array.slice(0,3)),[0,1,2]);if(i<3){assert.equal(m.geometry.index.count,3+patch.meshes[i].ix.length);assert(m.geometry.attributes.uv)}else assert.equal(m.geometry.index.count,3)}
 });
 test('last-source mismatch and malformed geometry reject atomically',()=>{
- for(const damage of [p=>p.meshes[1].expected.indexCRC='00000000',p=>p.meshes[1].p[0]=999,p=>p.meshes[1].n[0]=NaN,p=>p.meshes[1].remove=[0,0],p=>p.metrics.existingGrassRemovedArea=1,p=>p.meshes[1].name=p.meshes[0].name]){
+ for(const damage of [p=>p.roadEnd.rows[1].expected.indexCRC='00000000',p=>p.roadEnd.rows[0].p[0]=999,p=>p.roadEnd.endZ=-250,p=>p.meshes[1].expected.indexCRC='00000000',p=>p.meshes[1].p[0]=999,p=>p.meshes[1].n[0]=NaN,p=>p.meshes[1].remove=[0,0],p=>p.metrics.existingGrassRemovedArea=1,p=>p.meshes[1].name=p.meshes[0].name]){
   const {root,patch}=fixture(),before=root.children.map(m=>m.geometry);damage(patch);assert.throws(()=>applyNorthHousingSurface(root,patch));
   root.children.forEach((m,i)=>assert.equal(m.geometry,before[i]));assert.equal(root.userData.northHousingSurface1,undefined);
  }
@@ -73,6 +92,6 @@ test('both runtimes apply after photo repair and before shadow refresh; public c
   const s=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');assert.equal(s.split('dataset.northHousingSurface1=').length,2);
   const i=s.indexOf('dataset.northHousingSurface1=');assert(i>s.indexOf('dataset.photoSurfaceFinish1='));assert(s.slice(i,i+750).includes('67D_SKATEPARK_BASE'));
  }
- for(const file of ['app/main.js','explore/explore.js'])assert(fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').includes('runtime.bundle.js?v=north-housing-2'));
- assert(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('app/main.js?v=north-housing-2'));
+ for(const file of ['app/main.js','explore/explore.js'])assert(fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').includes('runtime.bundle.js?v=north-housing-3'));
+ assert(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('app/main.js?v=north-housing-3'));
 });
