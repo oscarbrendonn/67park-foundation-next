@@ -62,7 +62,7 @@ new ResizeObserver(resize).observe(stage);resize();
 try{
  const draco=new DRACOLoader();draco.setDecoderPath('../vendor/addons/libs/draco/gltf/');
  const loader=new GLTFLoader();loader.setDRACOLoader(draco);
- const gltf=await loader.loadAsync('./cat-gorilla-body.glb?v=grey-tone-4');model=gltf.scene;clips=gltf.animations;
+ const gltf=await loader.loadAsync('./cat-gorilla-body.glb?v=head-fit-1');model=gltf.scene;clips=gltf.animations;
  model.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(model,true),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
  const scale=2.2/size.y;model.scale.multiplyScalar(scale);model.position.set(-center.x*scale,-box.min.y*scale,-center.z*scale);height=2.2;
  model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false}});pivot.add(model);

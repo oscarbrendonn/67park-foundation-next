@@ -44,7 +44,7 @@ export function applyGorillaStudioItems(rig,equipment,source) {
       const headBox=new T.Box3().setFromObject(head,true),headSize=headBox.getSize(new T.Vector3()),size=box.getSize(new T.Vector3()),center=box.getCenter(new T.Vector3());
       const factor=item.rigid==='hat'?headSize.x*(item.cap?.57:.4)/size.x:headSize.x*.86/size.x;
       // Cat bounds include the tall ears; its eyes sit below the head-box centre.
-      const eyeHeight=equipment.base==='cat67'?.31:.46;
+      const eyeHeight=equipment.base==='cat67'?.295:.46;
       const target=new T.Vector3((headBox.min.x+headBox.max.x)/2,item.rigid==='hat'?headBox.max.y-size.y*factor*(item.cap?.39:.22):headBox.min.y+headSize.y*eyeHeight,item.rigid==='hat'?(headBox.min.z+headBox.max.z)/2:headBox.max.z+.009);
       const inverse=new T.Matrix4().copy(headBone.matrixWorld).invert();
       for(const i of used){v.fromBufferAttribute(position,i);v.x=(v.x-center.x)*factor+target.x;v.y=(v.y-(item.rigid==='hat'?box.min.y:center.y))*factor+target.y;v.z=(v.z-(item.rigid==='hat'?center.z:box.max.z))*factor+target.z;v.applyMatrix4(inverse);position.setXYZ(i,v.x,v.y,v.z)}

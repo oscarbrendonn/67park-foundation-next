@@ -10,7 +10,7 @@
     }
   ],
   "output": "cat-character/cat-gorilla-body.glb",
-  "bytes": 1723216,
+  "bytes": 1723268,
   "triangles": 20912,
   "meshes": 4,
   "materials": 2,
@@ -24,7 +24,7 @@
     "run",
     "walk"
   ],
-  "preservedViews": 849,
+  "preservedViews": 848,
   "bodyFurTextureSRGB": "#e7e9e8",
   "bodyTintLinear": [
     0.65,
@@ -43,5 +43,12 @@
   "bodyGeometryChanged": false,
   "headGeometryChanged": false,
   "headMaterialChanged": false,
-  "installedInGame": false
+  "headFitScale": [
+    0.8444008732323439,
+    1.0480565309810195,
+    1.2282140840041138
+  ],
+  "headBindAdjusted": true,
+  "parkNativeHeight": 0.3345185926093267,
+  "installedInGame": true
 }

@@ -40,11 +40,24 @@ test('Cat stays selected, shares fitted clothes and excludes unavailable built-i
 });
 test('compact cat keeps the original rig, animations and four visible model parts',()=>{
  const b=fs.readFileSync(new URL('../cat-character/cat-gorilla-body.glb',import.meta.url));
- assert.equal(b.length,1723216);const model=JSON.parse(b.subarray(20,20+b.readUInt32LE(12)).toString());
+ assert.equal(b.length,1723268);const model=JSON.parse(b.subarray(20,20+b.readUInt32LE(12)).toString());
  assert.equal(model.skins[0].joints.length,20);assert.equal(model.meshes.length,4);
  assert.equal(model.meshes.reduce((sum,m)=>sum+m.primitives.reduce((n,p)=>n+model.accessors[p.indices].count/3,0),0),20912);
  assert.deepEqual(model.animations.map(a=>a.name).sort(),['celebrate','fall','idle','jump','land','run','walk']);
  assert(model.nodes.some(n=>n.name==='67Park_Cat_Head'));assert(!model.nodes.some(n=>n.name==='GORIL_KAFA'));
+ assert.equal(model.scenes[0].extras.parkNativeHeight,.3345185926093267);
+});
+test('Cat head fit keeps compressed face geometry and atlas bytes unchanged',()=>{
+ const load=file=>{const bytes=fs.readFileSync(new URL('../'+file,import.meta.url)),n=bytes.readUInt32LE(12),json=JSON.parse(bytes.subarray(20,20+n));return {json,bin:bytes.subarray(28+n)}};
+ const source=load('cat-preview/cat-head-mobile.glb'),output=load('cat-character/cat-gorilla-body.glb');
+ const view=(g,i)=>{const v=g.json.bufferViews[i];return g.bin.subarray(v.byteOffset||0,(v.byteOffset||0)+v.byteLength)};
+ assert(view(source,source.json.meshes[0].primitives[0].extensions.KHR_draco_mesh_compression.bufferView).equals(view(output,output.json.meshes[3].primitives[0].extensions.KHR_draco_mesh_compression.bufferView)));
+ for(let i=0;i<source.json.images.length;i++)assert(view(source,source.json.images[i].bufferView).equals(view(output,output.json.images[i].bufferView)));
+});
+test('every native avatar assembler respects the canonical body height',()=>{
+ const read=f=>fs.readFileSync(new URL('../'+f,import.meta.url),'utf8');
+ assert.equal((read('app/main.js').match(/\.userData\.parkNativeHeight\|\|/g)||[]).length,3,'local, remote and studio');
+ for(const file of ['balloon/chunk-U4P5F7P3.js','race/race.js','rockets/rockets.js','sports/sports.js','skybound-soft/course-edf81ca8e2af595ed4d3.js'])assert.equal((read(file).match(/\.userData\.parkNativeHeight\|\|/g)||[]).length,1,file);
 });
 test('live entry has only original Cat and Gorilla choices; donor catalogues and game initializers stay wired',()=>{
  const read=f=>fs.readFileSync(new URL('../'+f,import.meta.url),'utf8');
