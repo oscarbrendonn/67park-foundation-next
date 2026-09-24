@@ -4,6 +4,7 @@ import {GLTFLoader} from './GLTFLoader.js';
 import {finishCityMaterial60} from './city-props-v60.js';
 import {createCityHeightSampler58} from './city-height-sampler58.js';
 import {createApprovedParkPlants99} from './approved-park-plants-v99.js';
+import {finishSportsStands} from '../app/sports-stand-finish.js?v=stand-finish-1';
 
 // Additive sports district. Source road, curb and field geometry is kept.
 export async function loadNorthwestSports97({scene,renderer,sample,variant,terrainRoot}){
@@ -18,6 +19,7 @@ export async function loadNorthwestSports97({scene,renderer,sample,variant,terra
   if(!hit||!/^(5_KB_SPOR_ZEMIN|8_KB_UST_PAD_CIZGILERI)$/.test(hit.object.name)||Math.abs(hit.point.y-ground)>.08)throw Error('Sports97 building footprint crossed its pad: '+b.id);
  }
  const group=gltf.scene;group.name='NORTHWEST_SPORTS_V97';group.position.set(metadata.origin[0],ground,metadata.origin[1]);
+ const standFinish=finishSportsStands(group,metadata);
  const concrete=terrainRoot.getObjectByName('67D_SKATEPARK_INNER_OUTER_SURFACE')?.material;
  if(!concrete?.color)throw Error('Sports97 skatepark colour reference is missing');
  const exposure={value:1},meshes=[],floors=[];let draws=0,triangles=0;
@@ -49,7 +51,7 @@ export async function loadNorthwestSports97({scene,renderer,sample,variant,terra
  const fleet=installParkedFleet(group);
  group.userData.fleetStats=fleet.stats;
  const stats={version:97,revision:metadata.revision,buildings:2,grandstands:2,lanes:6,parkedCars:metadata.parking.cars,parkingSpaces:metadata.parking.spaces,baseball:'grass, ochre fan, green square, four bases, pitcher mound, lines',concreteReference:concrete.color.getHexString(),trees:metadata.trees,benches:metadata.benches,draws,triangles,
-  origin:[metadata.origin[0],ground,metadata.origin[1]],hiddenTerrain,roadsModified:false,curbsModified:false};
+  origin:[metadata.origin[0],ground,metadata.origin[1]],hiddenTerrain,roadsModified:false,curbsModified:false,standFinish:standFinish.stats};
  renderer.domElement.dataset.northwestSports97=JSON.stringify(stats);
  stats.platforms=metadata.platforms;stats.foliage=plants.stats;
  return {group,stats,metadata,plants,update,obstacle:(x,z)=>{const a=heightSampler.height(x,z),b=plants.obstacle(x,z);return a===null?b:b===null?a:Math.max(a,b);},ground:floorSampler.height,cameraBlockers:meshes,heightSampler,floorSampler};
