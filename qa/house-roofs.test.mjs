@@ -39,8 +39,22 @@ test('walking follows slopes, roofs can be left, and unrelated taller geometry i
  const r=createHouseRoofSupports(fixture().scene),y=r.sample(0,0).y;
  assert(Math.abs(r.ground(.3,0,y,.36,5,0)-r.sample(.3,0).y)<1e-6);
  assert.equal(r.ground(2.1,0,5,.36,5,0),0,'No invisible old-box ledge after the eave');
- assert.equal(r.ground(2.1,0,0,.36,5,0),5,'Ground-level contact is not relaxed');
+ assert.equal(r.ground(2.1,0,0,.36,5,0),0,'An empty apron is not a wall or a landing surface at any height');
+ assert.equal(r.obstacleGround(1,0,0,.36,5,0),5,'The actual house wall remains solid');
  assert.equal(r.ground(0,0,9,.36,12,0),12,'Other taller models retain their collision');
+});
+test('falling beside an eave never switches back to the old box-top floor near the ground',()=>{
+ const r=createHouseRoofSupports(fixture().scene);
+ // Empty space beyond the rendered roof, but inside the old inflated box.
+ // Previously feet < minY + 1.2 changed the floor from 0 to 5 mid-fall.
+ assert.equal(r.sample(2.1,0),null);
+ for(const feet of [6,4,2,1.21,1.19,.8,.1,0,-.05]){
+  assert.equal(r.ground(2.1,0,feet,.36,5,0),0,`support at feet=${feet}`);
+  assert.equal(r.obstacleGround(2.1,0,feet,.36,5,0),0,`empty apron at feet=${feet}`);
+ }
+ for(const feet of [0,.8,1.19,2])assert.equal(r.obstacleGround(0,0,feet,.36,5,0),5,'Real walls stay closed');
+ assert.equal(r.ground(2.1,0,0,.36,.25,0),.25,'A normal curb must not be erased');
+ assert.equal(r.ground(2.1,0,0,.36,12,0),12,'Unrelated taller geometry must not be erased');
 });
 test('home interior replacement and restoration use the current ground hook',()=>{
  const {scene}=fixture(),original=(x,z)=>x<3?5:.25;
@@ -101,4 +115,12 @@ test('both runtime entry points and walking/skate queries retain roof support',(
   assert(movement.includes('characterGround(t,e.x,e.z,e.y-ke.foot)'));
   const fx=fs.readFileSync(new URL('../app/claude-gorilla-runtime.js',import.meta.url),'utf8');
   assert(fx.includes('p.characterGround?.(e,f,(x?.position?.y??NaN)-.555)'),'Roof landing effects use the same surface as the feet');
+});
+test('park entry points resolve cached roof imports to the eave fix without duplicate modules',()=>{
+ const bare='/67park-foundation-next/app/house-roof-support.js';
+ for(const file of ['index.html','explore/index.html','play/index.html','style-studio/index.html','balloon/index.html','race/index.html','rockets/index.html','sports/index.html','lane-rush/index.html','skybound-soft/index.html']){
+  const html=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
+  const imports=JSON.parse(html.match(/<script type="importmap">([\s\S]*?)<\/script>/)[1]).imports;
+  for(const suffix of ['','?v=plaza-climb-1','?v=house-eave-contact-1'])assert.equal(imports[bare+suffix],bare+'?v=house-eave-contact-1',file+suffix);
+ }
 });

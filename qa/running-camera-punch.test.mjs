@@ -46,6 +46,11 @@ test('non-running camera/input remain unchanged apart from character and shared 
   const characterModules=['balloon/chunk-U4P5F7P3.js','app/chunk-G7D6MVRW.js','app/chunk-55YKN7VY.js','race/race.js','rockets/rockets.js','sports/sports.js','skybound-soft/course-edf81ca8e2af595ed4d3.js','app/main.js','app/avatar-entry-runtime.js','app/claude-remote-character.js','app/playable-character.js','app/native-character.js','app/studio-catalog.js','app/gorilla-studio-items.js','app/claude-gorilla-runtime.js','app/minigame-character-motion.js'];
   if(match){const map=JSON.parse(match[1]);for(const key of Object.keys(map.imports)){
    if(characterModules.some(file=>key.split('?')[0]==='/67park-foundation-next/'+file))delete map.imports[key];
+   else if(key.split('?')[0]==='/67park-foundation-next/app/house-roof-support.js'){
+    assert(['','?v=plaza-climb-1','?v=house-eave-contact-1'].some(suffix=>key==='/67park-foundation-next/app/house-roof-support.js'+suffix));
+    assert.equal(map.imports[key],'/67park-foundation-next/app/house-roof-support.js?v=house-eave-contact-1');
+    delete map.imports[key];
+   }
    // Keep the aliases themselves and all actual minigame camera/input code.
    // Only the explicitly advanced city-contact URL may differ this release.
    else if(key.split('?')[0]==='/67park-foundation-next/app/chunk-OZ77422N.js'){

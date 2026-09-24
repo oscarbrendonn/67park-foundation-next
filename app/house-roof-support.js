@@ -85,14 +85,16 @@ export function createHouseRoofSupports(scene,{courtyard:west}={}){
     for(const row of candidates(x,z)){
       const b=row.box;
       if(x<b.min.x-APRON||x>b.max.x+APRON||z<b.min.z-APRON||z>b.max.z+APRON)continue;
-      // Leave roads, curbs, wall contact and the vehicle query unchanged below
-      // the building. Only an airborne/roof-height character uses its roof.
-      if(feet<b.min.y+1.2||base!==null&&base>b.max.y+1)continue;
+      if(base!==null&&base>b.max.y+1)continue;
       const y=height(row,x,z);
-      if(y!==null&&feet+step>=y-1e-6)return Math.max(terrainHeight(terrain,x,z)??-Infinity,y);
-      // The old conservative box extends slightly past the visible eaves.
-      // Do not leave an invisible ledge there when someone jumps off a roof.
+      // The conservative box can extend beyond every rendered upward face.
+      // That empty apron stays empty all the way down to the terrain. Applying
+      // the low-feet guard first reinstated the box top mid-fall, repeatedly
+      // snapping a stationary character back above the roof.
       if(y===null&&base!==null&&base>b.min.y+1.2)return terrainHeight(terrain,x,z);
+      // Keep actual house walls, roads, curbs and vehicle queries unchanged.
+      if(feet<b.min.y+1.2)continue;
+      if(y!==null&&feet+step>=y-1e-6)return Math.max(terrainHeight(terrain,x,z)??-Infinity,y);
     }
     return base;
   }
@@ -101,7 +103,7 @@ export function createHouseRoofSupports(scene,{courtyard:west}={}){
     if(plaza?.contains(x,z))return plaza.obstacleGround(x,z,feet,step,base);
     return ground(x,z,feet,step,base,terrain);
   }
-  const stats={revision:'house-roofs-1',houses:placements.length+courtyardRows.length,assets:assets.size,
+  const stats={revision:'house-eave-contact-1',houses:placements.length+courtyardRows.length,assets:assets.size,
     courtyardRoofBand:courtyardRows.length,
     triangles:[...assets.values()].reduce((n,a)=>n+a.sampler.stats.triangles,courtyardSampler?.stats.triangles??0),
     bytes:[...assets.values()].reduce((n,a)=>n+a.sampler.stats.bytes,courtyardSampler?.stats.bytes??0),addedDrawCalls:0,newAssetDownloads:0};
