@@ -22,7 +22,8 @@ import {assetFetch} from '/67park-foundation-next/app/entry-loading.js';
 const islandFetch=(u,...a)=>assetFetch(typeof u==='string'&&u.startsWith('./')?'/67park-foundation-next/island/'+u.slice(2):u,...a);
 import {loadIslandPrerequisites} from '../app/island-startup-queue.js';
 import {createIslandAssetCache} from '../app/island-asset-cache.js';
-import {repairIslandStairs,stairAt,stairsRailBlocked} from '/67park-foundation-next/app/island-stair-geometry.js';
+import {repairIslandStairs,stairAt} from '/67park-foundation-next/app/island-stair-geometry.js';
+import {createStairRailBlocker} from '../app/stair-rail-contact.js?v=rail-corner-1';
 import {applyCurbJoins} from '/67park-foundation-next/app/island-curb-joins.js';
 import {applyParkEdges} from '/67park-foundation-next/app/island-park-edges.js';
 import * as THREE from 'three';
@@ -1601,7 +1602,7 @@ const trunkRows=[...(smallIslandProps?.layout?.plants??[]),...(parkProps57?.layo
 sahne.traverse(o=>{if(o.userData.treeTrunks)trunkRows.push(...o.userData.treeTrunks);});
 const treeTrunksBlocked=treeIndex(trunkRows);
 const stairGeometry=adaKok.userData.stairGeometry;
-const treeBlocked=(x,y,z)=>treeTrunksBlocked(x,y,z)||stairsRailBlocked(stairGeometry.railSegments,x,y,z);
+const treeBlocked=createStairRailBlocker(stairGeometry.railSegments,treeTrunksBlocked);
 const stadiumStairs=stadiumCoast99?.stats?.stairs;
 const stairRegions=[...stairGeometry.regions,...(stadiumStairs?.regions??[])];
 const stairs={contains:(x,z)=>stairAt(stairRegions,x,z),regions:stairRegions,

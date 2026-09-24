@@ -44,12 +44,12 @@ test('reachable island loader and validation error messages are English',()=>{
 
 test('English revision invalidates the changed entry and loader without replacing game singleton revisions',()=>{
  assert(read('index.html').includes('app/main.js?v=cat-fit-glow-1"'));
- assert(read('explore/index.html').includes('explore.js?v=north-housing-8"'));
- for(const file of ['app/main.js','explore/explore.js'])assert.match(read(file),/runtime\.bundle\.js\?v=north-housing-8["']/);
+ assert(read('explore/index.html').includes('explore.js?v=rail-corner-1"'));
+ for(const file of ['app/main.js','explore/explore.js'])assert.match(read(file),/runtime\.bundle\.js\?v=rail-corner-1["']/);
  const bundle=read('island/runtime.bundle.js');assert(bundle.includes('coaster-rail-finish.js?v=coaster-rail-finish-1'));assert(bundle.includes('ride-contacts.js?v=ride-launch-sync-1'));
  for(const file of entries){
   const imports=JSON.parse(read(file).match(/<script type="importmap">([\s\S]*?)<\/script>/)[1]).imports;
   const movement='/67park-foundation-next/app/chunk-OZ77422N.js';
-  for(const suffix of ['','?v=online-next-1'])assert.equal(imports[movement+suffix],movement+'?v=ride-jump-contact-1',file);
+  for(const suffix of ['','?v=online-next-1'])assert.equal(imports[movement+suffix],movement+'?v=rail-corner-1',file);
  }
 });

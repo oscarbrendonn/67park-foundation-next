@@ -146,6 +146,6 @@ test('both runtimes apply after photo repair and before shadow refresh; public c
   const s=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');assert.equal(s.split('dataset.northHousingSurface1=').length,2);
   const i=s.indexOf('dataset.northHousingSurface1=');assert(i>s.indexOf('dataset.photoSurfaceFinish1='));assert(s.slice(i,i+750).includes('67D_SKATEPARK_BASE'));
  }
- for(const file of ['app/main.js','explore/explore.js'])assert(fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').includes('runtime.bundle.js?v=north-housing-8'));
+ for(const file of ['app/main.js','explore/explore.js'])assert(fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').includes('runtime.bundle.js?v=rail-corner-1'));
  assert(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('app/main.js?v=cat-fit-glow-1'));
 });

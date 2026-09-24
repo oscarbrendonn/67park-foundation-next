@@ -1,5 +1,5 @@
 import {coast20Data as data} from './kimi-coast20-data.js?v=coast-24';
-import {expandIslandDriveArea} from './island-drive-area.js?v=curb-traversal-3';
+import {expandIslandDriveArea} from './island-drive-area.js?v=rail-corner-1';
 
 // Server authority uses the same world-space triangles as the rendered repair.
 // This changes only the added coast strip; old terrain remains the fallback.

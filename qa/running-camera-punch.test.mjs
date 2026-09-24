@@ -40,11 +40,19 @@ test('reduced motion keeps fixed shape and gentle fade; disabled feel suppresses
  enabled=false;burst.update(.01,camera);assert.equal(burst.mesh.visible,false);assert.equal(burst.trigger({x:0,y:0,z:0},0),false);burst.dispose();
  const geometry=punchBurstGeometry();assert(geometry.attributes.position.array.every(Number.isFinite));geometry.dispose();
 });
-test('non-running camera/input remain unchanged apart from character roster cache keys',()=>{
+test('non-running camera/input remain unchanged apart from character and shared lobby-contact cache keys',()=>{
  const normalizeEntry=source=>{
   const match=source.match(/<script type="importmap">([\s\S]*?)<\/script>/);
   const characterModules=['balloon/chunk-U4P5F7P3.js','app/chunk-G7D6MVRW.js','app/chunk-55YKN7VY.js','race/race.js','rockets/rockets.js','sports/sports.js','skybound-soft/course-edf81ca8e2af595ed4d3.js','app/main.js','app/avatar-entry-runtime.js','app/claude-remote-character.js','app/playable-character.js','app/native-character.js','app/studio-catalog.js','app/gorilla-studio-items.js','app/claude-gorilla-runtime.js','app/minigame-character-motion.js'];
-  if(match){const map=JSON.parse(match[1]);for(const key of Object.keys(map.imports))if(characterModules.some(file=>key.split('?')[0]==='/67park-foundation-next/'+file))delete map.imports[key];source=source.replace(match[1],JSON.stringify(map));}
+  if(match){const map=JSON.parse(match[1]);for(const key of Object.keys(map.imports)){
+   if(characterModules.some(file=>key.split('?')[0]==='/67park-foundation-next/'+file))delete map.imports[key];
+   // Keep the aliases themselves and all actual minigame camera/input code.
+   // Only the explicitly advanced city-contact URL may differ this release.
+   else if(key.split('?')[0]==='/67park-foundation-next/app/chunk-OZ77422N.js'){
+    assert(['/67park-foundation-next/app/chunk-OZ77422N.js?v=ride-jump-contact-1','/67park-foundation-next/app/chunk-OZ77422N.js?v=rail-corner-1'].includes(map.imports[key]));
+    map.imports[key]='/67park-foundation-next/app/chunk-OZ77422N.js?v=LOBBY_CONTACT_REVISION';
+   }
+  }source=source.replace(match[1],JSON.stringify(map));}
   return source.replace(/(\.\/(?:race|rockets|sports)\.js\?v=)(?:online-next-1|gorilla-only-1|cat-character-1|cat-fit-glow-1)/g,'$1CHARACTER_REVISION');
  };
  for(const file of ['app/minigame-input.js','balloon/player-input.js','race/rally-orbit.js','race/index.html','balloon/index.html','rockets/index.html','sports/index.html']){

@@ -314,7 +314,7 @@ test('ground decorators forward ride filtering and entry maps preserve one movem
   const html=await fs.readFile(new URL('../'+file,import.meta.url),'utf8');
   const map=JSON.parse(html.match(/<script type="importmap">([\s\S]*?)<\/script>/)[1]).imports;
   const movement='/67park-foundation-next/app/chunk-OZ77422N.js',social='/67park-foundation-next/app/party/park-social-toys.js';
-  assert.equal(map[movement],movement+'?v=ride-jump-contact-1');assert.equal(map[movement+'?v=online-next-1'],movement+'?v=ride-jump-contact-1');
+  assert.equal(map[movement],movement+'?v=rail-corner-1');assert.equal(map[movement+'?v=online-next-1'],movement+'?v=rail-corner-1');
   assert.equal(map[social],social+'?v=ride-contacts-1');assert.equal(map[social+'?v=balloon-lift-2'],social+'?v=ride-contacts-1');
  }
 });

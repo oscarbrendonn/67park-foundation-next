@@ -92,7 +92,7 @@ test('shared player publishes feedback and entry cache keys include the sound fi
   assert(read('../app/main.js').includes('publishSkateFeedback(sk.events,A)'));
   assert(read('../app/party/party-pack.js').includes('./party-audio.js?v=vehicle-feedback-1'));
   const html=read('../index.html');assert(html.includes('app/main.js?v=cat-fit-glow-1'));
-  assert(html.includes('app/party/party-pack.js?v=vehicle-feedback-1'));
+  assert(html.includes('app/party/party-pack.js?v=rail-corner-1'));
 });
 
 test('horn uses two finite voices, shares mute/SFX/visibility, and rejects held spam',()=>{

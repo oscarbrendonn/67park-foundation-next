@@ -18,7 +18,7 @@ test('returning auto-entry, saved clothes and original Gorilla/Cat choices remai
 test('public main entry has a new cache address without changing map runtime',()=>{
  const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert(html.includes('/app/main.js?v=cat-fit-glow-1'));
- assert(main.includes('runtime.bundle.js?v=north-housing-8'));
+ assert(main.includes('runtime.bundle.js?v=rail-corner-1'));
 });
 test('preview camera gives the horizontal Glow ring a visible projected height',()=>{
  const factory=main.slice(main.indexOf('function __gpuPreviewFactory'));

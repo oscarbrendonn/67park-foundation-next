@@ -3,7 +3,7 @@ import {createHousingLoader} from './housing-loader.js?v=home-entry-3';
 import {createHousingMarkers} from './housing-markers.js?v=home-scene-1';
 import {createHousingScene,ISOLATED_HOME} from './housing-scene.js?v=home-scene-1';
 import {g as input,k as controls,Aa as wardrobe,i as board} from './chunk-G7D6MVRW.js?v=online-next-1';
-import {b as overview} from './chunk-OZ77422N.js?v=online-next-1';
+import {b as overview} from './chunk-OZ77422N.js?v=rail-corner-1';
 import {HOME_SPOTS,homeSpot,spotPosition,nearHomeSpot} from './housing-actions.js?v=home-social-3';
 import {queueHomePose} from './housing-poses.js?v=home-social-3';
 

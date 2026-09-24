@@ -1,4 +1,4 @@
-import {createVehicleSurfaceDomain} from './vehicle-surface-domain.js?v=curb-traversal-3';
+import {createVehicleSurfaceDomain} from './vehicle-surface-domain.js?v=rail-corner-1';
 // The same domain and complete car/bus footprint are used by prediction and
 // server authority. No widening by bounding boxes at rounded sidewalk corners.
 export function expandIslandDriveArea(area,{ground,water=()=>false,blocked=()=>false,domain}){
