@@ -1,4 +1,5 @@
 import test from 'node:test';
+import './original-characters.test.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {adoptPlayableCharacter,gorillaEquipment,EQUIPMENT_KEY,PREVIOUS_CHARACTER_KEY} from '../app/playable-character.js';
@@ -30,15 +31,15 @@ test('Friends fitted clothes remain available for the Gorilla',()=>{
 });
 test('Cat stays selected, shares fitted clothes and excludes unavailable built-in Gorilla props',()=>{
  const cat={...old,base:'cat67',held:null,sprout:null};assert.equal(gorillaEquipment(cat),cat);
- assert.deepEqual(NATIVE_BASES,['goril','cat67']);assert(!isNativeCharacter(old.base));
+ assert.deepEqual(NATIVE_BASES,['goril','cat67','ninja67']);assert(!isNativeCharacter(old.base));
  const catalog=[{id:'goril'},{id:'friendsie_1'}];registerNativeCharacters(catalog);registerNativeCharacters(catalog);
  assert.equal(catalog.filter(c=>c.id==='cat67').length,1);assert.equal(catalog[1].file,null);
  const rows=studioSlots(cat,()=>({}),id=>id);
  for(const [id,item] of Object.entries(FITTED_ITEMS))assert(rows.find(r=>r.slot===item.slot).items.some(i=>i.id===id),id);
  assert(!rows.some(r=>r.items.some(i=>['goril:TAC','goril:CICEK'].includes(i.id))));
- assert(nativeCharacterURL('cat67').includes('/cat-character/cat-gorilla-body.glb'));
+ assert(nativeCharacterURL('cat67').includes('/models/park-originals/cat.glb'));
 });
-test('compact cat keeps the original rig, animations and four visible model parts',()=>{
+test('legacy Cat asset is preserved with the original rig, animations and four visible model parts',()=>{
  const b=fs.readFileSync(new URL('../cat-character/cat-gorilla-body.glb',import.meta.url));
  assert.equal(b.length,1723268);const model=JSON.parse(b.subarray(20,20+b.readUInt32LE(12)).toString());
  assert.equal(model.skins[0].joints.length,20);assert.equal(model.meshes.length,4);
@@ -47,7 +48,7 @@ test('compact cat keeps the original rig, animations and four visible model part
  assert(model.nodes.some(n=>n.name==='67Park_Cat_Head'));assert(!model.nodes.some(n=>n.name==='GORIL_KAFA'));
  assert.equal(model.scenes[0].extras.parkNativeHeight,.3345185926093267);
 });
-test('Cat head fit keeps compressed face geometry and atlas bytes unchanged',()=>{
+test('legacy Cat head fit keeps compressed face geometry and atlas bytes unchanged',()=>{
  const load=file=>{const bytes=fs.readFileSync(new URL('../'+file,import.meta.url)),n=bytes.readUInt32LE(12),json=JSON.parse(bytes.subarray(20,20+n));return {json,bin:bytes.subarray(28+n)}};
  const source=load('cat-preview/cat-head-mobile.glb'),output=load('cat-character/cat-gorilla-body.glb');
  const view=(g,i)=>{const v=g.json.bufferViews[i];return g.bin.subarray(v.byteOffset||0,(v.byteOffset||0)+v.byteLength)};
@@ -59,11 +60,11 @@ test('every native avatar assembler respects the canonical body height',()=>{
  assert.equal((read('app/main.js').match(/\.userData\.parkNativeHeight\|\|/g)||[]).length,3,'local, remote and studio');
  for(const file of ['balloon/chunk-U4P5F7P3.js','race/race.js','rockets/rockets.js','sports/sports.js','skybound-soft/course-edf81ca8e2af595ed4d3.js'])assert.equal((read(file).match(/\.userData\.parkNativeHeight\|\|/g)||[]).length,1,file);
 });
-test('live entry has only original Cat and Gorilla choices; donor catalogues and game initializers stay wired',()=>{
+test('live entry has only Cat, Ninja and the existing Gorilla choices; donor catalogues and game initializers stay wired',()=>{
  const read=f=>fs.readFileSync(new URL('../'+f,import.meta.url),'utf8');
  assert(read('app/main.js').includes('CHARACTERS:ko.filter(c=>__native(c.id)),getPlayerName:'));
  for(const file of ['app/chunk-G7D6MVRW.js','app/chunk-55YKN7VY.js']){
-  const s=read(file);assert(s.includes('if(e==="base")return ["goril","cat67"];'));assert(s.includes('function OL(e){if(!__native(e))return;'));
+  const s=read(file);assert(s.includes('if(e==="base")return ["goril","cat67","ninja67"];'));assert(s.includes('function OL(e){if(!__native(e))return;'));
   assert(s.includes('friendsie_1'));assert(s.includes('for(let a of Xr)'),'donor item iteration retained');
  }
  for(const [file,anchor] of [['app/chunk-G7D6MVRW.js','pr=__adoptPlayable(C4())'],['app/chunk-55YKN7VY.js','pr=__adoptPlayable(C4())'],['balloon/chunk-U4P5F7P3.js','Qe=__adoptPlayable(gs())'],['race/race.js','cn=__adoptPlayable(Ui())'],['rockets/rockets.js','sn=__adoptPlayable(Li())'],['sports/sports.js','nr=__adoptPlayable(Ga())'],['skybound-soft/course-edf81ca8e2af595ed4d3.js','FE=__adoptPlayable(tO())']])assert(read(file).includes(anchor),file);

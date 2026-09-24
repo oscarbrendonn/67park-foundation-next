@@ -1,0 +1,92 @@
+[
+  {
+    "name": "ninja",
+    "reference": "/Users/oscarbrendon/Documents/67VERSE_KAFALAR/ninja.png",
+    "referenceSha256": "798bc6c31cb5db0ae559c60f74e810af3fbfef906b5d634a195b2c0e2c942153",
+    "bytes": 96276,
+    "triangles": 27084,
+    "materials": 4,
+    "textures": 0,
+    "donorHeadUsed": false,
+    "eyeRelief": 0,
+    "bodyColor": "#232422",
+    "roughness": 0.28,
+    "previewOnly": false,
+    "referenceLandmarks": {
+      "headTop": 124,
+      "faceTop": 462,
+      "eyes": [
+        [
+          365,
+          568,
+          52,
+          55
+        ],
+        [
+          663,
+          568,
+          52,
+          55
+        ]
+      ]
+    },
+    "bounds": [
+      0.16763323545455933,
+      0.13393019139766693,
+      0.15798614919185638
+    ],
+    "refinement": {
+      "maxChordError": 0.00011997069562503098,
+      "tolerance": 0.00012,
+      "passes": 7,
+      "triangles": 13542
+    },
+    "openShellEdges": 0,
+    "sharedCompressionGrid": true
+  },
+  {
+    "name": "cat",
+    "reference": "/Users/oscarbrendon/Documents/67VERSE_KAFALAR/cat.png",
+    "referenceSha256": "84b71d1a5074f0bc96fb4db36bd0b668a1632ed4f7215f4a51424bbe5ed1a38e",
+    "bytes": 120016,
+    "triangles": 35176,
+    "materials": 6,
+    "textures": 0,
+    "donorHeadUsed": false,
+    "eyeRelief": 0,
+    "bodyColor": "#888D8B",
+    "roughness": 0.28,
+    "previewOnly": false,
+    "referenceLandmarks": {
+      "headTop": 255,
+      "faceTop": null,
+      "eyes": [
+        [
+          408,
+          542,
+          36,
+          37
+        ],
+        [
+          616,
+          542,
+          36,
+          37
+        ]
+      ]
+    },
+    "bounds": [
+      0.16663528233766556,
+      0.14142413437366486,
+      0.14595521986484528
+    ],
+    "refinement": {
+      "maxChordError": 0.00011998420505106672,
+      "tolerance": 0.00012,
+      "passes": 7,
+      "triangles": 12348
+    },
+    "openShellEdges": 0,
+    "sharedCompressionGrid": true
+  }
+]

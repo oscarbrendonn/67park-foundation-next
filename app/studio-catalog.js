@@ -1,5 +1,6 @@
 // The wardrobe, park and mini-games use the same equipment IDs. No model URLs
 // or user-supplied geometry are accepted in a saved outfit.
+import {isNativeCharacter} from './native-character.js?v=cat-character-1';
 export const FITTED_ITEMS = Object.freeze({
   'friendsie_3333:5': {slot:'kicks',vertices:910,name:'Mix & Match'},
   'friendsie_1:3': {slot:'kicks',vertices:659,name:'Cloud Boots'},
@@ -29,14 +30,14 @@ export function withoutFittedItems(equipment) {
 }
 
 export function studioSlots(equipment,baseEquipment,label) {
-  const gorilla=equipment.base==='goril', cat=equipment.base==='cat67', native=gorilla||cat, original=baseEquipment(equipment.base);
+  const gorilla=equipment.base==='goril', native=isNativeCharacter(equipment.base), original=baseEquipment(equipment.base);
   const rows=[
     ['kicks','Shoes','shoe','#c9e4fb',[original.kicks,'friendsie_3333:5','friendsie_1:3','friendsie_2:5']],
     ['back','Back','back','#e1d5fa',[null,original.back,'friendsie_2:4','friendsie_3333:4']],
     ['body','Outfit','top','#ffe4a6',[original.body,'friendsie_2:2']],
     ['sprout','Headwear','hat','#ffd7e3',native?[null,'friendsie_8:90','friendsie_2:1',...(gorilla?['goril:TAC']:[])]:[null,original.sprout,'spr-flower','spr-leaf','spr-cherry']],
     ...(native?[['head','Eyewear','glasses','#d5ecc4',[null,'friendsie_26:90']]]:[]),
-    ['held','Held item','hand','#ffe1cd',[null,original.held,...(cat?[]:['goril:CICEK'])]],
+    ['held','Held item','hand','#ffe1cd',[null,original.held,...(native&&!gorilla?[]:['goril:CICEK'])]],
     ['power','Effect','star','#fff0a9',[null,'pwr-stars','pwr-hearts','pwr-bolts']],
     ['vibe','Glow','ring','#d5eafa',[null,'vibe-pink','vibe-mint','vibe-gold','vibe-sky']],
   ];

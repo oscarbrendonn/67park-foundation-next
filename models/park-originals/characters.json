@@ -1,0 +1,40 @@
+[
+  {
+    "base": "cat67",
+    "file": "models/park-originals/cat.glb",
+    "bytes": 505808,
+    "sourceHash": "cd14c7a06dda3c6c7a25e7106e90bfb34c8276bd1cc09b810d9b5c2f174e9c01",
+    "headName": "67Park_Cat_Head",
+    "sharedRigBones": 20,
+    "clips": [
+      "celebrate",
+      "fall",
+      "idle",
+      "jump",
+      "land",
+      "run",
+      "walk"
+    ],
+    "triangles": 51080,
+    "textures": 0
+  },
+  {
+    "base": "ninja67",
+    "file": "models/park-originals/ninja.glb",
+    "bytes": 482584,
+    "sourceHash": "cd14c7a06dda3c6c7a25e7106e90bfb34c8276bd1cc09b810d9b5c2f174e9c01",
+    "headName": "67Park_Ninja_Head",
+    "sharedRigBones": 20,
+    "clips": [
+      "celebrate",
+      "fall",
+      "idle",
+      "jump",
+      "land",
+      "run",
+      "walk"
+    ],
+    "triangles": 42988,
+    "textures": 0
+  }
+]
