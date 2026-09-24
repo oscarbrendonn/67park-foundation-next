@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {PUNCH_SECONDS,PUNCH_COOLDOWN_SECONDS,PUNCH_IMPACT_SECONDS} from './character-punch.js?v=character-punch-1';
 
 // Original poses built on the existing rig; no third-party animation assets.
 export function addPreviewActionClips(clips) {
@@ -96,10 +97,11 @@ export function updatePreviewHit(state, dt, allowed) {
   if (button) button.hidden = !active;
   cooldown = Math.max(0, cooldown - dt);
   if (!active || state.jumped) { queued = false; elapsed = 0; }
-  if (queued) { elapsed = .46; cooldown = .65; queued = false; }
+  if (queued) { elapsed = PUNCH_SECONDS; cooldown = PUNCH_COOLDOWN_SECONDS; queued = false; }
   state.punchT = elapsed;
   const nextElapsed = Math.max(0, elapsed - dt);
-  state.punchImpact = elapsed > .32 && nextElapsed <= .32;
+  const contactRemaining = PUNCH_SECONDS - PUNCH_IMPACT_SECONDS;
+  state.punchImpact = elapsed > contactRemaining && nextElapsed <= contactRemaining;
   elapsed = nextElapsed;
   if (button) { button.setAttribute('aria-disabled', String(cooldown > 0)); button.dataset.active = String(elapsed > 0); }
 }
