@@ -45,6 +45,7 @@ test('non-running camera/input remain unchanged apart from character and shared 
  const normalizeEntry=source=>{
   const match=source.match(/<script type="importmap">([\s\S]*?)<\/script>/);
   const characterModules=['balloon/chunk-U4P5F7P3.js','app/chunk-G7D6MVRW.js','app/chunk-55YKN7VY.js','race/race.js','rockets/rockets.js','sports/sports.js','skybound-soft/course-edf81ca8e2af595ed4d3.js','app/main.js','app/avatar-entry-runtime.js','app/claude-remote-character.js','app/playable-character.js','app/native-character.js','app/studio-catalog.js','app/gorilla-studio-items.js','app/claude-gorilla-runtime.js','app/minigame-character-motion.js','app/claude-gorilla-animation.js','app/preview-hit-motion.js','app/punch-burst.js','app/character-punch.js'];
+  characterModules.push('app/returning-entry.js','app/character-assets.js','app/entry-graphics.js','island/runtime.bundle.js'); // Entry transport aliases only, separately asserted by entry-light.test.
   if(match){const map=JSON.parse(match[1]);for(const key of Object.keys(map.imports)){
    if(characterModules.some(file=>key.split('?')[0]==='/67park-foundation-next/'+file))delete map.imports[key];
    else if(key.split('?')[0]==='/67park-foundation-next/app/house-roof-support.js'){

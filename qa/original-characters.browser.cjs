@@ -43,7 +43,7 @@ try{
   if(base!=='goril')await page.evaluate(()=>{__islandWorld.scene.onBeforeRender=window.__characterPreviousRender;});
   if(base==='ninja67'){await page.reload({waitUntil:'domcontentloaded',timeout:60000});await ready();assert.equal(await page.evaluate(()=>document.documentElement.dataset.gameplayAvatarBase),base);report.ninjaPersisted=true;}
  }
- for(const name of ['cat','ninja'])assert(report.requests.some(r=>r.includes('/'+name+'.glb?v=originals-1')));
+ for(const name of ['cat','ninja'])assert(report.requests.some(r=>r.includes('/'+name+'.glb?v=lossless-2')));
  assert.deepEqual(report.errors,[]);report.pass=true;console.log('ORIGINAL_CHARACTERS_PASS',JSON.stringify(report));
 }catch(e){report.failure=String(e);await page?.screenshot({path:out+'/failure.png'}).catch(()=>{});throw e;}
 finally{fs.writeFileSync(out+'/report.json',JSON.stringify(report,null,2));await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1});

@@ -1,0 +1,189 @@
+[
+  {
+    "file": "models/park-originals/cat.glb",
+    "before": 505808,
+    "after": 433832,
+    "gzipBefore": 383972,
+    "gzipAfter": 335110,
+    "packed": 4,
+    "lossless": true,
+    "beforeSha256": "9fd8233fa97aa080a86e1651c7096837228f0a72fe096c630f306564e3f8e92f",
+    "afterSha256": "e8b0fb7593489e54f33e7c6c3654bc148b34f68a09d2e3d96bb202a1f6204d43",
+    "views": [
+      {
+        "index": 0,
+        "decodedBytes": 13677,
+        "sha256": "f24997af5e3b1ec0ebaaac5f42f0c421c2fb7c6f3627bc2b7d8f7cf1047cc684",
+        "dracoUnchanged": true,
+        "packed": false
+      },
+      {
+        "index": 1,
+        "decodedBytes": 30199,
+        "sha256": "9d08de0c9fdc4bfab9e98a390ed9edde96d1de95aeef52e8d9a36db106e15872",
+        "dracoUnchanged": true,
+        "packed": false
+      },
+      {
+        "index": 2,
+        "decodedBytes": 32530,
+        "sha256": "9a59c2c0e8f63e916de0058cef8cd668d912c972b43888290472eeadfb21f442",
+        "dracoUnchanged": true,
+        "packed": false
+      },
+      {
+        "index": 3,
+        "decodedBytes": 77629,
+        "sha256": "2dab30caf46d463f516ec32f12363abac697a51f10e75cdcb6ef03fd65c64297",
+        "dracoUnchanged": true,
+        "packed": false
+      },
+      {
+        "index": 4,
+        "decodedBytes": 18126,
+        "sha256": "4787eca119c2f15921ff95611186fa81222cdec86b6cfd9fedd2d849fcc649df",
+        "dracoUnchanged": true,
+        "packed": false
+      },
+      {
+        "index": 5,
+        "decodedBytes": 2292,
+        "sha256": "a8dde348e6ec734dd51ee034a23732c35b244164cd18a9fde6d03b217cf4f7b0",
+        "dracoUnchanged": true,
+        "packed": false
+      },
+      {
+        "index": 6,
+        "decodedBytes": 3653,
+        "sha256": "c60526f654c2c913c731a0b4965b4be2cc3daec2c43afe2029cfc4f93f0d23b7",
+        "dracoUnchanged": true,
+        "packed": false
+      },
+      {
+        "index": 7,
+        "decodedBytes": 3218,
+        "sha256": "00d4abac7a030d8e2a88bb4cb0e74bb0c3e53485a468dd4ba6ae54cff17eac1b",
+        "dracoUnchanged": true,
+        "packed": false
+      },
+      {
+        "index": 8,
+        "decodedBytes": 3331,
+        "sha256": "03019f7d0d052436ed70489ea900e8ba27acca4be7f5e8a914201d3eb23fb879",
+        "dracoUnchanged": true,
+        "packed": false
+      },
+      {
+        "index": 9,
+        "decodedBytes": 3840,
+        "sha256": "53f3ddfad219983299c6dd4297619309f40979daf3423da09c44c01b004e35c0",
+        "dracoUnchanged": false,
+        "packed": true
+      },
+      {
+        "index": 10,
+        "decodedBytes": 33976,
+        "sha256": "d4b996463697b19324657bf24db70dc060648cafb4bfc98ed23f911fedf24bb7",
+        "dracoUnchanged": false,
+        "packed": true
+      },
+      {
+        "index": 11,
+        "decodedBytes": 10872,
+        "sha256": "5346df52ad1b4532d6db30caf85a01ebb4e51029c47759ec93da355e69246d12",
+        "dracoUnchanged": false,
+        "packed": true
+      },
+      {
+        "index": 12,
+        "decodedBytes": 198080,
+        "sha256": "c2f1366016bb067d7d66796abd6737f3a0d4f8ef51d4658568513b0603b0dca9",
+        "dracoUnchanged": false,
+        "packed": true
+      }
+    ]
+  },
+  {
+    "file": "models/park-originals/ninja.glb",
+    "before": 482584,
+    "after": 410404,
+    "gzipBefore": 368066,
+    "gzipAfter": 319043,
+    "packed": 4,
+    "lossless": true,
+    "beforeSha256": "79ca6d04eb050157e8baecb7f407aa8e18687aab219cb9fca80c75617761b4da",
+    "afterSha256": "7f0dc29cb9e5d60bb9127b338367d6d5cc63e1d9d8848827f17335ca2de0a2ab",
+    "views": [
+      {
+        "index": 0,
+        "decodedBytes": 13677,
+        "sha256": "f24997af5e3b1ec0ebaaac5f42f0c421c2fb7c6f3627bc2b7d8f7cf1047cc684",
+        "dracoUnchanged": true,
+        "packed": false
+      },
+      {
+        "index": 1,
+        "decodedBytes": 30199,
+        "sha256": "9d08de0c9fdc4bfab9e98a390ed9edde96d1de95aeef52e8d9a36db106e15872",
+        "dracoUnchanged": true,
+        "packed": false
+      },
+      {
+        "index": 2,
+        "decodedBytes": 32530,
+        "sha256": "9a59c2c0e8f63e916de0058cef8cd668d912c972b43888290472eeadfb21f442",
+        "dracoUnchanged": true,
+        "packed": false
+      },
+      {
+        "index": 3,
+        "decodedBytes": 80362,
+        "sha256": "2e20fd0a6bfdf3feb47808b8d93e0b2b8308e1dc853cd809d1b18eb3397a0f1c",
+        "dracoUnchanged": true,
+        "packed": false
+      },
+      {
+        "index": 4,
+        "decodedBytes": 4896,
+        "sha256": "2c5bb7f9cf3b7fae072ad0868f3ae810023474c11498841015b4a940e9f3ba3f",
+        "dracoUnchanged": true,
+        "packed": false
+      },
+      {
+        "index": 5,
+        "decodedBytes": 2041,
+        "sha256": "70cda01bd474b770a05203f16a09aea1fd2c66c3c3adeb599568a40ea68d2fa4",
+        "dracoUnchanged": true,
+        "packed": false
+      },
+      {
+        "index": 6,
+        "decodedBytes": 3840,
+        "sha256": "53f3ddfad219983299c6dd4297619309f40979daf3423da09c44c01b004e35c0",
+        "dracoUnchanged": false,
+        "packed": true
+      },
+      {
+        "index": 7,
+        "decodedBytes": 33976,
+        "sha256": "d4b996463697b19324657bf24db70dc060648cafb4bfc98ed23f911fedf24bb7",
+        "dracoUnchanged": false,
+        "packed": true
+      },
+      {
+        "index": 8,
+        "decodedBytes": 10872,
+        "sha256": "5346df52ad1b4532d6db30caf85a01ebb4e51029c47759ec93da355e69246d12",
+        "dracoUnchanged": false,
+        "packed": true
+      },
+      {
+        "index": 9,
+        "decodedBytes": 198080,
+        "sha256": "c2f1366016bb067d7d66796abd6737f3a0d4f8ef51d4658568513b0603b0dca9",
+        "dracoUnchanged": false,
+        "packed": true
+      }
+    ]
+  }
+]

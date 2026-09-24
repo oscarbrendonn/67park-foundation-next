@@ -21,7 +21,7 @@ export function createReturningEntry(React){
    h('h1',null,s.title),
    h('p',{className:'return-entry-stage',role:'status','aria-live':'polite'},s.stage),
    h('progress',{max:1,value:s.progress,'aria-label':'Park preparation progress'}),
-   h('p',{className:'return-entry-detail'},entry.status==='ready'&&avatar.status!=='ready'?'The park is ready. Finishing your character…':Math.round(s.progress*100)+'% · '+(s.download===null?'Preparing your park':s.download.toFixed(1)+' / '+s.total.toFixed(1)+' MB')),
+   h('p',{className:'return-entry-detail'},entry.status==='ready'&&avatar.status!=='ready'?'The park is ready. Finishing your character…':Math.round(s.progress*100)+'% · '+(entry.step===14?'Finishing graphics':s.download===null?'Preparing your park':'Map files: '+s.download.toFixed(1)+' / '+s.total.toFixed(1)+' MiB')),
    (s.delayed||s.failed||s.timedOut)&&h('p',{className:'return-entry-hint'},s.failed?'Check your connection, then try again.':'The first visit can take longer. Keep this page open while the park loads.'),
    h('div',{className:'return-entry-actions'},
     s.retry&&h('button',{type:'button',onClick:onRetry},avatar.status==='error'?'Retry character':'Retry loading'),
