@@ -57,7 +57,7 @@ test('source and shipped runtime repair before building obstacle/camera samplers
  assert(bundle.includes('__finishSportsStands(l,a);let u=s.getObjectByName'));
  for(const f of ['index.html','play/index.html','explore/index.html','style-studio/index.html','balloon/index.html','race/index.html','rockets/index.html','sports/index.html','lane-rush/index.html','skybound-soft/index.html']){
   const map=JSON.parse(read(f).match(/<script type="importmap">([\s\S]*?)<\/script>/)[1]).imports,path='/67park-foundation-next/island/runtime.bundle.js';
-  assert.equal(map[path],path+'?v=stand-finish-1');for(const[k,v]of Object.entries(map))if(k.split('?')[0]===path)assert.equal(v,map[path]);
+  assert.equal(map[path],path+'?v=map-joint-finish-1');for(const[k,v]of Object.entries(map))if(k.split('?')[0]===path)assert.equal(v,map[path]);
  }
 });
 

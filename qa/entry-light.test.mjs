@@ -56,7 +56,7 @@ test('map manifest has exact current bytes and no forced Gorilla/preload duplica
  for(const file of ['index.html','play/index.html','style-studio/index.html','race/index.html','balloon/index.html','rockets/index.html','sports/index.html','lane-rush/index.html','skybound-soft/index.html','explore/index.html']){
   const s=fs.readFileSync(file,'utf8'),map=JSON.parse(s.match(/<script type="importmap">([\s\S]*?)<\/script>/)[1]).imports;
   for(const name of ['app/main.js','app/native-character.js','app/returning-entry.js','app/character-assets.js','app/entry-graphics.js','island/runtime.bundle.js']){
-   const path='/67park-foundation-next/'+name;assert.equal(map[path],path+'?v='+(name==='island/runtime.bundle.js'?'stand-finish-1':'entry-light-1'));
+   const path='/67park-foundation-next/'+name;assert.equal(map[path],path+'?v='+(name==='island/runtime.bundle.js'?'map-joint-finish-1':'entry-light-1'));
    for(const [key,value] of Object.entries(map))if(key.split('?')[0]===path)assert.equal(value,map[path]);
   }
  }
