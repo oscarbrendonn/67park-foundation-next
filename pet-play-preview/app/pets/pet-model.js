@@ -33,12 +33,12 @@ export function createPetModels({shadows=true}={}) {
     }
     let phase=0,clock=0,idle=0,pose=0,lie=0,paw=0,stalk=0,rub=0,eat=0,closed=false,playAge=10;
     const stats={kind,triangles:template.triangles,draws:shadow?2:1,frames:0,speed:0,pose:'idle',distance:0};root.userData.pet=stats;
-    function update(dt,{speed=0,distance,reducedMotion=false,sitting=false,pose:commandPose='idle',actionTime=0,happy=0}={}) {
+    function update(dt,{speed=0,distance,reducedMotion=false,sitting=false,autoSit=true,pose:commandPose='idle',actionTime=0,happy=0}={}) {
       if(closed)return;
       dt=clamp(Number.isFinite(dt)?dt:0,0,.05);speed=clamp(Number.isFinite(speed)?speed:0,0,20);clock+=dt;playAge+=dt;
       const moved=Number.isFinite(distance)?Math.max(0,distance):speed*dt;
       phase+=moved/scale*6.5;stats.distance+=moved;idle=speed<.08?idle+dt:0;
-      const desiredSit=(sitting||commandPose==='sit'||commandPose==='paw'||(idle>2.2&&commandPose==='idle'))&&speed<.12?1:0;
+      const desiredSit=(sitting||commandPose==='sit'||commandPose==='paw'||(autoSit&&idle>2.2&&commandPose==='idle'))&&speed<.12?1:0;
       pose+=(desiredSit-pose)*(1-Math.exp(-8*dt));
       const ease=1-Math.exp(-12*dt);
       lie+=((commandPose==='lie'?1:0)-lie)*ease;
@@ -48,20 +48,22 @@ export function createPetModels({shadows=true}={}) {
       eat+=((commandPose==='eat'?1:0)-eat)*ease;
       const run=clamp(speed/3.8,0,1),swing=clamp(speed/2.5,0,1)*.62;
       for(const [name,offset,back]of [['frontL',0,false],['frontR',Math.PI,false],['backL',Math.PI,true],['backR',0,true]]) {
-        const b=named[name];b.rotation.x=Math.sin(phase+offset)*swing*(1-pose)+(back?-.60:.10)*pose;
-        b.position.y=-.10+(back?.019:.092)*pose;
+        // Seat the rump and keep the chest upright, instead of applying the
+        // almost invisible four-legged crouch used by the old idle animation.
+        const b=named[name];b.rotation.x=Math.sin(phase+offset)*swing*(1-pose)+(back?-.90:.55)*pose;
+        b.position.y=-.10;
         b.rotation.x=b.rotation.x*(1-lie)+(-1.02)*lie;
         b.rotation.x-=stalk*(back?.35:.22);
         if(name==='frontR'){b.rotation.x-=paw*(commandPose==='swat'?.55+.22*Math.sin(actionTime*9):.9);b.position.y+=paw*.10;}
       }
       const bounce=reducedMotion?0:Math.abs(Math.sin(phase))*.033*run;
       const play=playAge<1.2&&!reducedMotion?Math.sin(clamp(playAge/1.2,0,1)*Math.PI):0;
-      named.body.position.y=.47-.082*pose-.13*lie-.05*stalk+bounce+play*.17;
-      named.body.rotation.x=.10*pose-.07*run;
+      named.body.position.y=.47-.055*pose-.13*lie-.05*stalk+bounce+play*.17;
+      named.body.rotation.x=-.55*pose-.07*run;
       named.body.rotation.x*=1-lie;
       named.body.rotation.z=reducedMotion?0:Math.sin(phase)*.027*run+rub*Math.sin(actionTime*3)*.055;
       named.body.position.x=reducedMotion?0:rub*Math.sin(actionTime*3)*.018;
-      named.head.rotation.set(-.07*pose+.025*Math.sin(clock*1.3)*(reducedMotion?0:1),Math.sin(clock*.75)*.05*(reducedMotion?0:1),Math.sin(clock*.9)*.03*(reducedMotion?0:1));
+      named.head.rotation.set(.55*pose+.025*Math.sin(clock*1.3)*(reducedMotion?0:1),Math.sin(clock*.75)*.05*(reducedMotion?0:1),Math.sin(clock*.9)*.03*(reducedMotion?0:1));
       named.head.rotation.x+=eat*.22+stalk*.1-lie*.07;
       named.head.rotation.z+=rub*.13;
       const wag=reducedMotion?.04:(kind==='dog'?.26:.13)*(1+happy*.85);
@@ -71,14 +73,15 @@ export function createPetModels({shadows=true}={}) {
       // Blink around the eye centre; no eyelid geometry or per-frame allocations.
       const blink=clock%4.9,eyeScale=blink>4.64&&blink<4.86?Math.max(.09,Math.abs(blink-4.75)/.11):1;
       named.eyes.scale.y=eyeScale;named.eyes.position.y=(1-eyeScale)*.119;
-      // Ground the tucked legs without stretching the sculpt. Evaluate only
-      // their cached local vertices; walking/sitting keep the original poses.
-      if(lie>.001||stalk>.001){
+      // Ground the front paws and tucked hind legs without stretching the
+      // sculpt. A deliberately raised paw stays free for the separate action.
+      if(pose>.001||lie>.001||stalk>.001){
         const c=Math.cos(named.body.rotation.x),s=Math.sin(named.body.rotation.x);
         for(const name of ['frontL','frontR','backL','backR']){
+          if(name==='frontR'&&paw>.001)continue;
           const b=named[name],cx=Math.cos(b.rotation.x),sx=Math.sin(b.rotation.x);let min=Infinity;
           for(const [,y,z]of feet[name])min=Math.min(min,named.body.position.y+(b.position.y+y*cx-z*sx)*c-(b.position.z+y*sx+z*cx)*s);
-          b.position.y+=(.025-min)/c*Math.min(1,lie+stalk);
+          b.position.y+=(.025-min)/c*(pose>.001?1:Math.min(1,lie+stalk));
         }
       }
       stats.frames++;stats.speed=speed;stats.pose=commandPose!=='idle'?commandPose:play>.05?'play':pose>.5?'sit':speed>.08?'walk':'idle';

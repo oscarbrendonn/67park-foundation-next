@@ -48,7 +48,7 @@ export function createPetCompanion(kind,probe,{sound=()=>{}}={}) {
       target=throwTarget(owner,yaw,kind==='dog'?5:2.9);
       if(!target)return {ok:false,message:'Face an open, dry space to throw.'};
     }
-    lastCommand=clock;age=phaseAge=0;cycles=0;state.toy=null;state.ownerAction='';state.happy=1;state.pose='idle';
+    lastCommand=clock;age=phaseAge=idle=0;cycles=0;state.toy=null;state.ownerAction='';state.happy=1;state.pose='idle';
     state.command=id;state.message=spec.label;actionOrigin={...owner};follow.hold();
     if(id==='follow'){phase('follow');state.message='Following you';}
     else if(['stay','sit','lie'].includes(id)){phase('hold');state.pose=id==='stay'?'idle':id;state.message=id==='stay'?'Waiting here':id==='sit'?'Sitting here':'Resting here';}

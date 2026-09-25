@@ -88,7 +88,9 @@ export function createParkPets({world,net,heading=()=>0,reducedMotion=()=>false,
     else {root.position.x+=(st.x-root.position.x)*factor;root.position.y+=(st.y-root.position.y)*factor;root.position.z+=(st.z-root.position.z)*factor;}
     root.rotation.y+=Math.atan2(Math.sin(st.heading-root.rotation.y),Math.cos(st.heading-root.rotation.y))*(1-Math.exp(-16*dt));
     const behavior=record.companion?.state;
-    record.model.update(dt,{speed:st.speed,reducedMotion:reducedMotion(),pose:behavior?.pose,actionTime:behavior?.actionTime,happy:behavior?.happy});
+    // Commanded companions stay standing while waiting for input. Their own
+    // state machine handles rest; renderer-only auto-sit hid the Sit response.
+    record.model.update(dt,{speed:st.speed,reducedMotion:reducedMotion(),autoSit:!behavior,pose:behavior?.pose,actionTime:behavior?.actionTime,happy:behavior?.happy});
     if(localPlayer){
       if(behavior?.toy&&!toys)toys=createPetToys(current.scene);
       const toy=behavior?.toy;
