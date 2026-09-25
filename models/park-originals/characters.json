@@ -2,7 +2,7 @@
   {
     "base": "cat67",
     "file": "models/park-originals/cat.glb",
-    "bytes": 433832,
+    "bytes": 433824,
     "sourceHash": "cd14c7a06dda3c6c7a25e7106e90bfb34c8276bd1cc09b810d9b5c2f174e9c01",
     "headName": "67Park_Cat_Head",
     "sharedRigBones": 20,

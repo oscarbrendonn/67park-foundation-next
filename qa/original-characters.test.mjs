@@ -17,7 +17,7 @@ test('only approved Cat/Ninja join the existing Gorilla; equipment is retained',
  for(const base of ['cat67','ninja67']){
   const equipment={base,body:'friendsie_2:2',head:'friendsie_26:90',vibe:'vibe-mint'};
   assert.equal(gorillaEquipment(equipment),equipment);assert.equal(nativeCharacterFile(base),base+'.glb');
-  assert.match(nativeCharacterURL(base),/models\/park-originals\/(cat|ninja)\.glb\?v=lossless-2$/);
+  assert.equal(nativeCharacterURL(base),'/67park-foundation-next/models/park-originals/'+(base==='cat67'?'cat.glb?v=cat-silver-1':'ninja.glb?v=lossless-2'));
   const rows=studioSlots(equipment,()=>({}),id=>id);
   for(const [id,item] of Object.entries(FITTED_ITEMS))assert(rows.find(r=>r.slot===item.slot).items.some(i=>i.id===id));
   assert(!rows.some(r=>r.items.some(i=>['goril:TAC','goril:CICEK'].includes(i.id))));
@@ -49,7 +49,7 @@ test('every entry keeps updated character aliases on one module instance',()=>{
  for(const file of ['index.html','play/index.html','explore/index.html','style-studio/index.html','balloon/index.html','race/index.html','rockets/index.html','sports/index.html','lane-rush/index.html','skybound-soft/index.html']){
   const html=read(file).toString(),map=JSON.parse(html.match(/<script type="importmap">([\s\S]*?)<\/script>/)[1]).imports;
   for(const name of ['native-character','gorilla-studio-items','studio-catalog','main','chunk-G7D6MVRW','chunk-55YKN7VY','claude-gorilla-runtime']){
-   const path='/67park-foundation-next/app/'+name+'.js',target=path+'?v='+(['native-character','main'].includes(name)?revision:'originals-1');assert.equal(map[path],target);
+   const path='/67park-foundation-next/app/'+name+'.js',target=path+'?v='+(name==='native-character'?'cat-silver-1':name==='main'?revision:'originals-1');assert.equal(map[path],target);
    for(const [key,value] of Object.entries(map))if(key.split('?')[0]===path)assert.equal(value,target,file+' '+key);
   }
  }

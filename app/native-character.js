@@ -7,7 +7,7 @@ export const NATIVE_BASES = Object.freeze(['goril', CAT_BASE, NINJA_BASE]);
 export const isNativeCharacter = base => NATIVE_BASES.includes(base);
 export const nativeCharacterFile = base => base === CAT_BASE ? 'cat67.glb' : base === NINJA_BASE ? 'ninja67.glb' : 'goril-v1.glb';
 export const nativeCharacterURL = base => base === CAT_BASE || base === NINJA_BASE
-  ? '/67park-foundation-next/models/park-originals/'+(base===CAT_BASE?'cat':'ninja')+'.glb?v=lossless-2'
+  ? '/67park-foundation-next/models/park-originals/'+(base===CAT_BASE?'cat.glb?v=cat-silver-1':'ninja.glb?v=lossless-2')
   : '/67park-foundation-next/models/goril-motion-v3.glb';
 export function registerNativeCharacters(catalog) {
   if (!catalog.some(c => c.id === CAT_BASE)) catalog.splice(1, 0, {

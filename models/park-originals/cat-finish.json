@@ -1,0 +1,82 @@
+{
+  "version": "cat-silver-1",
+  "file": "models/park-originals/cat.glb",
+  "beforeBytes": 433832,
+  "afterBytes": 433824,
+  "beforeSha256": "e8b0fb7593489e54f33e7c6c3654bc148b34f68a09d2e3d96bb202a1f6204d43",
+  "afterSha256": "37aa2973adbe82477777e1506115377d118907d45fb9a88e73b39abaec31c99f",
+  "binChunkSha256": "8aa3a152562664297c70182c1f8f3f7a69f38945137d8c6fb72b786721bb8a4a",
+  "beforeMaterials": [
+    {
+      "name": "cat_matching_body",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.24620132669705552,
+          0.2663556047920505,
+          0.25818285291079235,
+          1
+        ],
+        "roughnessFactor": 0.28,
+        "metallicFactor": 0
+      }
+    },
+    {
+      "name": "cat_face",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.24620132669705552,
+          0.2663556047920505,
+          0.25818285291079235,
+          1
+        ],
+        "roughnessFactor": 0.29,
+        "metallicFactor": 0
+      }
+    },
+    {
+      "name": "cat_flush_eyes",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.0027317428517647058,
+          0.0033465357620980074,
+          0.0030352698352941175,
+          1
+        ],
+        "roughnessFactor": 0.13,
+        "metallicFactor": 0
+      }
+    },
+    {
+      "name": "cat_smile",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.005181516700061659,
+          0.006512090790025684,
+          0.005181516700061659,
+          1
+        ],
+        "roughnessFactor": 0.2,
+        "metallicFactor": 0
+      }
+    },
+    {
+      "name": "cat_ear_satin",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.1844749944900301,
+          0.20863687013464577,
+          0.19461783043107173,
+          1
+        ],
+        "roughnessFactor": 0.29,
+        "metallicFactor": 0
+      }
+    }
+  ],
+  "finish": {
+    "version": "cat-silver-1",
+    "fur": "#d8dcd8",
+    "ear": "#bcc4be",
+    "roughness": 0.38
+  }
+}

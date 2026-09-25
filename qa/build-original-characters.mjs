@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {Matrix4,Color} from '../vendor/three.module.js';
+import {finishCatGLB} from './cat-finish.mjs';
 const req=createRequire('/opt/homebrew/lib/node_modules/@gltf-transform/cli/package.json');
 const {NodeIO}=req('@gltf-transform/core'),{ALL_EXTENSIONS}=req('@gltf-transform/extensions');
 const {mergeDocuments,prune,unpartition,draco,dedup,resample}=req('@gltf-transform/functions'),draco3d=req('draco3dgltf');
@@ -24,7 +25,7 @@ for(const [name,base,headName,color] of [['cat','cat67','67Park_Cat_Head','#888D
  head.setMatrix(new Matrix4().fromArray(bone.getWorldMatrix()).invert().toArray());bone.addChild(head);headScene.dispose();
  scene.setExtras({parkNativeHeight:.3345185926093267,originalCharacter:base,authoredHead:true});
  await doc.transform(prune({keepExtras:true,keepLeaves:true}),resample({tolerance:1e-6}),dedup(),unpartition(),draco({method:'edgebreaker',quantizePosition:18,quantizeNormal:14,quantizeColor:12,quantizeGeneric:16,quantizationVolume:'scene'}));
- const bytes=await io.writeBinary(doc);console.log('CHARACTER_BYTES',name,bytes.length);assert(bytes.length<512*1024,'Full character exceeds the half-MiB budget');
+ const built=await io.writeBinary(doc),bytes=name==='cat'?finishCatGLB(built):built;console.log('CHARACTER_BYTES',name,bytes.length);assert(bytes.length<512*1024,'Full character exceeds the half-MiB budget');
  const file='models/park-originals/'+name+'.glb';fs.writeFileSync(file,bytes);
  const decoded=await io.readBinary(bytes),r=decoded.getRoot();
  assert.deepEqual(r.listAnimations().map(a=>a.getName()).sort(),['celebrate','fall','idle','jump','land','run','walk']);
