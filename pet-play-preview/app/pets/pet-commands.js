@@ -4,7 +4,7 @@ export const PET_COMMANDS=Object.freeze([
   {id:'come',label:'Come'},{id:'stay',label:'Stay'},{id:'sit',label:'Sit'},
   {id:'lie',label:'Lie down'},{id:'paw',label:'Give paw'},
   {id:'pet',label:'Pet'},{id:'treat',label:'Give treat'},
-  {id:'ball',label:'Throw ball'},
+  {id:'ball',label:'Fetch ball',catLabel:'Roll & chase ball'},
   {id:'frisbee',label:'Throw frisbee',kind:'dog'},
   {id:'feather',label:'Feather toy',kind:'cat'},
   {id:'follow',label:'Follow me'},
@@ -20,9 +20,9 @@ const nearOwner=(owner,yaw)=>({x:owner.x-Math.cos(yaw)*.32+Math.sin(yaw)*.34,y:o
 // timers, downloaded assets or physics objects. Every movement is probed.
 export function createPetCompanion(kind,probe,{sound=()=>{}}={}) {
   const follow=createPetFollower(probe),nav=follow.state;
-  const state={command:'follow',phase:'follow',pose:'idle',actionTime:0,happy:0,ownerAction:'',toy:null,message:'Following you',completed:0,fetches:0};
+  const state={command:'follow',phase:'follow',pose:'idle',actionTime:0,playSide:1,happy:0,ownerAction:'',toy:null,message:'Following you',completed:0,fetches:0};
   let clock=0,age=0,phaseAge=0,idle=0,lastOwner=null,actionOrigin=null,lastCommand=-10,cycles=0;
-  function phase(value){state.phase=value;phaseAge=0;}
+  function phase(value){state.phase=value;phaseAge=state.actionTime=0;}
   function finish(message='Following you',count=true) {
     if(count&&state.command!=='follow')state.completed++;state.command='follow';phase('follow');state.pose='idle';state.ownerAction='';state.toy=null;state.message=message;age=0;
     follow.hold();
@@ -39,6 +39,19 @@ export function createPetCompanion(kind,probe,{sound=()=>{}}={}) {
     }
     return target;
   }
+  function faceToy(dt){follow.moveTo(dt,{...nav},{face:facing(nav,state.toy.position)});}
+  function batTarget(){
+    const angle=nav.heading+state.playSide*.6,from=state.toy.position;
+    let target={x:from.x,y:nav.y,z:from.z};
+    // Probe the entire small roll, not just its endpoint: a paw cannot send
+    // the ball through a thin wall or across water either.
+    for(let d=.12;d<=.60;d+=.12){
+      const x=from.x+Math.sin(angle)*d,z=from.z+Math.cos(angle)*d,y=probe(x,z,target.y);
+      if(!Number.isFinite(y)||Math.abs(y-target.y)>.3)break;
+      target={x,y,z};
+    }
+    return gap(from,target)>.1?target:null;
+  }
   function command(id,owner,yaw=0) {
     const spec=PET_COMMANDS.find(c=>c.id===id&&(!c.kind||c.kind===kind));
     if(!spec||!finite(owner)||!Number.isFinite(yaw)||!nav.visible)return {ok:false,message:'Your pet is not nearby yet.'};
@@ -49,10 +62,15 @@ export function createPetCompanion(kind,probe,{sound=()=>{}}={}) {
       if(!target)return {ok:false,message:'Face an open, dry space to throw.'};
     }
     lastCommand=clock;age=phaseAge=idle=0;cycles=0;state.toy=null;state.ownerAction='';state.happy=1;state.pose='idle';
-    state.command=id;state.message=spec.label;actionOrigin={...owner};follow.hold();
+    state.command=id;state.message=kind==='cat'?(spec.catLabel||spec.label):spec.label;state.playSide=1;actionOrigin={...owner};follow.hold();
     if(id==='follow'){phase('follow');state.message='Following you';}
     else if(['stay','sit','lie'].includes(id)){phase('hold');state.pose=id==='stay'?'idle':id;state.message=id==='stay'?'Waiting here':id==='sit'?'Sitting here':'Resting here';}
-    else if(target){phase('throw');state.ownerAction='throw';state.toy={kind:id,phase:'flying',from:{...owner,y:owner.y+.8},target,position:{...owner,y:owner.y+.8},age:0};state.message=kind==='dog'?'Fetch!':'Chase the ball!';sound('throw');}
+    else if(target){
+      const cat=kind==='cat',from={...owner,y:owner.y+(cat?.065:.8)};
+      phase(cat?'roll-out':'throw');state.ownerAction=cat?'roll':'throw';
+      state.toy={kind:id,phase:cat?'rolling':'flying',from,target,position:{...from},age:0,radius:cat?.065:.09};
+      state.message=cat?'Stalk, pounce, paw — no fetching':'Fetch!';sound('throw');
+    }
     else phase('approach');
     if(!target)sound(kind==='dog'?'pet-happy':'pet-purr');
     return {ok:true,message:state.message};
@@ -89,15 +107,23 @@ export function createPetCompanion(kind,probe,{sound=()=>{}}={}) {
       state.happy=1;
       if(state.command==='treat')state.toy={kind:'treat',phase:'hand',position:{x:nav.x,y:nav.y+.30,z:nav.z}};
       if(phaseAge>2.8)finish(state.command==='treat'?'Yum!':kind==='cat'?'Purr…':'Happy tail!');
+    }else if(state.phase==='roll-out'){
+      follow.hold();state.pose='stalk';const toy=state.toy,t=Math.min(1,phaseAge/.7),roll=t*(2-t);
+      toy.age=phaseAge;toy.position={x:toy.from.x+(toy.target.x-toy.from.x)*roll,y:toy.target.y+toy.radius,z:toy.from.z+(toy.target.z-toy.from.z)*roll};
+      if(t===1){toy.phase='ground';state.ownerAction='';phase('stalk');}
     }else if(state.phase==='throw'){
       follow.hold();const toy=state.toy,t=Math.min(1,phaseAge/.7);toy.age=phaseAge;
       toy.position={x:toy.from.x+(toy.target.x-toy.from.x)*t,y:toy.from.y+(toy.target.y+.08-toy.from.y)*t+Math.sin(t*Math.PI)*1.0,z:toy.from.z+(toy.target.z-toy.from.z)*t};
-      if(t===1){toy.phase='ground';state.ownerAction='';phase(kind==='dog'?'chase':'stalk');}
+      if(t===1){toy.phase='ground';state.ownerAction='';phase('chase');}
     }else if(state.phase==='stalk'){
-      follow.hold();state.pose='stalk';if(phaseAge>.65)phase('chase');
+      faceToy(dt);state.pose='stalk';if(phaseAge>.65)phase('chase');
     }else if(state.phase==='chase'){
-      state.pose=kind==='cat'?'pounce':'idle';
-      if(follow.moveTo(dt,state.toy.target,{speed:kind==='dog'?3.6:2.8,radius:.24}))phase(kind==='dog'?'pickup':'bat');
+      state.pose=kind==='cat'?'stalk':'idle';
+      if(follow.moveTo(dt,state.toy.target,{speed:kind==='dog'?3.6:1.5,radius:kind==='dog'?.24:.75}))phase(kind==='dog'?'pickup':'pounce');
+    }else if(state.phase==='pounce'){
+      state.pose='pounce';
+      follow.moveTo(dt,state.toy.target,{speed:2.4,radius:.24});
+      if(phaseAge>=.40){phase(gap(nav,state.toy.target)<.30?'bat':'chase');state.playSide=cycles%2?-1:1;}
     }else if(state.phase==='pickup'){
       follow.hold();state.pose='eat';if(phaseAge>.40){state.toy.phase='carried';phase('return');}
     }else if(state.phase==='return'){
@@ -107,22 +133,28 @@ export function createPetCompanion(kind,probe,{sound=()=>{}}={}) {
     }else if(state.phase==='drop'){
       follow.hold();state.pose='happy';if(phaseAge>1.5)finish('Brought it back!');
     }else if(state.phase==='bat'){
-      follow.hold();state.pose='swat';
-      if(phaseAge>.55){
-        const angle=nav.heading+(cycles%2?-.6:.6),x=state.toy.target.x+Math.sin(angle)*.6,z=state.toy.target.z+Math.cos(angle)*.6,y=probe(x,z,nav.y);
-        if(++cycles>=3||!Number.isFinite(y)||Math.abs(y-nav.y)>.3){finish('Good game!');return state;}
-        state.toy.from={...state.toy.position};state.toy.target={x,y,z};phase('roll');
+      faceToy(dt);state.pose='swat';
+      if(phaseAge>=.275){
+        const next=batTarget();cycles++;
+        if(!next){phase('watch');return state;}
+        state.toy.from={...state.toy.position};state.toy.target=next;state.toy.phase='rolling';phase('roll');
       }
     }else if(state.phase==='roll'){
       follow.hold();const toy=state.toy,t=Math.min(1,phaseAge/.35);
-      toy.position={x:toy.from.x+(toy.target.x-toy.from.x)*t,y:toy.target.y+.08,z:toy.from.z+(toy.target.z-toy.from.z)*t};
-      if(t===1)phase('stalk');
+      // The toy moves at the stroke, while the same paw finishes its recovery.
+      state.pose='swat';state.actionTime=.275+phaseAge;
+      toy.position={x:toy.from.x+(toy.target.x-toy.from.x)*t,y:toy.target.y+toy.radius,z:toy.from.z+(toy.target.z-toy.from.z)*t};
+      if(t===1){toy.phase='ground';phase(cycles>=3?'watch':'stalk');}
+    }else if(state.phase==='watch'){
+      faceToy(dt);state.pose='idle';if(phaseAge>1)finish('Good game!');
     }else if(state.phase==='feather'){
       state.ownerAction='feather';
-      const t=phaseAge%2.6,tip={x:target.x-Math.cos(yaw)*.07+Math.sin(yaw)*.12+Math.cos(yaw)*Math.sin(phaseAge*2)*.18,y:target.y+.18,z:target.z+Math.sin(yaw)*.07+Math.cos(yaw)*.12-Math.sin(yaw)*Math.sin(phaseAge*2)*.18};
+      const t=phaseAge%2.6,tip={x:target.x-Math.cos(yaw)*.07+Math.sin(yaw)*.48+Math.cos(yaw)*Math.sin(phaseAge*2)*.10,y:target.y+.13,z:target.z+Math.sin(yaw)*.07+Math.cos(yaw)*.48-Math.sin(yaw)*Math.sin(phaseAge*2)*.10};
       state.toy={kind:'feather',phase:'lure',position:tip,from:{x:owner.x+Math.cos(yaw)*.18,y:owner.y+.7,z:owner.z-Math.sin(yaw)*.18}};
-      state.pose=t<.75?'stalk':t<1.4?'pounce':'swat';
-      if(t>=.75&&t<1.4)follow.moveTo(dt,tip,{speed:1.7,radius:.26});else follow.hold();
+      state.pose=t<.75?'stalk':t<1.15?'pounce':t<1.70?'swat':'idle';
+      state.actionTime=t<.75?t:t<1.15?t-.75:t<1.70?t-1.15:t-1.70;
+      state.playSide=Math.floor(phaseAge/2.6)%2?-1:1;
+      if(t>=.75&&t<1.15)follow.moveTo(dt,tip,{speed:1.7,radius:.35});else follow.moveTo(dt,{...nav},{face:facing(nav,tip)});
       if(phaseAge>7.8)finish('Good game!');
     }
     return state;

@@ -12,11 +12,19 @@ export function createPetToys(scene){
   const stringGeometry=new T.BufferGeometry().setFromPoints([new T.Vector3(),new T.Vector3()]);
   const string=new T.Line(stringGeometry,new T.LineBasicMaterial({color:'#eee4d0'}));
   const all=[ball,frisbee,treat,feather,wand,string];root.add(...all);root.visible=false;
-  const a=new T.Vector3(),b=new T.Vector3(),direction=new T.Vector3(),up=new T.Vector3(0,1,0);
+  const a=new T.Vector3(),b=new T.Vector3(),direction=new T.Vector3(),up=new T.Vector3(0,1,0),rollAxis=new T.Vector3(),previous=new T.Vector3();let rolling=false;
   return {root,update(toy){
-    root.visible=!!toy;if(!toy)return;for(const o of all)o.visible=false;
+    root.visible=!!toy;if(!toy){rolling=false;return;}for(const o of all)o.visible=false;
     const mesh={ball,frisbee,treat,feather}[toy.kind];if(!mesh)return;
     mesh.visible=true;mesh.position.set(toy.position.x,toy.position.y,toy.position.z);
+    if(toy.kind==='ball'){
+      const radius=toy.radius||.09;ball.scale.setScalar(radius/.09);
+      if(rolling&&toy.phase==='rolling'){
+        direction.copy(ball.position).sub(previous);direction.y=0;const distance=direction.length();
+        if(distance>.0001&&distance<1)ball.rotateOnWorldAxis(rollAxis.crossVectors(up,direction).normalize(),distance/radius);
+      }
+      previous.copy(ball.position);rolling=true;
+    }else rolling=false;
     if(toy.kind==='frisbee')mesh.rotation.y=(toy.age||0)*14;
     if(toy.kind==='feather'&&toy.from){
       a.set(toy.from.x,toy.from.y,toy.from.z);b.copy(mesh.position);b.y+=.68;

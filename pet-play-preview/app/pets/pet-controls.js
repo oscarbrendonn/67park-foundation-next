@@ -22,7 +22,8 @@ export function createPetControls({snapshot,command,document:doc=globalThis.docu
     trigger.textContent=s.kind==='cat'?'Mochi · Play':'Biscuit · Play';
     if(!s.active||!s.kind){if(dialog.open)dialog.close();return;}
     title.textContent=s.kind==='cat'?'Mochi the cat':'Biscuit the dog';
-    for(const item of PET_COMMANDS){const b=buttons.get(item.id);b.hidden=!!item.kind&&item.kind!==s.kind;b.disabled=!s.visible;b.setAttribute('aria-pressed',String(s.command===item.id));}
+    for(const item of PET_COMMANDS){const b=buttons.get(item.id);b.textContent=s.kind==='cat'?(item.catLabel||item.label):item.label;b.hidden=!!item.kind&&item.kind!==s.kind;b.disabled=!s.visible;b.setAttribute('aria-pressed',String(s.command===item.id));}
+    dialog.querySelector('.park-pet-help').textContent=(s.kind==='cat'?'Mochi stalks and bats toys — she does not fetch. ':'Biscuit brings the ball or frisbee back to you. ')+'Move away to stop petting. Come / Follow releases Stay.';
     status.textContent=commandError||(s.visible?s.message:'Finding a safe spot beside you…');
   }
   trigger.addEventListener('click',open);dialog.querySelector('header button').addEventListener('click',()=>dialog.close());

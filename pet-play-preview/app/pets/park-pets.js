@@ -90,10 +90,15 @@ export function createParkPets({world,net,heading=()=>0,reducedMotion=()=>false,
     const behavior=record.companion?.state;
     // Commanded companions stay standing while waiting for input. Their own
     // state machine handles rest; renderer-only auto-sit hid the Sit response.
-    record.model.update(dt,{speed:st.speed,reducedMotion:reducedMotion(),autoSit:!behavior,pose:behavior?.pose,actionTime:behavior?.actionTime,happy:behavior?.happy});
+    record.model.update(dt,{speed:st.speed,reducedMotion:reducedMotion(),autoSit:!behavior,pose:behavior?.pose,actionTime:behavior?.actionTime,playSide:behavior?.playSide,happy:behavior?.happy});
     if(localPlayer){
       if(behavior?.toy&&!toys)toys=createPetToys(current.scene);
       const toy=behavior?.toy;
+      // Bind carried toys to the rendered mouth, not the navigator ahead of
+      // the smoothed visual rig. Otherwise a fetching dog chases a floating toy.
+      if(toy?.phase==='carried'){
+        const point=record.model.contactPoint('carry');toy.position={x:point.x,y:point.y,z:point.z};
+      }
       if(toy&&careHand){if(toy.kind==='feather')toy.from={...careHand};if(toy.kind==='treat')toy.position={...careHand};}
       toys?.update(toy);
     }
@@ -146,6 +151,7 @@ export function createParkPets({world,net,heading=()=>0,reducedMotion=()=>false,
       const action=active&&canCare()&&b?.ownerAction&&n?.visible?b.ownerAction:'';
       const yaw=heading(),point=action?local.model.contactPoint(action):null;
       if(action==='feather'&&owner)point.set(owner.x-Math.cos(yaw)*.34+Math.sin(yaw)*.12,owner.y+.48,owner.z+Math.sin(yaw)*.34+Math.cos(yaw)*.12);
+      if(action==='roll'&&owner)point.set(owner.x-Math.cos(yaw)*.28+Math.sin(yaw)*.28,owner.y+.30,owner.z+Math.sin(yaw)*.28+Math.cos(yaw)*.28);
       queuePetOwnerPose(root,action?{action,time:b.actionTime,heading:yaw,point:{x:point.x,y:point.y,z:point.z}}:null,dt);
     },
     select:petSelection.select,play(){local?.model.play();},debug:()=>({selected:petSelection.get(),active,failed,...counts,local:local?{...local.model.stats,follow:local.follow.stats(),behavior:local.companion?.debug(),position:local.model.root.position.toArray()}:null,remotes:[...remotes].map(([id,r])=>({id,kind:r.kind,visible:r.model.root.visible})),remoteLimit,models:models?.stats(),toyVisible:!!toys?.root.visible}),dispose(){if(disposed)return;disposed=true;unsubscribe();clear();controls.dispose();globalThis.document?.removeEventListener('pointerdown',pointerDown);globalThis.document?.removeEventListener('pointerup',pointerUp);if(profileNet?.sendHello===wrappedHello)profileNet.sendHello=originalHello;if(onlineClient?.send===wrappedSend)onlineClient.send=originalSend;}};
