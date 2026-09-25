@@ -1,0 +1,27 @@
+.park-pet-inventory{border-top:1px solid #dcd6cb;margin-top:14px;padding-top:14px;color:#53545a}
+.park-pet-heading,.park-pet-tools{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.park-pet-heading strong{font-size:13px}.park-pet-heading span{font-size:10px;color:#8a8283}
+.park-pet-choices{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:10px 0}
+.park-pet-choices button{display:flex;flex-direction:column;align-items:center;border:2px solid #e4dfd8;border-radius:18px;background:#fffbf4;min-width:0!important;padding:7px 4px 10px;color:inherit;cursor:pointer}
+.park-pet-choices button[aria-pressed=true]{border-color:var(--pet-accent);background:color-mix(in srgb,var(--pet-accent) 17%,#fffbf4);box-shadow:0 2px 0 var(--pet-accent)}
+.park-pet-choices img{width:100%;max-width:104px;height:90px;object-fit:contain}.park-pet-choices strong{font-size:13px}.park-pet-choices small{font-size:11px;color:#80797c}
+.park-pet-tools button,.park-pet-tools a{font:600 12px/1.2 system-ui;color:#666474;background:#fffaf0;border:1px solid #ddd7ce;border-radius:12px;min-height:40px;display:flex;align-items:center;padding:8px 11px;text-decoration:none;cursor:pointer}
+.park-pet-tools button:disabled{opacity:.45;cursor:default}.park-pet-note{font-size:11px;line-height:1.45;color:#847c7a;margin:10px 0 0}
+.park-pet-inventory button:focus-visible,.park-pet-inventory a:focus-visible{outline:3px solid #7faea4;outline-offset:2px}
+body:has(.park-inventory-panel) #party-settings-btn,body:has(.park-inventory-panel) #park-home-button{visibility:hidden}
+.park-pet-button{position:fixed;z-index:31;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);border:2px solid #fffaf0;border-radius:24px;min-height:44px;padding:8px 17px;background:#ecf5dd;color:#414d41;font:700 13px/1.2 system-ui;box-shadow:0 3px 12px #55452b22;touch-action:manipulation;cursor:pointer}
+.park-pet-button[hidden],.park-pet-dialog button[hidden]{display:none}
+body:has(.wardrobe) .park-pet-button,body:has(.park-inventory-panel) .park-pet-button,body:has(#party-settings:not([hidden])) .park-pet-button{visibility:hidden}
+.park-pet-dialog{box-sizing:border-box;width:min(360px,calc(100vw - 28px));max-height:calc(100dvh - 32px);overflow:auto;border:2px solid #fff;border-radius:24px;background:#fff9ee;color:#4c4b48;padding:20px;font:14px/1.4 system-ui;box-shadow:0 12px 50px #322c3633}
+.park-pet-dialog::backdrop{background:#302c3745}
+.park-pet-dialog header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.park-pet-dialog h2{font-size:22px;line-height:1.2;margin:5px 0}.park-pet-dialog small{font-size:10px;letter-spacing:.1em;color:#817664}
+.park-pet-dialog header button{font-size:24px;min-width:44px;min-height:44px;border:0;background:#ebe4d8;border-radius:50%;color:inherit}
+.park-pet-command-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.park-pet-command-grid button{min-height:46px;border:1px solid #ded5c6;border-radius:14px;padding:10px 6px;background:#fffef9;color:inherit;font:700 13px/1.3 system-ui;touch-action:manipulation;cursor:pointer;transition:background-color 150ms ease}
+.park-pet-command-grid button[aria-pressed=true]{background:#dcecd9;border-color:#8ab195}
+.park-pet-command-grid button:active{background:#e6e0d6}.park-pet-command-grid button:disabled{opacity:.5;cursor:default}
+.park-pet-status{min-height:20px;color:#546953;margin:12px 0}.park-pet-help{font-size:11px;color:#827869;margin:14px 0 0}
+.park-pet-dialog button:focus-visible,.park-pet-button:focus-visible{outline:3px solid #6aa28c;outline-offset:2px}
+@media(prefers-reduced-motion:reduce){.park-pet-command-grid button{transition:none}}
+@media(min-width:900px){.park-pet-button{bottom:100px}}
