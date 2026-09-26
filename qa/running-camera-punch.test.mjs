@@ -48,6 +48,11 @@ test('non-running camera/input remain unchanged apart from character and shared 
   characterModules.push('app/returning-entry.js','app/character-assets.js','app/entry-graphics.js','island/runtime.bundle.js'); // Entry transport aliases only, separately asserted by entry-light.test.
   if(match){const map=JSON.parse(match[1]);for(const key of Object.keys(map.imports)){
    if(characterModules.some(file=>key.split('?')[0]==='/67park-foundation-next/'+file))delete map.imports[key];
+   else if(key.split('?')[0]==='/67park-foundation-next/app/party/party-audio.js'){
+    // Shared sound cache keys do not alter these games' camera/input code.
+    assert(['horn-hold-1','pet-play-2'].some(version=>map.imports[key]==='/67park-foundation-next/app/party/party-audio.js?v='+version));
+    delete map.imports[key];
+   }
    else if(key.split('?')[0]==='/67park-foundation-next/app/house-roof-support.js'){
     assert(['','?v=plaza-climb-1','?v=house-eave-contact-1'].some(suffix=>key==='/67park-foundation-next/app/house-roof-support.js'+suffix));
     assert.equal(map.imports[key],'/67park-foundation-next/app/house-roof-support.js?v=house-eave-contact-1');

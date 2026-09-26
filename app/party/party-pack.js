@@ -15,6 +15,7 @@ import {installPlayerSettings} from './settings-panel.js?v=recovery-graphics-1';
 import { createPartyAudio } from './party-audio.js?v=horn-hold-1';
 import {createFeatureBoundary} from '../feature-boundary.js';
 import {createVehicleHorn} from './vehicle-horn.js?v=horn-hold-1';
+import {createTargetClub} from './target-club.js?v=target-club-1';
 
 const BASE = new URL('../../', import.meta.url).pathname.replace(/\/$/, '');
 const CFG = Object.assign({runtime: '', carry: ''}, (typeof window !== 'undefined' && window.__partyConfig) || {});
@@ -62,7 +63,9 @@ const horn = createVehicleHorn({
 });
 let stateApi = null, carryApi = null; // the game's own modules (same instances as main.js: exact same URLs)
 const state = () => { try { return stateApi ? stateApi() : null; } catch { return null; } };
-const pets = createParkPets({world,net,heading:()=>player.visual?.rotation.y??state()?.heading??0,reducedMotion});
+const targetClub=createTargetClub({world,state,reducedMotion,sound:name=>sfx.play(name)});
+window.__parkTargetClub=targetClub;
+const pets = createParkPets({world,net,heading:()=>player.visual?.rotation.y??state()?.heading??0,reducedMotion,sound:name=>sfx.play(name),resting:()=>housing.isResting(),canCare:()=>!heldId()&&!housing.isResting()&&!window.__candy?.state?.().mounted});
 window.__parkPets = pets;
 (async () => {
   try { stateApi = (await import(`${BASE}/app/claude-gorilla-runtime.js${CFG.runtime ? '?v=' + CFG.runtime : ''}`)).claudeGorillaState; }
@@ -86,6 +89,7 @@ let previousHeld = '';
 // ---------- hooks called by main.js ----------
 window.__partyStep = guard((body, input, dt, map) => {
   player.body = body || null; player.map = map;
+  features.run('target-club',()=>targetClub.step(body,dt,map));
   features.run('housing-step',()=>housing.step(body,input,dt,map));
   features.run('pets-step',()=>pets.step(body,dt,map));
   dt = clamp(finite(dt) ? dt : 0, 0, 0.05);
@@ -108,6 +112,7 @@ window.__partyVisual = guard((group, dt) => {
   features.run('housing-visual',()=>housing.visual(group,dt));
   features.run('carry-visual',()=>carryApi?.updateLocalCarryHands?.(group,dt));
   features.run('toys-visual',()=>toys.visual(group,dt));
+  features.run('pets-visual',()=>pets.visual(group,dt));
   features.run('swim-visual',()=>{if(player.map==='city')world()?.parkSwimVisual?.(group);});
   player.visual = group || null;
   dt = clamp(finite(dt) ? dt : 0, 0, 0.05);
@@ -379,7 +384,7 @@ function stepRings(dt) {
 // ---------- bounded city hatches and park trampolines ----------
 const toys = createParkSocialToys({world,scene,state,net,settings,sfx,send:(tag,ms)=>netHook.flag(tag,ms),reducedMotion,carrying:heldId,
  blocked:()=>document.hidden||!!document.querySelector('.wardrobe,dialog[open],#party-settings:not([hidden])')||!!window.__candy?.state?.().mounted});
-window.__parkToyInteract=()=>housing.interact()||toys.interact();
+window.__parkToyInteract=()=>targetClub.interact()||housing.interact()||toys.interact()||pets.interact();
 const items = createParkLaunchers({world,scene,state,settings,reducedMotion,remotes:()=>net()?.remotes,
  blocked:()=>document.hidden||!!document.querySelector('.wardrobe,dialog[open],#party-settings:not([hidden])'),
  onLaunch(){if(settings.juice&&!reducedMotion())kick(.28);sfx.play('pad');buzz([15,30,25]);}

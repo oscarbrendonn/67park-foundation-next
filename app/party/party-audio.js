@@ -89,6 +89,8 @@ export function createPartyAudio({settings, saveSettings, gameMuted, host = wind
     source.start(start); source.stop(end + 0.01);
   }
   const recipes = {
+    'pet-purr'(){for(let i=0;i<6;i++)voice({type:'triangle',from:64,to:58,duration:.13,delay:i*.09,gain:.045});},
+    'pet-happy'(){voice({type:'triangle',from:360,to:440,duration:.09,gain:.055});voice({from:430,to:370,duration:.11,delay:.10,gain:.035});},
     // Same plain pitch as the held horn; finite fallback for assistive clicks.
     horn(){voice({type:'triangle',from:440,to:440,duration:.18,gain:.2});},
     bell(){voice({from:660,to:660,duration:.3,gain:.16});voice({from:520,to:520,duration:.45,delay:.22,gain:.13});},

@@ -1,5 +1,6 @@
 import * as T from 'three';
-import {installParkedFleet} from '../app/parked-fleet.js?v=release-40';
+import {installParkedFleet} from '../app/parked-fleet.js?v=parking-ground-1';
+import {finishParkingGround} from '../app/parking-ground-finish.js?v=parking-ground-1';
 import {GLTFLoader} from './GLTFLoader.js';
 import {finishCityMaterial60} from './city-props-v60.js';
 import {createCityHeightSampler58} from './city-height-sampler58.js';
@@ -20,6 +21,7 @@ export async function loadNorthwestSports97({scene,renderer,sample,variant,terra
  }
  const group=gltf.scene;group.name='NORTHWEST_SPORTS_V97';group.position.set(metadata.origin[0],ground,metadata.origin[1]);
  const standFinish=finishSportsStands(group,metadata);
+ finishParkingGround(group,metadata,terrainRoot);
  const concrete=terrainRoot.getObjectByName('67D_SKATEPARK_INNER_OUTER_SURFACE')?.material;
  if(!concrete?.color)throw Error('Sports97 skatepark colour reference is missing');
  const exposure={value:1},meshes=[],floors=[];let draws=0,triangles=0;

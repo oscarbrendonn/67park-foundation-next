@@ -5,6 +5,7 @@ import {finishCityMaterial60} from './city-props-v60.js';
 import {createRideAsset84} from './lunapark-rides-v84.js?v=carousel-time-1.1';
 import {seasideScale89,prepareSeasideAsset89} from './seaside-scale-v89.js?v=91';
 import {finishCoasterRails} from '../app/coaster-rail-finish.js?v=coaster-rail-finish-1';
+import {addLighthouseSupport} from './lighthouse-support.js?v=lighthouse-steps-1';
 export const layout77=[
  ['ferris',173,-173.7,0],['carousel',192.7,-161.5,0],['carouselSmall',188.845,-135.693,0],
  ['coaster',181,-103.5,0],['kiosk',168,-143,Math.PI/2],['van',196.7,-119,Math.PI/2],
@@ -57,7 +58,7 @@ export async function loadLunapark77({scene,renderer,sample,sea,variant,terrainR
   });
   const bounds=new T.Box3();
   for(const b of bins.values()){const geo=mergeGeometries(b.geometries);for(const g of b.geometries)g.dispose();geo.computeBoundingBox();bounds.union(geo.boundingBox);const m=new T.Mesh(geo,b.material);m.name='LUNA77_'+p.asset;m.castShadow=!b.material.transparent;m.receiveShadow=true;m.userData.safeShadowCaster=m.castShadow;group.add(m);blockers.push(m);if(b.walk){walkMeshes.push(m);walkBounds.union(geo.boundingBox);}}
-  if(!p.water&&p.asset!=='coaster'){
+  if(!p.water&&p.asset!=='coaster'&&p.asset!=='lighthouse'){
    const b=bounds.clone();
    if(p.asset.startsWith('umbrella')){
     // A canopy is overhead shade, not an invisible three-metre wall.
@@ -74,5 +75,5 @@ export async function loadLunapark77({scene,renderer,sample,sea,variant,terrainR
  update();scene.add(group);group.updateMatrixWorld(true);
  let draws=0;group.traverse(o=>{if(o.isMesh)draws++;});
  renderer.domElement.dataset.lunapark77=JSON.stringify({count:records.length,draws,rideVersion:87.1,horseTailVersion:88,scaleVersion:89,rideCount:rides.length,walkableMeshes:walkMeshes.length,placements:records});
- return {group,cameraBlockers:blockers,obstacle,update,rides};
+ return addLighthouseSupport({group,cameraBlockers:blockers,obstacle,update,rides});
 }

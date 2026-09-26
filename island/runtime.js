@@ -1,3 +1,4 @@
+import {installBoatContacts} from './boat-contacts.js?v=boat-contacts-1';
 import {applyMapJointFinish} from '../app/map-joint-finish.js?v=map-joint-finish-1';
 import {applyNorthHousingSurface} from '../app/north-housing-surface.js?v=north-housing-8';
 import {applyPhotoSurfaceFinish} from '../app/photo-surface-finish.js?v=photo-surfaces-1';
@@ -31,7 +32,7 @@ import * as THREE from 'three';
 import {createStableSunShadow52} from './stable-sun-shadow-v52.js';
 import {loadSmallIslandProps} from './small-island-props-v62.js?v=roof1';
 import {loadParkProps63} from './park-props-v63.js?v=anchor2';
-import {loadCityProps60} from './city-props-v60.js?v=photo67';
+import {loadCityProps60} from './city-props-v60.js?v=city-startup-memory-1';
 import {applyPhotoFixes67} from './fixes-v67.js?v=8';
 import {applyParkTerrain57,wrapParkTerrainSampler57} from './park-terrain-v57.js?v=1';
 import {applyParkPlinthGround57} from './park-plinth-ground57.js?v=1';
@@ -1586,7 +1587,7 @@ await entryStage(13,'Finishing the northern neighbourhood');
   const stairGeometry=repairIslandStairs(kok);
   renderer.domElement.dataset.stairGeometry=JSON.stringify(stairGeometry.stats);
   zeminler=zeminler.filter(m=>!stairGeometry.nonWalkableNames.includes(m.name));
-  renderer.domElement.dataset.photoSurfaceFinish1=JSON.stringify(applyPhotoSurfaceFinish(kok,await islandFetch('/67park-foundation-next/repairs/photo-surface-finish-1.json?v=photo-surfaces-1').then(r=>{if(!r.ok)throw Error('Photo surface repair missing');return r.json()})));renderer.domElement.dataset.northHousingSurface1=JSON.stringify(applyNorthHousingSurface(kok,await islandFetch('/67park-foundation-next/repairs/north-housing-surface-1.json?v=north-housing-8').then(r=>{if(!r.ok)throw Error('Northern housing repair missing');return r.json()})));renderer.domElement.dataset.mapJointFinish1=JSON.stringify(applyMapJointFinish(kok,await islandFetch('/67park-foundation-next/repairs/map-joint-finish-1.json?v=map-joint-finish-1').then(r=>{if(!r.ok)throw Error('Map joint repair missing');return r.json()})));for(const name of ['3_CIMEN','8_PARK_PATIKA_UST','6_BORDUR','5_YOL','7_KALDIRIM_TABANI','67D_SKATEPARK_BASE']){
+  renderer.domElement.dataset.photoSurfaceFinish1=JSON.stringify(applyPhotoSurfaceFinish(kok,await islandFetch('/67park-foundation-next/repairs/photo-surface-finish-1.json?v=photo-surfaces-1').then(r=>{if(!r.ok)throw Error('Photo surface repair missing');return r.json()})));renderer.domElement.dataset.northHousingSurface1=JSON.stringify(applyNorthHousingSurface(kok,await islandFetch('/67park-foundation-next/repairs/north-housing-surface-1.json?v=north-housing-8').then(r=>{if(!r.ok)throw Error('Northern housing repair missing');return r.json()})));renderer.domElement.dataset.mapJointFinish1=JSON.stringify(applyMapJointFinish(kok,await islandFetch('/67park-foundation-next/repairs/map-joint-finish-1.json?v=city-curb-tangent-2').then(r=>{if(!r.ok)throw Error('Map joint repair missing');return r.json()})));for(const name of ['3_CIMEN','8_PARK_PATIKA_UST','6_BORDUR','5_YOL','7_KALDIRIM_TABANI','67D_SKATEPARK_BASE']){
     if(!DIK_YAN_GOLGE_KAYNAGI.test(name))continue;
     const source=kok.getObjectByName(name),helper=source?.getObjectByName('67D_DIK_YAN_GOLGE_'+name),geometry=dikYanGolgeGeometrisi(source.geometry);
     if(helper&&geometry){helper.geometry.dispose();helper.geometry=geometry;}
@@ -1669,7 +1670,7 @@ const failures=Object.entries(renderer.domElement.dataset).filter(([k,v])=>/^err
 if(failures.length)throw Error('Island layers missing: '+JSON.stringify(failures));
 installParcelCornerQA(world);
 installParcelGapQA(world);
-const completedWorld=installLobbyCourts(installRideContacts(installHouseRoofSupports(installIslandSwimBoundary(world))));
+const completedWorld=installLobbyCourts(installBoatContacts(installRideContacts(installHouseRoofSupports(installIslandSwimBoundary(world)))));
 if(!completedWorld.blockers?.length)throw Error("Camera preparation needs the loaded island");
 installSkateRailFinish(completedWorld);
 const cameraPreparation=await prepareCameraMeshes(completedWorld);

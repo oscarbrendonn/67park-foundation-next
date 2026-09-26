@@ -8,7 +8,27 @@ export const PARKED_FLEET=Object.freeze([
  [-36.2,-31.0,0,'#58b8bb'],[-32.6,-31.0,0,'#df92ac'],[-29,-31.0,0,'#9aabd3'],[-21.8,-31.0,0,'#e3bf75'],
  [-32.6,-18.6,Math.PI,'#92b998'],[-29,-18.6,Math.PI,'#d49379'],[-25.4,-18.6,Math.PI,'#ac95c5'],[-21.8,-18.6,Math.PI,'#88b7d3']
 ].map(Object.freeze));
-const materials=new Set(['SPORTS97_blue','SPORTS97_sage','SPORTS97_rose','SPORTS97_glass','SPORTS97_warm','SPORTS97_cream','SPORTS97_tyre','SPORTS97_metal','SPORTS97_line']);
+// The sage bay also used the shared wood material for its old exterior trim.
+// Retire it only inside the existing car bounds; benches stay untouched.
+const materials=new Set(['SPORTS97_blue','SPORTS97_sage','SPORTS97_rose','SPORTS97_glass','SPORTS97_warm','SPORTS97_cream','SPORTS97_tyre','SPORTS97_metal','SPORTS97_line','SPORTS97_wood']);
+// Remove only unreachable vertices after the existing triangle cut. No weld,
+// quantisation, normal regeneration or simplification of visible surfaces.
+export function compactParkedGeometry(source,retained){
+ if(source.groups.length||Object.keys(source.morphAttributes).length||source.drawRange.start!==0||source.drawRange.count!==Infinity)throw Error('Unsupported parked geometry layout');
+ const count=source.attributes.position.count,remap=new Int32Array(count).fill(-1),used=[],index=[];
+ for(const old of retained){
+  if(!Number.isInteger(old)||old<0||old>=count)throw Error('Invalid parked vertex index');
+  if(remap[old]<0){remap[old]=used.length;used.push(old);}index.push(remap[old]);
+ }
+ const result=new T.BufferGeometry();result.name=source.name;result.userData={...source.userData};
+ for(const [name,attr]of Object.entries(source.attributes)){
+  if(attr.isInterleavedBufferAttribute||attr.count!==count){result.dispose();throw Error('Unsupported parked vertex attribute');}
+  const array=new attr.array.constructor(used.length*attr.itemSize);
+  for(let i=0;i<used.length;i++){const start=used[i]*attr.itemSize;array.set(attr.array.subarray(start,start+attr.itemSize),i*attr.itemSize);}
+  const packed=new T.BufferAttribute(array,attr.itemSize,attr.normalized);packed.name=attr.name;packed.setUsage(attr.usage);packed.gpuType=attr.gpuType;result.setAttribute(name,packed);
+ }
+ result.setIndex(index);result.computeBoundingBox();result.computeBoundingSphere();return result;
+}
 export function installParkedFleet(group){
  if(group.userData.parkedFleet38)return group.userData.parkedFleet38;
  const cuts=[],counts=Array(8).fill(0);
@@ -21,7 +41,7 @@ export function installParkedFleet(group){
    const bay=PARKED_FLEET.findIndex(([x,z])=>triangle.every(j=>Math.abs(p.getX(j)-x)<1.31&&Math.abs(p.getZ(j)-z)<2.51&&p.getY(j)>.15&&p.getY(j)<2.07));
    if(bay>=0){counts[bay]++;removed++;}else retained.push(...triangle);
   }
-  if(removed){const replacement=geometry.clone();replacement.setIndex(retained);replacement.computeBoundingBox();replacement.computeBoundingSphere();cuts.push({mesh,replacement,old:geometry});}
+  if(removed){const replacement=compactParkedGeometry(geometry,retained);cuts.push({mesh,replacement,old:geometry});}
  });
  // Fail closed: never remove unrelated geometry if the source layout changes.
  if(counts.some(n=>n<100)){for(const c of cuts)c.replacement.dispose();throw Error('Parked fleet source layout mismatch: '+counts.join(','));}
@@ -47,8 +67,10 @@ export function installParkedFleet(group){
   if(!g)throw Error('Could not batch parked vehicle '+name);
   const mesh=new T.Mesh(g,b.material);mesh.name=name;mesh.castShadow=mesh.receiveShadow=!b.material.transparent;root.add(mesh);
  }
- for(const c of cuts){c.mesh.geometry=c.replacement;c.old.dispose();}
+ let removedVertices=0,removedAttributeBytes=0;
+ for(const c of cuts){removedVertices+=c.old.attributes.position.count-c.replacement.attributes.position.count;for(const key of Object.keys(c.old.attributes))removedAttributeBytes+=c.old.attributes[key].array.byteLength-c.replacement.attributes[key].array.byteLength;c.mesh.geometry=c.replacement;c.old.dispose();}
+ root.position.y=-(group.userData.parkingGroundFinish?.drop??0);
  group.add(root);group.updateMatrixWorld(true);
- const stats={cars:8,body:'same-as-driveable-reference-car',colours:PARKED_FLEET.map(p=>p[3]),plates:'authentic-colour-67park-front-and-rear',draws:root.children.length,removedTriangles:counts.reduce((a,b)=>a+b,0),floorChanged:false};
+ const stats={cars:8,body:'same-as-driveable-reference-car',colours:PARKED_FLEET.map(p=>p[3]),plates:'authentic-colour-67park-front-and-rear',draws:root.children.length,removedTriangles:counts.reduce((a,b)=>a+b,0),removedVertices,removedAttributeBytes,floorChanged:false};
  const result={root,stats};group.userData.parkedFleet38=result;return result;
 }

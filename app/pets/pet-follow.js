@@ -58,5 +58,23 @@ export function createPetFollower(probe) {
     if(stuck>2.5&&dist(state,owner)>4){state.visible=false;initialized=false;state.recalls++;stuck=0;}
     return state;
   }
-  return {state,step,reset(){initialized=false;lastOwner=null;trail.length=0;state.visible=false;state.speed=0;},stats:()=>({trail:trail.length,initialized,...state})};
+  // Commands use the same terrain probe as following, never a tween through
+  // colliders. A long frame cannot skip a wall or allocate a second navigator.
+  function moveTo(dt,target,{speed=2.6,radius=.12,face}={}) {
+    dt=clamp(Number.isFinite(dt)?dt:0,0,.1);state.distance=0;state.speed=0;
+    if(!initialized||!finitePoint(target)||!dt)return false;
+    const dx=target.x-state.x,dz=target.z-state.z,d=Math.hypot(dx,dz);
+    if(d<=radius){if(Number.isFinite(face))state.heading+=wrap(face-state.heading)*(1-Math.exp(-12*dt));return true;}
+    let left=Math.min(d-radius,Math.max(0,speed)*dt),moved=0;
+    const nx=dx/d,nz=dz/d;
+    for(let i=0;i<7&&left>.001;i++) {
+      const amount=Math.min(.13,left),x=state.x+nx*amount,z=state.z+nz*amount,y=safe(x,z,state.y);
+      if(y===null){state.blocked++;break;}
+      state.x=x;state.y=y;state.z=z;moved+=amount;left-=amount;
+    }
+    if(moved){state.heading+=wrap(Math.atan2(nx,nz)-state.heading)*(1-Math.exp(-14*dt));state.visible=true;}
+    state.distance=moved;state.speed=moved/dt;
+    return d-moved<=radius+.002;
+  }
+  return {state,step,moveTo,hold(){state.speed=state.distance=0;trail.length=0;},reset(){initialized=false;lastOwner=null;trail.length=0;state.visible=false;state.speed=0;},stats:()=>({trail:trail.length,initialized,...state})};
 }

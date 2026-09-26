@@ -65,18 +65,39 @@ test('baked shape repairs contain finite, correctly oriented triangles and prese
   }
  }
 });
+test('southern city curb has no transverse tooth and both return edges progress monotonically',()=>{
+ assert.equal(baked.metrics.citySouthTangent,true);
+ const row=baked.meshes.find(r=>r.name==='6_BORDUR');let teeth=0;
+ for(let i=0;i<row.ix.length;i+=3){
+  const ids=row.ix.slice(i,i+3),p=ids.map(v=>row.p.slice(v*3,v*3+3));
+  if(p.every(v=>v[0]>-38.2&&v[0]<-36.9&&Math.abs(v[2]-114.4)<1e-6)
+   &&ids.some(v=>Math.abs(row.n[v*3+2])>.9&&Math.abs(row.n[v*3+1])<.1))teeth++;
+ }
+ assert.equal(teeth,0,'The old patch exposed four transverse faces at the return');
+ for(const [minX,maxX,minZ,maxZ]of [[-38.2,-38,113.6789,116.1149],[-37.05,-36.9,113.165,115.1937]]){
+  const points=new Map();
+  for(let i=0;i<row.p.length;i+=3){
+   const [x,y,z]=row.p.slice(i,i+3),[nx,ny]=row.n.slice(i,i+2);
+   if(x>=minX&&x<=maxX&&z>=minZ&&z<=maxZ&&Math.abs(ny)<.001&&Math.abs(nx)>.98)
+    points.set(x+','+z,[x,z]);
+  }
+  const ordered=[...points.values()].sort((a,b)=>a[1]-b[1]);assert(ordered.length>=10,'Curved-to-straight samples are present');
+  for(let i=1;i<ordered.length;i++)assert(ordered[i][0]>=ordered[i-1][0]-1e-7,'An edge must not turn backwards into a tooth');
+ }
+});
 test('both runtime variants apply the joint patch after previous repairs and before terrain/shadow refresh',()=>{
  for(const name of ['island/runtime.js','island/runtime.bundle.js']){
   const s=fs.readFileSync(new URL('../'+name,import.meta.url),'utf8'),i=s.indexOf('dataset.mapJointFinish1=');
   assert.equal(s.split('dataset.mapJointFinish1=').length,2);assert(i>s.indexOf('dataset.northHousingSurface1='));assert(s.slice(i,i+650).includes('67D_SKATEPARK_BASE'));
+  assert(s.includes('/repairs/map-joint-finish-1.json?v=city-curb-tangent-2'));
  }
  for(const name of ['index.html','play/index.html','explore/index.html','style-studio/index.html','balloon/index.html','race/index.html','rockets/index.html','sports/index.html','lane-rush/index.html','skybound-soft/index.html']){
   const s=fs.readFileSync(new URL('../'+name,import.meta.url),'utf8'),map=JSON.parse(s.match(/<script type="importmap">([\s\S]*?)<\/script>/)[1]).imports;
   const path='/67park-foundation-next/island/runtime.bundle.js';
-  for(const [key,value]of Object.entries(map))if(key.split('?')[0]===path)assert.equal(value,path+'?v=map-joint-finish-1');
+  for(const [key,value]of Object.entries(map))if(key.split('?')[0]===path)assert.equal(value,path+'?v=city-startup-memory-1');
   const raw=s.match(/67park.entry.downloads.v1"\)\]=([^;]+);/);
   if(raw){const files=JSON.parse(raw[1]),r=files.filter(r=>r.url.includes('/map-joint-finish-1.json'));
-   assert.equal(r.length,1);assert.equal(r[0].bytes,fs.statSync(new URL('../repairs/map-joint-finish-1.json',import.meta.url)).size);
+   assert.equal(r.length,1);assert(r[0].url.endsWith('?v=city-curb-tangent-2'));assert.equal(r[0].bytes,fs.statSync(new URL('../repairs/map-joint-finish-1.json',import.meta.url)).size);
   }
  }
 });

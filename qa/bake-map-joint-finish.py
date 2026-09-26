@@ -1,6 +1,6 @@
 """Four bounded contour repairs, baked from the 682fa42 rendered terrain.
 
-Usage: python3 qa/bake-map-joint-finish.py [audit-directory]
+Usage: python3 qa/bake-map-joint-finish.py [audit-directory] [evidence-directory]
 No textures, floating decals, new scene objects, or per-frame modifiers.
 """
 import json, sys, zlib
@@ -139,7 +139,19 @@ changes['fairground']={'old':fair_old,'new':fair_new,'plaza':plaza}
 # southern horizontal return to a single Z. Retain large authored openings.
 city=next(p for p in parts(shapes['6_BORDUR']) if p.bounds[0]>-100 and p.bounds[0]<-99 and p.area>350)
 west=next(p for p in parts(shapes['6_BORDUR']) if p.bounds[0]<-123 and 278<p.area<282)
-def clean(p,kind):
+def tangent_tail(start,previous,end):
+    """Continue the measured curve into its straight return without a tooth.
+
+    The quadratic preserves the incoming X/Z tangent, reaches the authored
+    return X monotonically, then continues vertically. Neither the road's
+    outer extent nor the height/material changes. No global smoothing.
+    """
+    x,z=start;px,pz=previous;ex,ez=end
+    slope=(x-px)/(z-pz);length=2*(ex-x)/slope
+    assert slope>0 and 0<length<ez-z
+    arc=[(x+(ex-x)*(2*t-t*t),z+length*t) for t in np.linspace(0,1,17)]
+    return [*arc,(ex,ez)]
+def clean(p,kind,tangent=True):
     def ring(r,is_outer):
         out=[]
         for x,z in r.coords[:-1]:
@@ -150,6 +162,26 @@ def clean(p,kind):
                 if not is_outer and x>-54 and z>114.67:z=114.6734
                 if is_outer and x>-54 and z>115.8:z=115.8398
             out.append((x,z))
+        if kind=='city' and tangent:
+            if is_outer:
+                first=next(i for i,q in enumerate(out) if np.allclose(q,[-38.1361,113.6789],atol=1e-7,rtol=0))
+                last=next(i for i,q in enumerate(out) if np.allclose(q,[-38.0761,116.1149],atol=1e-7,rtol=0))
+                assert last-first==4 and np.allclose(out[first+2],[-38.1704,114.4],atol=1e-7,rtol=0)
+                out=out[:first]+tangent_tail(out[first],out[first-1],out[last])+out[last+1:]
+            else:
+                start=next(i for i,q in enumerate(out) if np.allclose(q,[-37.0362,113.165],atol=1e-7,rtol=0))
+                out=out[start:]+out[:start]
+                assert np.allclose(out[0],[-37.0362,113.165],atol=1e-7,rtol=0)
+                last=next(i for i,q in enumerate(out) if np.allclose(q,[-36.973,115.1937],atol=1e-7,rtol=0))
+                assert np.allclose(out[last+1],[-37.0239,114.4],atol=1e-7,rtol=0)
+                # Same 1.14224 m strip width at the straight return. Its end
+                # stays on the existing horizontal road edge, so shifting X
+                # cannot rotate that entire twenty-metre adjoining edge.
+                end_x=-38.0761+1.14224
+                corner=np.array(out[last]);road=np.array(out[last-1])
+                end_z=corner[1]+(end_x-corner[0])*(road[1]-corner[1])/(road[0]-corner[0])
+                tail=tangent_tail(out[0],out[1],(end_x,end_z))
+                out=out[:last]+tail[:0:-1]
         return out
     new=Polygon(ring(p.exterior,True),[ring(r,False) for r in p.interiors if Polygon(r).area>.001])
     assert new.is_valid and len(new.interiors)==1
@@ -158,7 +190,17 @@ city_new=clean(city,'city');west_new=clean(west,'west')
 south_window=box(-54,114,-48,116.5)
 filleted=west_new.buffer(.18,quad_segs=16).buffer(-.36,quad_segs=16).buffer(.18,quad_segs=16)
 west_new=union_all([west_new.difference(south_window),filleted.intersection(south_window)])
-assert city.symmetric_difference(city_new).area<.02
+city_previous=clean(city,'city',False)
+assert city.symmetric_difference(city_previous).area<.02
+assert city_previous.symmetric_difference(city_new).area<.14
+# Both ring edits are confined to the short southern tangent. Elsewhere the
+# prior city repair remains byte-for-byte the same polygon coordinates.
+tail_scope=box(-38.18,113.16,-36.90,116.12)
+assert city_previous.symmetric_difference(city_new).difference(tail_scope).area<1e-8
+assert city.symmetric_difference(city_new).difference(tail_scope).area<.02
+for z in np.linspace(113.68,115.19,40):
+    width=city_new.intersection(LineString([(-39,z),(-36,z)])).length
+    assert abs(width-1.14224)<.012, (z,width)
 assert west.symmetric_difference(west_new).area<.4
 city_old=union_all([city,west]);city_new_all=union_all([city_new,west_new])
 clip_out(row('6_BORDUR'),city_old.buffer(.0003));rounded(row('6_BORDUR'),city_new_all)
@@ -217,9 +259,9 @@ for r in rows.values():
         ix.append(unique[key])
     r.update(p=p,n=n,ix=ix)
     assert len(r['p'])==len(r['n']) and all(np.isfinite(r['p'])) and all(np.isfinite(r['n']))
-metrics=dict(fairgroundWidth=fair_width,coastWidth=coast_width,cityGapCount=len(gaps),cityGapArea=gap_union.area,cityContourDelta=city_old.symmetric_difference(city_new_all).area,stadiumContourDelta=stadium_old.symmetric_difference(stadium_new).area,addedDrawCalls=0,perFrameWork=0)
+metrics=dict(fairgroundWidth=fair_width,coastWidth=coast_width,cityGapCount=len(gaps),cityGapArea=gap_union.area,cityContourDelta=city_old.symmetric_difference(city_new_all).area,citySouthTangent=True,stadiumContourDelta=stadium_old.symmetric_difference(stadium_new).area,addedDrawCalls=0,perFrameWork=0)
 patch=dict(version=1,sourceRevision='682fa42441bdbd9c679a8a6ec03fa9048e71f318',meshes=list(rows.values()),donors=[dict(name=plaza_name,expected=expected(meshes[plaza_name])) for plaza_name in ['5_DOGU_SAHIL_MEYDAN_ZEMIN','3_CIMEN_KOYU']],metrics=metrics)
 destination=Path('repairs/map-joint-finish-1.json');destination.write_text(json.dumps(patch,separators=(',',':'))+'\n')
-out=Path('.qa-results/map-joint-finish-1');out.mkdir(exist_ok=True)
+out=Path(sys.argv[2] if len(sys.argv)>2 else '.qa-results/map-joint-finish-1');out.mkdir(parents=True,exist_ok=True)
 (out/'contours.json').write_text(json.dumps({k:{n:shapely.to_geojson(v) for n,v in values.items()} for k,values in changes.items()}))
 print(json.dumps(dict(metrics=metrics,bytes=destination.stat().st_size,meshes=[dict(name=r['name'],removed=len(r['remove']),added=len(r['ix'])//3) for r in rows.values()]),indent=2))

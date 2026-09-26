@@ -128,9 +128,10 @@ test('entry resolves old and new horn aliases to one revision, with local driver
  const html=read('index.html'),map=JSON.parse(html.match(/<script type="importmap">([\s\S]*?)<\/script>/)[1]).imports;
  for(const name of ['party-pack','party-audio','vehicle-horn']){
   const path='/67park-foundation-next/app/party/'+name+'.js',entries=Object.entries(map).filter(([key])=>key.split('?')[0]===path);
-  assert(entries.length>=2,name);assert(entries.every(([,value])=>value===path+'?v=horn-hold-1'),name);
+  const version=name==='party-pack'?'target-club-1':name==='party-audio'?'pet-play-2':'horn-hold-1';
+  assert(entries.length>=2,name);assert(entries.every(([,value])=>value===path+'?v='+version),name);
  }
- assert(html.includes('src="/67park-foundation-next/app/party/party-pack.js?v=horn-hold-1"'));
+ assert(html.includes('src="/67park-foundation-next/app/party/party-pack.js?v=target-club-1"'));
  const pack=read('app/party/party-pack.js'),wiring=pack.slice(pack.indexOf('const horn = createVehicleHorn('),pack.indexOf('let stateApi'));
  assert(wiring.includes("player.map==='city'&&!!n?.connected&&!!n.id"));assert(wiring.includes('car.ownerAt?.(0)===n.id'));
  assert(wiring.includes('start:()=>sfx.startHorn()'));assert(wiring.includes('stop:()=>sfx.stopHorn()'));assert(!wiring.includes('send:'));

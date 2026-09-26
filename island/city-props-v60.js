@@ -80,6 +80,11 @@ export async function loadCityProps60({scene,renderer,sample,variant}){
   group.add(mesh);meshes.push(mesh);triangles+=geometry.index.count/3;
   for(const g of bucket.geometry)g.dispose();
  }
+ // dispose() releases GPU resources, not these retained CPU arrays. The
+ // returned update closure keeps this construction scope alive. All scratch
+ // geometry has been copied into the final meshes; nothing reads it again.
+ // Drop only the private scratch map, never live meshes/materials or outfits.
+ buckets.clear();
  group.updateMatrixWorld(true);
  const heightSampler=createCityHeightSampler58(meshes.filter(m=>!m.material.userData.cityGlass60));
  // Ground-only contact halos keep far-map foundations readable when the sun's
