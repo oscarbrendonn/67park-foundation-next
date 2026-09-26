@@ -19,11 +19,21 @@ module.exports=async function vehicleFeedback(page,{mobile}){
    const r=await page.getByRole('button',{name,exact:true}).boundingBox();
    assert(r&&!(box.x<r.x+r.width&&box.x+box.width>r.x&&box.y<r.y+r.height&&box.y+box.height>r.y),'horn must not cover '+name);
   }
-  await horn.tap();
- }else await page.keyboard.press('KeyH');
- assert.equal(await page.evaluate(()=>__party.horn.stats().emitted),before.horn.emitted+1,'trusted horn input');
- await page.evaluate(()=>{for(let i=0;i<1000;i++)__party.horn.press();});
- assert.equal(await page.evaluate(()=>__party.horn.stats().emitted),before.horn.emitted+1,'horn spam stays bounded');
+ }
+ const touch=mobile?await page.context().newCDPSession(page):null;
+ try{
+  if(touch)await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:box.x+box.width/2,y:box.y+box.height/2,id:7}]});
+  else await page.keyboard.down('KeyH');
+  await page.waitForTimeout(400);
+  assert.equal(await page.evaluate(()=>__party.horn.stats().held),true,'trusted input sustains horn');
+  assert.equal(await page.evaluate(()=>__party.horn.stats().emitted),before.horn.emitted+1,'trusted horn input');
+  await page.evaluate(()=>{for(let i=0;i<1000;i++)__party.horn.press();});
+  assert.equal(await page.evaluate(()=>__party.horn.stats().emitted),before.horn.emitted+1,'held horn cannot layer extra voices');
+ }finally{
+  if(touch){await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await touch.detach();}
+  else await page.keyboard.up('KeyH');
+ }
+ assert.equal(await page.evaluate(()=>__party.horn.stats().held),false,'release stops horn');
  await page.evaluate(()=>{const input=document.createElement('input');input.id='qa-horn-chat';document.body.append(input);input.focus();});
  try{await page.keyboard.press('KeyH');assert.equal(await page.evaluate(()=>__party.horn.stats().emitted),before.horn.emitted+1,'typing H is not a horn');}
  finally{await page.evaluate(()=>document.querySelector('#qa-horn-chat')?.remove());}

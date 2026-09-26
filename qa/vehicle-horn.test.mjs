@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import fs from 'node:fs';
 import {createVehicleHorn} from '../app/party/vehicle-horn.js';
 
 class FakeTarget {
@@ -18,12 +19,12 @@ function fixture({driver = true, blocked = false, hidden = false} = {}) {
     children: [], appendChild(node){ node.parentNode = this; this.children.push(node); },
     removeChild(node){ this.children = this.children.filter(item => item !== node); node.parentNode = null; },
   };
-  const documentRef = {body, hidden, createElement: () => new FakeButton()};
-  let time = 0, local = 0, remote = 0;
+  const documentRef = Object.assign(new FakeTarget(), {body, hidden, createElement: () => new FakeButton()});
+  let time = 0, local = 0, remote = 0, starts = 0, stops = 0;
   const horn = createVehicleHorn({document: documentRef, window: windowRef, driver: () => driver, blocked: () => blocked,
-    now: () => time, play: () => local++, send: () => remote++});
+    now: () => time, play: () => local++, start:()=>{local++;starts++;}, stop:()=>stops++, send: () => remote++});
   return {horn, windowRef, documentRef, body, setDriver: value => { driver = value; }, setBlocked: value => { blocked = value; },
-    setTime: value => { time = value; }, counts: () => ({local, remote})};
+    setTime: value => { time = value; }, counts: () => ({local, remote}), heldCounts:()=>({starts,stops})};
 }
 
 test('only an eligible driver receives the fixed accessible horn control', () => {
@@ -45,15 +46,17 @@ test('a horn press invokes existing local SFX and send adapters once', () => {
   assert.equal(f.horn.stats().emitted, 1);
 });
 
-test('keyboard repeat, modifiers, and the 800ms rate guard cannot sustain a horn', () => {
+test('H sustains one voice for an arbitrary hold and stops on keyup; repeats never layer voices', () => {
   const f = fixture();
   f.windowRef.emit('keydown', {code: 'KeyH', repeat: true});
   f.windowRef.emit('keydown', {code: 'KeyH', ctrlKey: true});
   f.windowRef.emit('keydown', {code: 'KeyH'});
   f.windowRef.emit('keydown', {code: 'KeyH'});
-  f.setTime(799); f.windowRef.emit('keydown', {code: 'KeyH'});
-  f.setTime(800); f.windowRef.emit('keydown', {code: 'KeyH'});
-  assert.deepEqual(f.counts(), {local: 2, remote: 2});
+  f.setTime(60000); f.windowRef.emit('keydown', {code: 'KeyH',repeat:true});f.horn.step();
+  assert.deepEqual(f.counts(), {local: 1, remote: 1});assert.equal(f.horn.stats().held,true);
+  f.windowRef.emit('keyup',{code:'KeyH'});assert.equal(f.horn.stats().held,false);
+  assert.deepEqual(f.heldCounts(),{starts:1,stops:1});
+  f.windowRef.emit('keydown',{code:'KeyH'});assert.equal(f.heldCounts().starts,2);
 });
 
 test('text entry, hidden state, blocked state, and driver exit reject horn input', () => {
@@ -70,9 +73,36 @@ test('text entry, hidden state, blocked state, and driver exit reject horn input
 test('a touch pointerdown plus its click emits one bounded horn without affecting driving touches', () => {
   const f = fixture(), button = f.body.children[0];
   button.emit('pointerdown', {pointerType: 'touch', pointerId: 9});
+  f.windowRef.emit('pointerup',{pointerId:3});assert.equal(f.horn.stats().held,true);
+  f.windowRef.emit('pointerup',{pointerId:9});assert.equal(f.horn.stats().held,false);
   button.emit('click');
   assert.deepEqual(f.counts(), {local: 1, remote: 1});
   assert.equal(f.horn.stats().emitted, 1);
+  assert.deepEqual(f.heldCounts(),{starts:1,stops:1});
+});
+
+test('touch and H share a voice until both inputs are released',()=>{
+ const f=fixture(),button=f.body.children[0];button.emit('pointerdown',{pointerType:'touch',pointerId:9});
+ f.windowRef.emit('keydown',{code:'KeyH'});f.windowRef.emit('keyup',{code:'KeyH'});
+ assert.equal(f.horn.stats().held,true);assert.equal(f.heldCounts().starts,1);
+ button.emit('lostpointercapture',{pointerId:9});assert.equal(f.horn.stats().held,false);assert.equal(f.heldCounts().stops,1);
+});
+test('blur, hidden page, pagehide, driver exit, blocked UI and text focus all release immediately',()=>{
+ for(const end of [f=>f.windowRef.emit('blur'),f=>f.windowRef.emit('pagehide'),
+  f=>{f.documentRef.hidden=true;f.documentRef.emit('visibilitychange');},
+  f=>{f.setDriver(false);f.horn.step();},f=>{f.setBlocked(true);f.horn.step();},
+  f=>f.documentRef.emit('focusin',{target:{tagName:'INPUT'}})]){
+  const f=fixture();f.windowRef.emit('keydown',{code:'KeyH'});end(f);
+  assert.equal(f.horn.stats().held,false);assert.equal(f.heldCounts().stops,1);
+ }
+});
+test('focused button Space/Enter hold and release; rapid press spam remains bounded',()=>{
+ for(const code of ['Space','Enter']){const f=fixture(),target=f.body.children[0];
+  f.windowRef.emit('keydown',{code,target});assert.equal(f.horn.stats().held,true);
+  f.windowRef.emit('keyup',{code,target});assert.equal(f.horn.stats().held,false);
+  for(let i=0;i<1000;i++)f.horn.press();assert.equal(f.horn.stats().emitted,1);
+  f.setTime(120);assert.equal(f.horn.press(),true);
+ }
 });
 
 test('a cancelled touch cannot suppress a later keyboard accessibility click', () => {
@@ -91,4 +121,17 @@ test('dispose removes listeners and the mounted control', () => {
   assert.equal(f.body.children.length, 0);
   assert.deepEqual(f.counts(), {local: 0, remote: 0});
   assert.equal(f.horn.stats().eligible, false);
+});
+
+test('entry resolves old and new horn aliases to one revision, with local driver-only wiring',()=>{
+ const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
+ const html=read('index.html'),map=JSON.parse(html.match(/<script type="importmap">([\s\S]*?)<\/script>/)[1]).imports;
+ for(const name of ['party-pack','party-audio','vehicle-horn']){
+  const path='/67park-foundation-next/app/party/'+name+'.js',entries=Object.entries(map).filter(([key])=>key.split('?')[0]===path);
+  assert(entries.length>=2,name);assert(entries.every(([,value])=>value===path+'?v=horn-hold-1'),name);
+ }
+ assert(html.includes('src="/67park-foundation-next/app/party/party-pack.js?v=horn-hold-1"'));
+ const pack=read('app/party/party-pack.js'),wiring=pack.slice(pack.indexOf('const horn = createVehicleHorn('),pack.indexOf('let stateApi'));
+ assert(wiring.includes("player.map==='city'&&!!n?.connected&&!!n.id"));assert(wiring.includes('car.ownerAt?.(0)===n.id'));
+ assert(wiring.includes('start:()=>sfx.startHorn()'));assert(wiring.includes('stop:()=>sfx.stopHorn()'));assert(!wiring.includes('send:'));
 });

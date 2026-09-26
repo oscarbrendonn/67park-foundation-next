@@ -19,7 +19,7 @@ const base=process.env.PARK_VEHICLE_URL||'http://127.0.0.1:8496/67park-foundatio
     await assertBrowserRenderer(page);
     const audio=await page.evaluate(async()=>{
      // Render to an in-memory buffer, NEVER to the physical audio device.
-     const {createPartyAudio}=await import('./app/party/party-audio.js?v=vehicle-feedback-1');
+     const {createPartyAudio}=await import('./app/party/party-audio.js?v=horn-hold-1');
      const offline=new OfflineAudioContext(1,24000,48000),host=new EventTarget();host.document=new EventTarget();host.document.hidden=false;
      host.AudioContext=class{constructor(){return new Proxy(offline,{get(target,key){if(key==='state')return 'running';const value=Reflect.get(target,key,target);return typeof value==='function'?value.bind(target):value;}});}};
      const sfx=createPartyAudio({host,settings:{sfx:.8},saveSettings(){},gameMuted:()=>false});sfx.ensure();sfx.play('horn');

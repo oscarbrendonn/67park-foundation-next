@@ -12,9 +12,9 @@ import {installSkateRailFinish} from './skate-rail-finish.js?v=1';
 import * as THREE from 'three';
 import {playerSettings as settings,savePlayerSettings as saveSettings} from '../player-settings.js';
 import {installPlayerSettings} from './settings-panel.js?v=recovery-graphics-1';
-import { createPartyAudio } from './party-audio.js?v=vehicle-feedback-1';
+import { createPartyAudio } from './party-audio.js?v=horn-hold-1';
 import {createFeatureBoundary} from '../feature-boundary.js';
-import {createVehicleHorn} from './vehicle-horn.js?v=vehicle-feedback-1';
+import {createVehicleHorn} from './vehicle-horn.js?v=horn-hold-1';
 
 const BASE = new URL('../../', import.meta.url).pathname.replace(/\/$/, '');
 const CFG = Object.assign({runtime: '', carry: ''}, (typeof window !== 'undefined' && window.__partyConfig) || {});
@@ -58,7 +58,7 @@ const horn = createVehicleHorn({
       !!world()?.traffic?.cars?.some(car=>car.ownerAt?.(0)===n.id);
   },
   blocked:()=>!!document.querySelector('.wardrobe,dialog[open],#party-settings:not([hidden]),.park-chat input:focus,.park-chat textarea:focus'),
-  play:()=>sfx.play('horn')
+  play:()=>sfx.play('horn'), start:()=>sfx.startHorn(), stop:()=>sfx.stopHorn()
 });
 let stateApi = null, carryApi = null; // the game's own modules (same instances as main.js: exact same URLs)
 const state = () => { try { return stateApi ? stateApi() : null; } catch { return null; } };

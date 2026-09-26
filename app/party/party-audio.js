@@ -1,8 +1,8 @@
 // Original 67Park effects. One audio graph; bounded voices; no animation-loop ownership.
 export function createPartyAudio({settings, saveSettings, gameMuted, host = window}) {
-  let ctx, master, compressor, noise, blocked = false;
+  let ctx, master, compressor, noise, resuming, hornVoice, hornWanted = false, blocked = false;
   const voices = new Set(), last = new Map(), counts = {};
-  const limits = {step: 90, jump: 140, double: 140, land: 100, 'skate-ollie':110, 'skate-flip':140, 'skate-land':100, horn:800, swing: 150, hit: 100, pad: 250, grab: 150, throw: 150, click: 60, stars: 350, note:80, bell:1800};
+  const limits = {step: 90, jump: 140, double: 140, land: 100, 'skate-ollie':110, 'skate-flip':140, 'skate-land':100, horn:120, swing: 150, hit: 100, pad: 250, grab: 150, throw: 150, click: 60, stars: 350, note:80, bell:1800};
   const audible = () => ctx?.state === 'running' && !host.document.hidden && !blocked && !gameMuted() && settings.sfx > 0;
   const volume = () => {
     if (ctx && master) master.gain.setTargetAtTime(audible() ? Math.min(1, Math.max(0, Number(settings.sfx) || 0)) * 0.65 : 0, ctx.currentTime, 0.025);
@@ -20,11 +20,52 @@ export function createPartyAudio({settings, saveSettings, gameMuted, host = wind
         noise = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
         const data = noise.getChannelData(0);
         for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+        ctx.addEventListener?.('statechange', () => { if (ctx.state !== 'running') stopHorn(); });
       }
-      if (ctx.state === 'suspended' || ctx.state === 'interrupted') ctx.resume().then(volume).catch(() => {});
+      if ((ctx.state === 'suspended' || ctx.state === 'interrupted') && !resuming) resuming = ctx.resume().then(volume).catch(() => {}).finally(() => { resuming = null; });
       volume();
       return ctx;
     } catch { return null; } // Audio failure must never disable gameplay or the party pack.
+  }
+  function stopHorn() {
+    hornWanted = false;
+    const v = hornVoice; hornVoice = null;
+    if (!v) return;
+    try {
+      // Preserve the instantaneous attack level on a very quick tap. A short
+      // release removes the click without imposing an artificial hold limit.
+      const t = ctx.currentTime;
+      const level = Math.min(.2,.2*Math.max(0,t-v.started)/.012);
+      v.envelope.gain.cancelScheduledValues(t);
+      if (t < v.started+.012) v.envelope.gain.linearRampToValueAtTime(level,t);
+      else v.envelope.gain.setValueAtTime(level,t);
+      v.envelope.gain.linearRampToValueAtTime(0,t+.04);
+      v.source.stop(t+.045);
+    } catch { try { v.source.stop(); } catch {} }
+  }
+  function soundHeldHorn() {
+    if (!hornWanted || hornVoice || !audible() || voices.size >= 24) return;
+    let source, envelope;
+    try {
+      source = ctx.createOscillator(); envelope = ctx.createGain();
+      source.type = 'triangle'; source.frequency.setValueAtTime(440,ctx.currentTime);
+      envelope.gain.setValueAtTime(0,ctx.currentTime);
+      envelope.gain.linearRampToValueAtTime(.2,ctx.currentTime+.012);
+      source.connect(envelope); envelope.connect(master); voices.add(source);
+      const v = hornVoice = {source,envelope,started:ctx.currentTime};
+      source.onended = () => { voices.delete(source); source.disconnect(); envelope.disconnect(); if(hornVoice===v)hornVoice=null; };
+      source.start(); counts.horn = (counts.horn || 0) + 1;
+    } catch {
+      voices.delete(source); if(hornVoice?.source===source)hornVoice=null;hornWanted=false;
+      try { source?.stop(); source?.disconnect(); envelope?.disconnect(); } catch {}
+    }
+  }
+  function startHorn() {
+    if (hornWanted || host.document.hidden || blocked || gameMuted() || !(settings.sfx > 0)) return;
+    hornWanted = true;
+    if (!ensure()) { hornWanted = false; return; }
+    if (audible()) soundHeldHorn();
+    else resuming?.then(soundHeldHorn); // release before iOS unlock cancels this start
   }
   function voice({noiseBand, type = 'sine', from = 400, to = 200, duration = 0.09, gain = 0.15, delay = 0, pitch = 1}) {
     if (!audible() || voices.size >= 24) return;
@@ -48,9 +89,8 @@ export function createPartyAudio({settings, saveSettings, gameMuted, host = wind
     source.start(start); source.stop(end + 0.01);
   }
   const recipes = {
-    // A short two-tone beep, never a looping source. It shares the game's
-    // existing master mute, SFX slider, visibility guard and voice budget.
-    horn(){voice({type:'triangle',from:370,to:370,duration:.22,gain:.16});voice({type:'triangle',from:466,to:466,duration:.22,gain:.12});},
+    // Same plain pitch as the held horn; finite fallback for assistive clicks.
+    horn(){voice({type:'triangle',from:440,to:440,duration:.18,gain:.2});},
     bell(){voice({from:660,to:660,duration:.3,gain:.16});voice({from:520,to:520,duration:.45,delay:.22,gain:.13});},
     note(index) {
       const f=[261.63,293.66,329.63,392,440,523.25][index];if(!f)return;
@@ -111,6 +151,7 @@ export function createPartyAudio({settings, saveSettings, gameMuted, host = wind
   function play(name, arg) {
     try {
       if (!audible() || !recipes[name]) return;
+      if (name === 'horn' && hornWanted) return;
       const now = ctx.currentTime * 1000;
       const rateKey=name==='note'?'note:'+Math.max(0,Math.min(5,Math.trunc(Number(arg)||0))):name;
       if (now - (last.get(rateKey) ?? -Infinity) < (limits[name] ?? 80)) return;
@@ -121,6 +162,7 @@ export function createPartyAudio({settings, saveSettings, gameMuted, host = wind
   }
   function quiet() {
     volume();
+    if (host.document.hidden || blocked || gameMuted() || !(settings.sfx > 0)) stopHorn();
     if (host.document.hidden || blocked || gameMuted()) for (const source of voices) { try { source.stop(); } catch {} }
   }
   // Board mode bypasses the walking controller used by __partyVisual. Listen
@@ -144,12 +186,13 @@ export function createPartyAudio({settings, saveSettings, gameMuted, host = wind
   host.addEventListener('pagehide', () => { blocked = true; quiet(); });
   host.addEventListener('pageshow', () => { blocked = false; volume(); });
   host.addEventListener('storage', quiet);
-  host.addEventListener('park:settings-change',volume);
+  host.addEventListener('park:settings-change',quiet);
   host.addEventListener('park:audio-mute-change',quiet);
+  host.addEventListener('blur',stopHorn);
   return {
-    ensure, play,
+    ensure, play, startHorn, stopHorn,
     state: () => ctx?.state || 'none',
-    setVolume(value) { settings.sfx = Math.min(1, Math.max(0, Number(value) || 0)); volume(); saveSettings(); },
-    stats: () => ({voices:voices.size, maxVoices:24, counts:{...counts}, state:ctx?.state || 'none'})
+    setVolume(value) { settings.sfx = Math.min(1, Math.max(0, Number(value) || 0)); quiet(); saveSettings(); },
+    stats: () => ({voices:voices.size, maxVoices:24, counts:{...counts}, hornActive:!!hornVoice, state:ctx?.state || 'none'})
   };
 }
